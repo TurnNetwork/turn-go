@@ -1,24 +1,26 @@
-// Copyright 2021 The Bubble Network Authors
-// This file is part of the bubble library.
+// Copyright 2021 The bubble Network Authors
+// This file is part of the bubble-go library.
 //
-// The bubble library is free software: you can redistribute it and/or modify
+// The bubble-go library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The bubble library is distributed in the hope that it will be useful,
+// The bubble-go library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble-go library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"bytes"
 
@@ -30,7 +32,6 @@ import (
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 )
@@ -47,7 +48,7 @@ const (
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
-	NodeID    discover.NodeID    `json:"nodeID"`
+	NodeID    enode.IDv0         `json:"nodeID"`
 	Address   common.NodeAddress `json:"-"`
 	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }

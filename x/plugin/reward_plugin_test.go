@@ -32,7 +32,7 @@ import (
 
 	"github.com/bubblenet/bubble/common/mock"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/rlp"
@@ -57,7 +57,7 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 			return nil, err
 		}
 		addr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:         nodeId,
@@ -453,7 +453,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	}, nil, nil)
 
 	type delegateInfo struct {
-		nodeID                                            discover.NodeID
+		nodeID                                            enode.IDv0
 		stakingNum                                        uint64
 		currentReward, totalDelegateReward, totalDelegate *big.Int
 	}
@@ -690,7 +690,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	if nil != err {
 		panic(err)
 	}
-	nodeID, add := discover.PubkeyID(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
+	nodeID, add := enode.PublicKeyToIDv0(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
 	canBase.BenefitAddress = add
 	canBase.NodeId = nodeID
 	canBase.StakingBlockNum = 100

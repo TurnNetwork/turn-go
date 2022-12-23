@@ -22,9 +22,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/bubblenet/bubble/params"
 	"math/big"
 	"sync"
 
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/x/bubble"
 
 	"github.com/bubblenet/bubble/common"
@@ -33,7 +35,6 @@ import (
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/state"
 	"github.com/bubblenet/bubble/core/vm"
-	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/x/handler"
 	"github.com/bubblenet/bubble/x/staking"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -60,7 +61,7 @@ type BlockChainReactor struct {
 	beginRule            []int                      // Order rules for xxPlugins called in BeginBlocker
 	endRule              []int                      // Order rules for xxPlugins called in EndBlocker
 	validatorMode        string                     // mode: static, inner, dpos
-	NodeId               discover.NodeID            // The nodeId of current node
+	NodeId               enode.IDv0                 // The nodeId of current node
 	exitCh               chan chan struct{}         // Used to receive an exit signal
 	exitOnce             sync.Once
 	chainID              *big.Int
@@ -327,7 +328,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 			bcr.vh.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
-		bcr.NodeId = discover.PubkeyID(&privateKey.PublicKey)
+		bcr.NodeId = enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	}
 }
 
@@ -338,7 +339,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId discover.NodeID) {
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId enode.IDv0) {
 
 	/**
 	this things about dpos
@@ -474,7 +475,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
+func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address, rules params.Rules) error {
 
 	if !vm.IsBubblePrecompiledContract(to) {
 		return nil
@@ -536,7 +537,7 @@ func (bcr *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Valid
 	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
-func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
+func (bcr *BlockChainReactor) IsCandidateNode(nodeID enode.IDv0) bool {
 	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 

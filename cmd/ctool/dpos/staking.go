@@ -22,7 +22,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 var (
@@ -153,7 +153,7 @@ func getDelegateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
+	nodeid, err := enode.HexIDv0(nodeIDstring)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func getCandidateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
+	nodeid, err := enode.HexIDv0(nodeIDstring)
 	if err != nil {
 		return err
 	}

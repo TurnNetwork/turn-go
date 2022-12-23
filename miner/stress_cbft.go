@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/bubblenet/bubble/eth/ethconfig"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -41,7 +42,7 @@ import (
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/node"
 	"github.com/bubblenet/bubble/p2p"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 )
 
@@ -197,14 +198,14 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 		return nil, err
 	}
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return eth.New(ctx, &eth.Config{
+		return eth.New(ctx, &ethconfig.Config{
 			Genesis:         genesis,
 			NetworkId:       genesis.Config.ChainID.Uint64(),
 			SyncMode:        downloader.FullSync,
 			DatabaseCache:   256,
 			DatabaseHandles: 256,
 			TxPool:          core.DefaultTxPoolConfig,
-			GPO:             eth.DefaultConfig.GPO,
+			GPO:             ethconfig.Defaults.GPO,
 			MinerGasFloor:   genesis.GasLimit * 9 / 10,
 			MinerGasCeil:    genesis.GasLimit * 21 / 10,
 			MinerGasPrice:   big.NewInt(1),

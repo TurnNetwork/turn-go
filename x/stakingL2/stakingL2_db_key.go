@@ -23,7 +23,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/math"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 var (
@@ -65,7 +65,7 @@ func CommitteeKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CommitteeKeyPrefix, addr.Bytes()...)
 }
 
-func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID discover.NodeID) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID enode.IDv0) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0

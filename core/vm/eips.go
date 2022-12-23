@@ -39,9 +39,9 @@ func enable1884(jt *JumpTable) {
 	}
 }
 
-func opSelfBalance(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
-	balance, _ := uint256.FromBig(interpreter.evm.StateDB.GetBalance(callContext.contract.Address()))
-	callContext.stack.push(balance)
+func opSelfBalance(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	balance, _ := uint256.FromBig(interpreter.evm.StateDB.GetBalance(scope.Contract.Address()))
+	scope.Stack.push(balance)
 	return nil, nil
 }
 
@@ -58,10 +58,17 @@ func enable1344(jt *JumpTable) {
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
+func opChainID(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	chainId, _ := uint256.FromBig(interpreter.evm.chainConfig.ChainID)
-	callContext.stack.push(chainId)
+	scope.Stack.push(chainId)
+
 	return nil, nil
+}
+
+// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
+func enable2200(jt *JumpTable) {
+	jt[SLOAD].constantGas = params.SloadGasEIP2200
+	jt[SSTORE].dynamicGas = gasSStoreEIP2200
 }
 
 // enable2315 applies EIP-2315 (Simple Subroutines)

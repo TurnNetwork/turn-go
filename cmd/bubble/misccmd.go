@@ -18,12 +18,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/bubblenet/bubble/cmd/utils"
-	"github.com/bubblenet/bubble/eth"
-	"github.com/bubblenet/bubble/params"
-	"gopkg.in/urfave/cli.v1"
 	"os"
 	"runtime"
+
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/params"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -56,7 +56,6 @@ func version(ctx *cli.Context) error {
 		fmt.Println("Git Commit Date:", gitDate)
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
-	fmt.Println("Protocol Versions:", eth.ProtocolVersions)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))

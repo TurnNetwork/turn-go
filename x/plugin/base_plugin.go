@@ -22,20 +22,21 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/byteutil"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/xcom"
+
 	gerr "github.com/go-errors/errors"
 )
 
 type BasePlugin interface {
 	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
 	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
-	Confirmed(nodeId discover.NodeID, block *types.Block) error
+	Confirmed(nodeId enode.IDv0, block *types.Block) error
 }
 
 var (

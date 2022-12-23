@@ -22,6 +22,7 @@ import (
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/x/bubble"
+	"github.com/bubblenet/bubble/x/xcom/vrf"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -120,17 +121,17 @@ func TestBubblePlugin_PostMintTokenEvent(t *testing.T) {
 }
 
 func TestVRF(t *testing.T) {
-	queue := VRFQueue{
-		{v: "a", w: big.NewInt(int64(4))},
-		{v: "b", w: big.NewInt(int64(15))},
-		{v: "c", w: big.NewInt(int64(20))},
-		{v: "d", w: big.NewInt(int64(12))},
-		{v: "e", w: big.NewInt(int64(31))},
-		{v: "f", w: big.NewInt(int64(1))},
-		{v: "g", w: big.NewInt(int64(7))},
-		{v: "h", w: big.NewInt(int64(8))},
-		{v: "i", w: big.NewInt(int64(6))},
-		{v: "j", w: big.NewInt(int64(57))},
+	queue := vrf.VRFQueue{
+		{V: "a", W: big.NewInt(int64(4))},
+		{V: "b", W: big.NewInt(int64(15))},
+		{V: "c", W: big.NewInt(int64(20))},
+		{V: "d", W: big.NewInt(int64(12))},
+		{V: "e", W: big.NewInt(int64(31))},
+		{V: "f", W: big.NewInt(int64(1))},
+		{V: "g", W: big.NewInt(int64(7))},
+		{V: "h", W: big.NewInt(int64(8))},
+		{V: "i", W: big.NewInt(int64(6))},
+		{V: "j", W: big.NewInt(int64(57))},
 		//{w: big.NewInt(int64(5))},
 		//{w: big.NewInt(int64(3))},
 		//{w: big.NewInt(int64(4))},
@@ -155,11 +156,11 @@ func TestVRF(t *testing.T) {
 	}
 	for i := 0; i < 1; i++ {
 		fmt.Println("=============================")
-		if vrfed, err := VRF(queue, 10, curNonce, preNoce); err != nil {
+		if vrfed, err := vrf.VRF(queue, 10, curNonce, preNoce); err != nil {
 			fmt.Printf("选举错误：%s \n", err.Error())
 		} else {
 			for _, v := range vrfed {
-				fmt.Printf("VRF值： %s %d %d \n", v.v, v.x, v.w)
+				fmt.Printf("VRF值： %s %d %d \n", v.V, v.X, v.W)
 			}
 
 		}

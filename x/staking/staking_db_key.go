@@ -23,7 +23,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/math"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 const (
@@ -84,7 +84,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID discover.NodeID) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID enode.IDv0) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -140,7 +140,7 @@ func GetUnStakeItemKey(epoch, index uint64) []byte {
 	return key
 }
 
-func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) []byte {
+func GetDelegateKey(delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) []byte {
 
 	delAddrByte := delAddr.Bytes()
 	nodeIdByte := nodeId.Bytes()
@@ -161,12 +161,12 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 }
 
 // notice this assume key must right
-func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) {
+func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) {
 	delegateKeyPrefixLength := len(DelegateKeyPrefix)
 	delAddrLength := len(delAddr) + delegateKeyPrefixLength
 	nodeIdLength := len(nodeId) + delAddrLength
 	delAddr = common.BytesToAddress(key[delegateKeyPrefixLength:delAddrLength])
-	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
+	nodeId = enode.MustBytesToIDv0(key[delAddrLength:nodeIdLength])
 	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
 	return
 }

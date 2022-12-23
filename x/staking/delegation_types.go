@@ -8,7 +8,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 func NewDelegation() *Delegation {
@@ -200,7 +200,7 @@ func (delHex *DelegationHex) String() string {
 
 type DelegationEx struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 	DelegationHex
 }
@@ -227,7 +227,7 @@ func (dex *DelegationEx) IsEmpty() bool {
 
 type DelegationExV1 struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 	DelegationHexV1
 }
@@ -250,7 +250,7 @@ func (dex *DelegationEx) V1() *DelegationExV1 {
 
 type DelegateRelated struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 }
 
@@ -276,7 +276,7 @@ func (queue DelRelatedQueue) String() string {
 }
 
 type DelegationInfo struct {
-	NodeID           discover.NodeID
+	NodeID           enode.IDv0
 	StakeBlockNumber uint64
 	Delegation       *Delegation
 }

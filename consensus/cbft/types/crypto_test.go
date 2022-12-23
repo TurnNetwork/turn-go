@@ -105,3 +105,12 @@ func Test_ViewChangeQC_MaxBlock(t *testing.T) {
 	epoch, viewNumber, blockEpoch, blockViewNumber, blockHash, blockNumber = viewChangeQC.MaxBlock()
 	assert.Equal(t, uint64(0), epoch)
 }
+
+func Test_Signature_NotEmpty(t *testing.T) {
+	var sig Signature
+	assert.False(t, sig.NotEmpty())
+	sig = Signature{byte(0), byte(0), byte(0)}
+	assert.False(t, sig.NotEmpty())
+	sig = Signature{byte(0), byte(0), byte(1)}
+	assert.True(t, sig.NotEmpty())
+}

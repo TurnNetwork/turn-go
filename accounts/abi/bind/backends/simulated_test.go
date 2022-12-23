@@ -25,7 +25,7 @@ import (
 func TestSimulatedBackend(t *testing.T) {
 	var gasLimit uint64 = 8000029
 	key, _ := crypto.GenerateKey() // nolint: gosec
-	auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
+	auth, _ := bind.NewKeyedTransactorWithChainID(key, params.AllEthashProtocolChanges.ChainID)
 	genAlloc := make(core.GenesisAlloc)
 	genAlloc[auth.From] = core.GenesisAccount{Balance: big.NewInt(9223372036854775807)}
 
@@ -47,7 +47,7 @@ func TestSimulatedBackend(t *testing.T) {
 	code := `6060604052600a8060106000396000f360606040526008565b00`
 	var gas uint64 = 3000000
 	tx := types.NewContractCreation(0, big.NewInt(0), gas, big.NewInt(1), common.FromHex(code))
-	tx, _ = types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), key)
+	tx, _ = types.SignTx(tx, types.LatestSignerForChainID(params.AllEthashProtocolChanges.ChainID), key)
 
 	err = sim.SendTransaction(context.Background(), tx)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestNewSimulatedBackend_AdjustTimeFail(t *testing.T) {
 	sim := simTestBackend(testAddr)
 	// Create tx and send
 	tx := types.NewTransaction(0, testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(params.AllEthashProtocolChanges.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestNewSimulatedBackend_AdjustTimeFail(t *testing.T) {
 	}
 	// Put a transaction after adjusting time
 	tx2 := types.NewTransaction(1, testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx2, err := types.SignTx(tx2, types.LatestSignerForChainID(params.AllEthashProtocolChanges.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestSimulatedBackend_NonceAt(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(nonce, testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(params.AllEthashProtocolChanges.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -308,7 +308,7 @@ func TestSimulatedBackend_SendTransaction(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(params.AllEthashProtocolChanges.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -343,7 +343,7 @@ func TestSimulatedBackend_TransactionByHash(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -396,7 +396,7 @@ func TestSimulatedBackend_EstimateGas(t *testing.T) {
 
 	key, _ := crypto.GenerateKey()
 	addr := crypto.PubkeyToAddress(key.PublicKey)
-	opts, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
+	opts, _ := bind.NewKeyedTransactorWithChainID(key, params.AllEthashProtocolChanges.ChainID)
 
 	sim := NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(params.BUB)}}, 10000000)
 	defer sim.Close()
@@ -656,7 +656,7 @@ func TestSimulatedBackend_TransactionCount(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -711,7 +711,7 @@ func TestSimulatedBackend_TransactionInBlock(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -766,7 +766,7 @@ func TestSimulatedBackend_PendingNonceAt(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -789,7 +789,7 @@ func TestSimulatedBackend_PendingNonceAt(t *testing.T) {
 
 	// make a new transaction with a nonce of 1
 	tx = types.NewTransaction(uint64(1), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err = types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err = types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -818,7 +818,7 @@ func TestSimulatedBackend_TransactionReceipt(t *testing.T) {
 
 	// create a signed transaction to send
 	tx := types.NewTransaction(uint64(0), testAddr, big.NewInt(1000), params.TxGas, big.NewInt(1), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(new(big.Int).SetInt64(1337)), testKey)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(sim.config.ChainID), testKey)
 	if err != nil {
 		t.Errorf("could not sign tx: %v", err)
 	}
@@ -872,7 +872,7 @@ func TestSimulatedBackend_PendingCodeAt(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not get code at test addr: %v", err)
 	}
-	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(1337))
+	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, sim.config.ChainID)
 	contractAddr, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(abiBin), sim)
 	if err != nil {
 		t.Errorf("could not deploy contract: %v tx: %v contract: %v", err, tx, contract)
@@ -908,7 +908,7 @@ func TestSimulatedBackend_CodeAt(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not get code at test addr: %v", err)
 	}
-	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(1337))
+	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, sim.config.ChainID)
 	contractAddr, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(abiBin), sim)
 	if err != nil {
 		t.Errorf("could not deploy contract: %v tx: %v contract: %v", err, tx, contract)
@@ -941,7 +941,7 @@ func TestSimulatedBackend_PendingAndCallContract(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not get code at test addr: %v", err)
 	}
-	contractAuth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(1337))
+	contractAuth, _ := bind.NewKeyedTransactorWithChainID(testKey, sim.config.ChainID)
 	addr, _, _, err := bind.DeployContract(contractAuth, parsed, common.FromHex(abiBin), sim)
 	if err != nil {
 		t.Errorf("could not deploy contract: %v", err)
@@ -1028,7 +1028,7 @@ func TestSimulatedBackend_CallContractRevert(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not get code at test addr: %v", err)
 	}
-	contractAuth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(1337))
+	contractAuth, _ := bind.NewKeyedTransactorWithChainID(testKey, sim.config.ChainID)
 	addr, _, _, err := bind.DeployContract(contractAuth, parsed, common.FromHex(reverterBin), sim)
 	if err != nil {
 		t.Errorf("could not deploy contract: %v", err)

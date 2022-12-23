@@ -19,6 +19,7 @@
 package main
 
 import (
+	"github.com/bubblenet/bubble/internal/flags"
 	"gopkg.in/urfave/cli.v1"
 	"io"
 	"sort"
@@ -61,13 +62,14 @@ type flagGroup struct {
 }
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
-var AppHelpFlagGroups = []flagGroup{
+var AppHelpFlagGroups = []flags.FlagGroup{
 	{
 		Name: "Bubble",
 		Flags: []cli.Flag{
 			configFileFlag,
 			utils.DataDirFlag,
 			utils.AncientFlag,
+			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
@@ -78,12 +80,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.IdentityFlag,
 			utils.TxLookupLimitFlag,
 			utils.LightKDFFlag,
-		},
-	},
-	{
-		Name: "DEVELOPER CHAIN",
-		Flags: []cli.Flag{
-			utils.DeveloperPeriodFlag,
 		},
 	},
 	{
@@ -108,9 +104,11 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
+			utils.CacheTrieFlag,
 			utils.CacheTrieJournalFlag,
 			utils.CacheTrieRejournalFlag,
 			utils.CacheGCFlag,
+			utils.CacheSnapshotFlag,
 			utils.CacheTrieDBFlag,
 			utils.CachePreimagesFlag,
 		},
@@ -133,12 +131,14 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.HTTPPortFlag,
 			utils.HTTPApiFlag,
 			utils.HTTPEnabledEthCompatibleFlag,
+			utils.HTTPPathPrefixFlag,
 			utils.HTTPCORSDomainFlag,
 			utils.HTTPVirtualHostsFlag,
 			utils.WSEnabledFlag,
 			utils.WSListenAddrFlag,
 			utils.WSPortFlag,
 			utils.WSApiFlag,
+			utils.WSPathPrefixFlag,
 			utils.WSAllowedOriginsFlag,
 			utils.GraphQLEnabledFlag,
 			utils.GraphQLCORSDomainFlag,
@@ -158,6 +158,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
 			//	utils.BootnodesV5Flag,
+			//	utils.DNSDiscoveryFlag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
 			utils.MaxConsensusPeersFlag,
@@ -184,12 +185,12 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.GpoMaxGasPriceFlag,
 		},
 	},
-	{
+	/*	{
 		Name: "LOGGING AND DEBUGGING",
 		Flags: append([]cli.Flag{
 			utils.NoCompactionFlag,
 		}, debug.Flags...),
-	},
+	},*/
 	{
 		Name:  "METRICS AND STATS",
 		Flags: metricsFlags,
@@ -259,53 +260,14 @@ var AppHelpFlagGroups = []flagGroup{
 	},
 }
 
-// byCategory sorts an array of flagGroup by Name in the order
-// defined in AppHelpFlagGroups.
-type byCategory []flagGroup
-
-func (a byCategory) Len() int      { return len(a) }
-func (a byCategory) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a byCategory) Less(i, j int) bool {
-	iCat, jCat := a[i].Name, a[j].Name
-	iIdx, jIdx := len(AppHelpFlagGroups), len(AppHelpFlagGroups) // ensure non categorized flags come last
-
-	for i, group := range AppHelpFlagGroups {
-		if iCat == group.Name {
-			iIdx = i
-		}
-		if jCat == group.Name {
-			jIdx = i
-		}
-	}
-
-	return iIdx < jIdx
-}
-
-func flagCategory(flag cli.Flag) string {
-	for _, category := range AppHelpFlagGroups {
-		for _, flg := range category.Flags {
-			if flg.GetName() == flag.GetName() {
-				return category.Name
-			}
-		}
-	}
-	return "MISC"
-}
-
 func init() {
 	// Override the default app help template
-	cli.AppHelpTemplate = AppHelpTemplate
-
-	// Define a one shot struct to pass to the usage template
-	type helpData struct {
-		App        interface{}
-		FlagGroups []flagGroup
-	}
+	cli.AppHelpTemplate = flags.AppHelpTemplate
 
 	// Override the default app help printer, but only for the global app help
 	originalHelpPrinter := cli.HelpPrinter
 	cli.HelpPrinter = func(w io.Writer, tmpl string, data interface{}) {
-		if tmpl == AppHelpTemplate {
+		if tmpl == flags.AppHelpTemplate {
 			// Iterate over all the flags and add any uncategorized ones
 			categorized := make(map[string]struct{})
 			for _, group := range AppHelpFlagGroups {
@@ -337,22 +299,22 @@ func init() {
 				}()
 			}
 			// Render out custom usage screen
-			originalHelpPrinter(w, tmpl, helpData{data, AppHelpFlagGroups})
-		} else if tmpl == utils.CommandHelpTemplate {
+			originalHelpPrinter(w, tmpl, flags.HelpData{App: data, FlagGroups: AppHelpFlagGroups})
+		} else if tmpl == flags.CommandHelpTemplate {
 			// Iterate over all command specific flags and categorize them
 			categorized := make(map[string][]cli.Flag)
 			for _, flag := range data.(cli.Command).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					categorized[flagCategory(flag)] = append(categorized[flagCategory(flag)], flag)
+					categorized[flags.FlagCategory(flag, AppHelpFlagGroups)] = append(categorized[flags.FlagCategory(flag, AppHelpFlagGroups)], flag)
 				}
 			}
 
 			// sort to get a stable ordering
-			sorted := make([]flagGroup, 0, len(categorized))
+			sorted := make([]flags.FlagGroup, 0, len(categorized))
 			for cat, flgs := range categorized {
-				sorted = append(sorted, flagGroup{cat, flgs})
+				sorted = append(sorted, flags.FlagGroup{Name: cat, Flags: flgs})
 			}
-			sort.Sort(byCategory(sorted))
+			sort.Sort(flags.ByCategory(sorted))
 
 			// add sorted array to data and render with default printer
 			originalHelpPrinter(w, tmpl, map[string]interface{}{

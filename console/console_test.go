@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/console/prompt"
+	"github.com/bubblenet/bubble/eth/ethconfig"
 	"github.com/bubblenet/bubble/x/xcom"
 	"io/ioutil"
 	"os"
@@ -33,7 +34,7 @@ import (
 	"github.com/bubblenet/bubble/core"
 	"github.com/bubblenet/bubble/crypto/bls"
 
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 
 	"github.com/bubblenet/bubble/eth"
@@ -94,7 +95,7 @@ type tester struct {
 
 // newTester creates a test environment based on which the console can operate.
 // Please ensure you call Close() on the returned tester to avoid leaks.
-func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
+func newTester(t *testing.T, confOverride func(*ethconfig.Config)) *tester {
 	xcom.GetEc(xcom.DefaultUnitTestNet)
 	// Create a temporary storage for the node keys and initialize it
 	workspace, err := ioutil.TempDir("", "console-tester-")
@@ -108,14 +109,15 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 		t.Fatalf("failed to create node: %v", err)
 	}
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-	ethConf := &eth.DefaultConfig
+	ethConf := &ethconfig.Defaults
 	ethConf.Genesis = core.DefaultGrapeGenesisBlock()
-	n, _ := discover.ParseNode("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
+
+	n, _ := enode.ParseV4("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
 
 	var nodes []params.CbftNode
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	nodes = append(nodes, params.CbftNode{Node: *n, BlsPubKey: *blsKey.GetPublicKey()})
+	nodes = append(nodes, params.CbftNode{Node: n, BlsPubKey: *blsKey.GetPublicKey()})
 	ethConf.Genesis.Config.Cbft = &params.CbftConfig{
 		InitialNodes: nodes,
 	}
@@ -197,22 +199,19 @@ func TestWelcome(t *testing.T) {
 func TestApi(t *testing.T) {
 	tester := newTester(t, nil)
 	defer tester.Close(t)
-	fmt.Fprintf(tester.console.printer, "Welcome to the Bubble JavaScript console!\n\n")
+	fmt.Fprintf(tester.console.printer, "Welcome to the bubble JavaScript console!\n\n")
 	_, err := tester.console.jsre.Run(`
-		console.log("aaaaaaa");
 		console.log("instance: " + web3.version.node);
 		console.log("at block: " + bub.blockNumber + " (" + new Date(1000 * bub.getBlock(bub.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
-		console.log(" protocolVersion: " + bub.protocolVersion);
 		console.log(" sync: " + bub.syncing);
-		console.log("",bub.protocolVersion)
 		console.log("syncing",bub.syncing)
 		console.log("gasPrice",bub.gasPrice)
 		console.log("accounts",bub.accounts)
 		console.log("blockNumber",bub.blockNumber)
-		console.log("getBalance",bub.getBalance("0x07057110239Af04F2584407db34048Ee5bcAf753"))
-		console.log("getStorageAt",bub.getStorageAt("0x07057110239Af04F2584407db34048Ee5bcAf753"))
-		console.log("getTransactionCount",bub.getTransactionCount("0x07057110239Af04F2584407db34048Ee5bcAf753"))
+		console.log("getBalance",bub.getBalance("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getStorageAt",bub.getStorageAt("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getTransactionCount",bub.getTransactionCount("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
 		console.log("getBlockTransactionCountByHash or ByNumber",bub.getBlockTransactionCount("1234"))
 		//console.log("getCode",bub.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")

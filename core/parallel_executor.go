@@ -30,7 +30,6 @@ type Executor struct {
 	chainContext ChainContext
 	chainConfig  *params.ChainConfig
 	vmCfg        vm.Config
-	signer       types.Signer
 
 	workerPool *ants.PoolWithFunc
 	txpool     *TxPool
@@ -56,9 +55,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		})
 		executor.chainConfig = chainConfig
 		executor.chainContext = chainContext
-		EIP155Signer = types.NewEIP155Signer(chainConfig.ChainID)
-		EIP155Signer = types.MakeSigner(chainConfig)
-		executor.signer = EIP155Signer
+
 		executor.vmCfg = vmCfg
 		executor.txpool = txpool
 	})
@@ -68,18 +65,9 @@ func GetExecutor() *Executor {
 	return &executor
 }
 
-func (exe *Executor) MakeSigner(stateDB *state.StateDB) types.Signer {
-	exe.signer = EIP155Signer
-	return exe.signer
-}
-
-func (exe *Executor) Signer() types.Signer {
-	return exe.signer
-}
-
 func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	if len(ctx.txList) > 0 {
-		txDag := NewTxDag(exe.Signer())
+		txDag := NewTxDag(ctx.signer)
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
 		if err := txDag.MakeDagGraph(ctx, exe); err != nil {
@@ -107,14 +95,14 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 							break
 						}
 
-						from := tx.FromAddr(exe.Signer())
+						from := tx.FromAddr(ctx.signer)
 						if _, popped := ctx.poppedAddresses[from]; popped {
 							log.Debug("Address popped", "from", from.String())
 							continue
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), false, nil)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue
@@ -162,7 +150,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	}
 	tx := ctx.GetTx(idx)
 
-	msg, err := tx.AsMessage(exe.Signer())
+	msg, err := tx.AsMessage(ctx.signer)
 	if err != nil {
 		//gas pool is subbed
 		ctx.buildTransferFailedResult(idx, err, true)
@@ -234,13 +222,13 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	ctx.AddPackedTx(tx)
 	ctx.GetState().IncreaseTxIdx()
 	ctx.AddReceipt(receipt)
-	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
+	log.Trace("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }
 
 func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx *ParallelContext) bool {
 	address := tx.To()
 	if address == nil { // create contract
-		contractAddress := crypto.CreateAddress(tx.FromAddr(exe.Signer()), tx.Nonce())
+		contractAddress := crypto.CreateAddress(tx.FromAddr(ctx.signer), tx.Nonce())
 		ctx.tempContractCache[contractAddress] = struct{}{}
 		return true
 	}

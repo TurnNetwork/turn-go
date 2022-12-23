@@ -26,7 +26,7 @@ import (
 
 	"github.com/bubblenet/bubble/crypto"
 
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/core/cbfttypes"
 	"github.com/bubblenet/bubble/core/types"
@@ -72,7 +72,7 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 			Index:   uint32(i),
 			Address: crypto.PubkeyToNodeAddress(pk[i].PublicKey),
 			PubKey:  &pk[i].PublicKey,
-			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
+			NodeID:  enode.PubkeyToIDV4(&pk[i].PublicKey),
 		}
 		nodes[i].BlsPubKey = sk[i].GetPublicKey()
 

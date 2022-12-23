@@ -27,7 +27,7 @@ import (
 	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
 	"github.com/bubblenet/bubble/core/cbfttypes"
 	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 // Proposed block carrier.
@@ -182,15 +182,15 @@ func (ev *EvidenceView) Verify() error {
 
 // EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
-	Index     uint32          `json:"index"`
-	NodeID    discover.NodeID `json:"nodeId"`
-	BlsPubKey *bls.PublicKey  `json:"blsPubKey"`
+	Index     uint32             `json:"index"`
+	NodeID    enode.IDv0    `json:"nodeId"`
+	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		NodeID:    node.NodeID,
+		NodeID:    enode.PublicKeyToIDv0(node.PubKey),
 		BlsPubKey: node.BlsPubKey,
 	}
 }

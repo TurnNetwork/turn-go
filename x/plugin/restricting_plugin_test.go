@@ -99,7 +99,6 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	from, to := addrArr[0], addrArr[1]
 	sdb := snapshotdb.Instance()

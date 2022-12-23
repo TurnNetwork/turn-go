@@ -94,7 +94,7 @@ type btHeaderMarshaling struct {
 	Timestamp  math.HexOrDecimal64
 }
 
-func (t *BlockTest) Run() error {
+func (t *BlockTest) Run(snapshotter bool) error {
 	config, ok := Forks[t.json.Network]
 	if !ok {
 		return UnsupportedForkError{t.json.Network}
@@ -113,7 +113,12 @@ func (t *BlockTest) Run() error {
 		return fmt.Errorf("genesis block state root does not match test: computed=%x, test=%x", gblock.Root().Bytes()[:6], t.json.Genesis.StateRoot[:6])
 	}
 
-	chain, err := core.NewBlockChain(db, &core.CacheConfig{TrieCleanLimit: 0}, config, nil, vm.Config{}, nil, nil)
+	cache := &core.CacheConfig{TrieCleanLimit: 0}
+	if snapshotter {
+		cache.SnapshotLimit = 1
+		cache.SnapshotWait = true
+	}
+	chain, err := core.NewBlockChain(db, cache, config, nil, vm.Config{}, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -133,6 +138,12 @@ func (t *BlockTest) Run() error {
 	}
 	if err = t.validatePostState(newDB); err != nil {
 		return fmt.Errorf("post state validation failed: %v", err)
+	}
+	// Cross-check the snapshot-to-hash against the trie hash
+	if snapshotter {
+		if err := chain.Snapshots().Verify(chain.CurrentBlock().Root()); err != nil {
+			return err
+		}
 	}
 	return t.validateImportedHeaders(chain, validBlocks)
 }

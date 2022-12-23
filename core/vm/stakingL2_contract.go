@@ -27,7 +27,7 @@ import (
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/gov"
 	"github.com/bubblenet/bubble/x/plugin"
@@ -87,7 +87,7 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.Int, benefitAddress common.Address, name, detail,
+func (stk *StakingL2Contract) createStaking(nodeId enode.IDv0, amount *big.Int, benefitAddress common.Address, name, detail,
 	electronURI, rpcURI, p2pURI string, programVersion uint32, blsPubKey bls.PublicKeyHex, isOperator bool) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
@@ -192,7 +192,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "", "", TxCreateStakingL2, common.NoErr)
 }
 
-func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail, rpcURI *string) ([]byte, error) {
+func (stk *StakingL2Contract) editCandidate(nodeId enode.IDv0, benefitAddress *common.Address, name, detail, rpcURI *string) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	blockNumber := stk.Evm.Context.BlockNumber
@@ -282,7 +282,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "", "", TxEditorCandidateL2, common.NoErr)
 }
 
-//func (stk *StakingL2Contract) increaseStaking(nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
+//func (stk *StakingL2Contract) increaseStaking(nodeId enode.IDv0, amount *big.Int) ([]byte, error) {
 //
 //	txHash := stk.Evm.StateDB.TxHash()
 //	blockNumber := stk.Evm.Context.BlockNumber
@@ -359,7 +359,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 //		"", TxIncreaseStakingL2, common.NoErr)
 //}
 
-func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
+func (stk *StakingL2Contract) withdrewStaking(nodeId enode.IDv0) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	blockNumber := stk.Evm.Context.BlockNumber
@@ -442,7 +442,7 @@ func (stk *StakingL2Contract) getCandidateList() ([]byte, error) {
 	return callResultHandler(stk.Evm, "getCandidateList", arr, nil), nil
 }
 
-func (stk *StakingL2Contract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
+func (stk *StakingL2Contract) getCandidateInfo(nodeId enode.IDv0) ([]byte, error) {
 	blockNumber := stk.Evm.Context.BlockNumber
 	blockHash := stk.Evm.Context.BlockHash
 

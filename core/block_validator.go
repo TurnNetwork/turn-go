@@ -19,6 +19,7 @@ package core
 import (
 	"fmt"
 
+	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/trie"
 
 	"github.com/bubblenet/bubble/common"
@@ -106,16 +107,20 @@ func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateD
 // to keep the baseline gas above the provided floor, and increase it towards the
 // ceil if the blocks are full. If the ceil is exceeded, it will always decrease
 // the gas allowance.
-func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
+func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64, db snapshotdb.DB) uint64 {
 
 	var gasCeil uint64
 
-	govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
-	if nil != err {
-		log.Error("cannot find GasLimit from govern", "err", err)
+	if db == nil {
 		gasCeil = uint64(params.DefaultMinerGasCeil)
 	} else {
-		gasCeil = uint64(govGasCeil)
+		govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash, db)
+		if nil != err {
+			log.Error("cannot find GasLimit from govern", "err", err)
+			gasCeil = uint64(params.DefaultMinerGasCeil)
+		} else {
+			gasCeil = uint64(govGasCeil)
+		}
 	}
 
 	if gasFloor > gasCeil {

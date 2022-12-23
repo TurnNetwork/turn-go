@@ -78,7 +78,8 @@ func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
 // dposStoragePack is a batch of dpos storage returned by a peer.
 type dposStoragePack struct {
 	peerID string
-	kvs    []DPOSStorageKV
+	//kvs    []DPOSStorageKV
+	kvs    [][2][]byte
 	last   bool
 	kvNum  uint64
 }

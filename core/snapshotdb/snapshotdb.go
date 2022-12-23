@@ -20,6 +20,8 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
+	"golang.org/x/net/context"
 	"math/big"
 	"os"
 	"sync"
@@ -149,9 +151,10 @@ type snapshotDB struct {
 	committed  []*blockData
 	commitLock sync.RWMutex
 
-	walCh     chan *blockData
-	walExitCh chan struct{}
-	walSync   sync.WaitGroup
+	walCh         chan *blockData
+	walLoopCtx    context.Context
+	walLoopCancel context.CancelFunc
+	walSync       sync.WaitGroup
 
 	corn *cron.Cron
 
@@ -248,7 +251,6 @@ func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, erro
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
 		walCh:         make(chan *blockData, 2),
-		walExitCh:     make(chan struct{}),
 	}
 	if baseOnly {
 		return db, nil
@@ -289,6 +291,67 @@ func Open(path string, cache int, handles int, baseOnly bool) (DB, error) {
 	return db, nil
 }
 
+func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) (*snapshotDB, error) {
+	logger.Info("open snapshot db Allocated cache and file handles", "cache", cache, "handles", handles, "baseDB", baseOnly)
+
+	baseDB, err := leveldb.Open(st, &opt.Options{
+		OpenFilesCacheCapacity: handles,
+		BlockCacheCapacity:     cache / 2 * opt.MiB,
+		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),
+	})
+	if err != nil {
+		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
+			baseDB, err = leveldb.Recover(st, nil)
+			if err != nil {
+				return nil, fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	unCommitBlock := new(unCommitBlocks)
+	unCommitBlock.blocks = make(map[common.Hash]*blockData)
+	db := &snapshotDB{
+		path:          "",
+		unCommit:      unCommitBlock,
+		committed:     make([]*blockData, 0),
+		baseDB:        baseDB,
+		snapshotLockC: snapshotUnLock,
+	}
+	if baseOnly {
+		return db, nil
+	}
+
+	_, getCurrentError := baseDB.Get([]byte(CurrentSet), nil)
+	if getCurrentError == nil {
+		logger.Info("begin recover", "path", "")
+		if err := db.loadCurrent(); err != nil {
+			return nil, err
+		}
+		logger.Info("load current", "base", db.current.base, "high", db.current.highest)
+		if err := db.recover(); err != nil {
+			logger.Error("recover db fail:", "error", err)
+			return nil, err
+		}
+	} else if getCurrentError == leveldb.ErrNotFound {
+		logger.Info("begin init db current", "path", "")
+		if err := db.SetCurrent(common.ZeroHash, *common.Big0, *common.Big0); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, getCurrentError
+	}
+
+	if !baseOnly {
+		if err := db.Start(); err != nil {
+			return nil, err
+		}
+	}
+	return db, nil
+}
+
 func copyDB(from, to *snapshotDB) {
 	to.path = from.path
 	to.current = from.current
@@ -298,26 +361,40 @@ func copyDB(from, to *snapshotDB) {
 	to.corn = from.corn
 	to.closed = from.closed
 	to.snapshotLockC = from.snapshotLockC
-	to.walExitCh = from.walExitCh
+	to.walLoopCtx = from.walLoopCtx
 	to.walCh = from.walCh
 }
 
 func initDB(path string, sdb *snapshotDB) error {
-	dbInterface, err := open(path, baseDBcache, baseDBhandles, false)
-	if err != nil {
-		return err
+	if path == "" {
+		// only for test
+		dbInterface, err := OpenWithStorage(storage.NewMemStorage(), baseDBcache, baseDBhandles, false)
+		if err != nil {
+			return err
+		}
+		copyDB(dbInterface, sdb)
+		if err := sdb.Start(); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		dbInterface, err := open(path, baseDBcache, baseDBhandles, false)
+		if err != nil {
+			return err
+		}
+		copyDB(dbInterface, sdb)
+		if err := sdb.Start(); err != nil {
+			return err
+		}
+		return nil
 	}
-	copyDB(dbInterface, sdb)
-	if err := sdb.Start(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *snapshotDB) Start() error {
 	if err := s.cornStart(); err != nil {
 		return err
 	}
+	s.walLoopCtx, s.walLoopCancel = context.WithCancel(context.Background())
 	go s.loopWriteWal()
 	return nil
 }
@@ -511,7 +588,7 @@ func (s *snapshotDB) findToWrite() int {
 
 	var length = commitNum
 	for i := 0; i < length; i++ {
-		if s.committed[i].Number.Cmp(minimumHeight) > 0 {
+		if s.committed[i].Number.Cmp(minimumHeight) >= 0 {
 			commitNum--
 		}
 	}
@@ -813,9 +890,11 @@ func (s *snapshotDB) Clear() error {
 	if err := s.Close(); err != nil {
 		return err
 	}
-	logger.Info("begin clear file", "path", s.path)
-	if err := os.RemoveAll(s.path); err != nil {
-		return err
+	if s.path != "" {
+		logger.Info("begin clear file", "path", s.path)
+		if err := os.RemoveAll(s.path); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -883,7 +962,10 @@ func (s *snapshotDB) Close() error {
 		s.corn.Stop()
 	}
 	s.walSync.Wait()
-	close(s.walExitCh)
+
+	if s.walLoopCancel != nil {
+		s.walLoopCancel()
+	}
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {

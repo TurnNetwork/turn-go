@@ -17,7 +17,7 @@
 package dpos
 
 import (
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -43,9 +43,9 @@ var (
 
 func getDelegateReward(c *cli.Context) error {
 	nodeIDlist := c.StringSlice(nodeList.Name)
-	idlist := make([]discover.NodeID, 0)
+	idlist := make([]enode.IDv0, 0)
 	for _, node := range nodeIDlist {
-		nodeid, err := discover.HexID(node)
+		nodeid, err := enode.HexIDv0(node)
 		if err != nil {
 			return err
 		}

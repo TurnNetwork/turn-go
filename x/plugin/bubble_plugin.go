@@ -17,7 +17,7 @@ import (
 	"github.com/bubblenet/bubble/ethclient"
 	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
@@ -52,7 +52,7 @@ type BubblePlugin struct {
 	stkPlugin  *StakingPlugin
 	stk2Plugin *StakingL2Plugin
 	db         *bubble.DB
-	NodeID     discover.NodeID // id of the local node
+	NodeID     enode.IDv0 // id of the local node
 	eventMux   *event.TypeMux
 	opPriKey   string // Main chain operation address private key
 }
@@ -138,11 +138,11 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 	return nil
 }
 
-func (bp *BubblePlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (bp *BubblePlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 
-func (bp *BubblePlugin) SetCurrentNodeID(nodeId discover.NodeID) {
+func (bp *BubblePlugin) SetCurrentNodeID(nodeId enode.IDv0) {
 	bp.NodeID = nodeId
 }
 

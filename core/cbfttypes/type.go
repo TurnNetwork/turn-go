@@ -1,18 +1,18 @@
-// Copyright 2021 The Bubble Network Authors
-// This file is part of the bubble library.
+// Copyright 2021 The bubble Network Authors
+// This file is part of the bubble-go library.
 //
-// The bubble library is free software: you can redistribute it and/or modify
+// The bubble-go library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The bubble library is distributed in the hope that it will be useful,
+// The bubble-go library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble-go library. If not, see <http://www.gnu.org/licenses/>.
 
 package cbfttypes
 
@@ -22,10 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/common/hexutil"
 	"math"
 	"math/big"
 	"sort"
+
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/consensus/cbft/protocols"
 
@@ -34,7 +36,6 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 // Block's Signature info
@@ -87,11 +88,11 @@ func (ps *ProducerState) Validate(period int) bool {
 }
 
 type AddValidatorEvent struct {
-	NodeID discover.NodeID
+	Node *enode.Node
 }
 
 type RemoveValidatorEvent struct {
-	NodeID discover.NodeID
+	Node *enode.Node
 }
 
 type UpdateValidatorEvent struct{}
@@ -100,11 +101,11 @@ type ValidateNode struct {
 	Index     uint32             `json:"index"`
 	Address   common.NodeAddress `json:"address"`
 	PubKey    *ecdsa.PublicKey   `json:"-"`
-	NodeID    discover.NodeID    `json:"nodeID"`
+	NodeID    enode.ID           `json:"nodeID"`
 	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
-type ValidateNodeMap map[discover.NodeID]*ValidateNode
+type ValidateNodeMap map[enode.ID]*ValidateNode
 
 type SortedValidatorNode []*ValidateNode
 
@@ -150,8 +151,8 @@ func (vs *Validators) String() string {
 	return string(b)
 }
 
-func (vs *Validators) NodeList() []discover.NodeID {
-	nodeList := make([]discover.NodeID, 0)
+func (vs *Validators) NodeList() []enode.ID {
+	nodeList := make([]enode.ID, 0)
 	for id, _ := range vs.Nodes {
 		nodeList = append(nodeList, id)
 	}
@@ -189,7 +190,7 @@ func (vs *Validators) NodeListByBitArray(vSet *utils.BitArray) ([]*ValidateNode,
 	return l, nil
 }
 
-func (vs *Validators) FindNodeByID(id discover.NodeID) (*ValidateNode, error) {
+func (vs *Validators) FindNodeByID(id enode.ID) (*ValidateNode, error) {
 	node, ok := vs.Nodes[id]
 	if ok {
 		return node, nil
@@ -217,17 +218,17 @@ func (vs *Validators) FindNodeByAddress(addr common.NodeAddress) (*ValidateNode,
 	return nil, errors.New("invalid address")
 }
 
-func (vs *Validators) NodeID(idx int) discover.NodeID {
+func (vs *Validators) NodeID(idx int) enode.ID {
 	if len(vs.sortedNodes) == 0 {
 		vs.sort()
 	}
 	if idx >= vs.sortedNodes.Len() {
-		return discover.NodeID{}
+		return enode.ID{}
 	}
 	return vs.sortedNodes[idx].NodeID
 }
 
-func (vs *Validators) Index(nodeID discover.NodeID) (uint32, error) {
+func (vs *Validators) Index(nodeID enode.ID) (uint32, error) {
 	if node, ok := vs.Nodes[nodeID]; ok {
 		return node.Index, nil
 	}

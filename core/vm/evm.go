@@ -24,14 +24,12 @@ import (
 
 	"github.com/holiman/uint256"
 
+	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
-
-	"github.com/bubblenet/bubble/x/plugin"
-
-	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/plugin"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -55,7 +53,7 @@ type (
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
-		if p := PrecompiledContracts[*contract.CodeAddr]; p != nil {
+		if p := PrecompiledContractsBerlin2[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
 		if p := BubblePrecompiledContracts[*contract.CodeAddr]; p != nil {
@@ -201,6 +199,10 @@ type EVM struct {
 
 	// chainConfig contains information about the current chain
 	chainConfig *params.ChainConfig
+
+	// chain rules contains the chain rules for the current epoch
+	chainRules params.Rules
+
 	// virtual machine configuration options used to initialise the
 	// evm.
 	vmConfig Config
@@ -227,6 +229,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
+		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
 		interpreters: make([]Interpreter, 0, 1),
 	}
 	if statedb != nil {
@@ -310,10 +313,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
 	if !evm.StateDB.Exist(addr) {
-		if PrecompiledContracts[addr] == nil && !IsBubblePrecompiledContract(addr) && value.Sign() == 0 {
+		if PrecompiledContractsBerlin2[addr] == nil && !IsBubblePrecompiledContract(addr) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
 			return nil, gas, nil
@@ -331,12 +334,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Even if the account has no code, we need to continue because it might be a precompile
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
 			evm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
 		}(gas, time.Now())
 	}
 	ret, err = run(evm, contract, input, false)
+	gas = contract.Gas
 
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -493,7 +497,9 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
-
+	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
+	// the access-list change should not be rolled back
+	evm.StateDB.AddAddressToAccessList(address)
 	// Ensure there's no existing contract already at the designated address
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
@@ -517,7 +523,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.code, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), address, true, codeAndHash.code, gas, value)
 	}
 	start := time.Now()
 

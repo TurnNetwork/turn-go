@@ -21,7 +21,7 @@ import (
 	_ "fmt"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -36,13 +36,13 @@ var (
 
 	L1TxHash       = common.HexToHash("0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e")
 	L2TxHash       = common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
-	Op1NodeId      = discover.NodeID{0x1}
+	Op1NodeId      = enode.IDv0{0x1}
 	Op1ElectronRPC = "http://127.0.0.1:1789"
 	Op1RPC         = "http://127.0.0.1:2789"
 	Op1Addr        = common.HexToAddress("0x11111d46d924CC8437c806721496599FC3FFA268")
 	Op1Amount      = big.NewInt(100000000000)
 
-	Op2NodeId      = discover.NodeID{0x2}
+	Op2NodeId      = enode.IDv0{0x2}
 	Op2ElectronRPC = "http://127.0.0.1:3789"
 	Op2RPC         = "http://127.0.0.1:4789"
 	Op2Addr        = common.HexToAddress("0x22222d46d924CC8437c806721496599FC3FFA268")

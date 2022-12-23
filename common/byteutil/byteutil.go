@@ -22,9 +22,9 @@ import (
 	"math/big"
 
 	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/restricting"
 )
@@ -48,8 +48,8 @@ var Bytes2X_CMD = map[string]interface{}{
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
 	"[][]uint8":             BytesToUint8Arr,
-	"discover.NodeID":       BytesToNodeId,
-	"[]discover.NodeID":     BytesToNodeIdArr,
+	"enode.IDv0":            BytesToNodeId,
+	"[]enode.IDv0":          BytesToNodeIdArr,
 	"common.Hash":           BytesToHash,
 	"[]common.Hash":         BytesToHashArr,
 	"common.Address":        BytesToAddress,
@@ -217,27 +217,16 @@ func BytesToUint8Arr(curByte []byte) [][]uint8 {
 	return arr
 }
 
-func BytesToNodeId(curByte []byte) discover.NodeID {
-	//str := BytesToString(curByte)
-	//nodeId, _ := discover.HexID(str)
-	//return nodeId
-	var nodeId discover.NodeID
+func BytesToNodeId(curByte []byte) enode.IDv0 {
+	var nodeId enode.IDv0
 	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
 		panic("BytesToNodeId:" + err.Error())
 	}
 	return nodeId
 }
 
-func BytesToNodeIdArr(curByte []byte) []discover.NodeID {
-	/*str := BytesToString(curByte)
-	strArr := strings.Split(str, ":")
-	var ANodeID []discover.NodeID
-	for i := 0; i < len(strArr); i++ {
-		nodeId, _ := discover.HexID(strArr[i])
-		ANodeID = append(ANodeID, nodeId)
-	}
-	return ANodeID*/
-	var nodeIdArr []discover.NodeID
+func BytesToNodeIdArr(curByte []byte) []enode.IDv0 {
+	var nodeIdArr []enode.IDv0
 	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
 		panic("BytesToNodeIdArr:" + err.Error())
 	}
@@ -391,7 +380,7 @@ func BytesToBubSize(curByte []byte) bubble.Size {
 	return size
 }
 
-func PrintNodeID(nodeID discover.NodeID) string {
+func PrintNodeID(nodeID enode.IDv0) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 

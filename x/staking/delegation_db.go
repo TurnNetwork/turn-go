@@ -2,14 +2,14 @@ package staking
 
 import (
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 // about delegate ...
 
-func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) (*Delegation, error) {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
@@ -47,11 +47,11 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 	return infos, nil
 }
 
-func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
-	stakeBlockNumber uint64, del *Delegation, lock bool) error {
+func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
+	stakeBlockNumber uint64, del *Delegation, isEinstein bool) error {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
-	if lock {
+	if isEinstein {
 		delByte, err := encodeStoredDelegateRLP(del)
 		if nil != err {
 			return err
@@ -67,7 +67,7 @@ func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Addr
 	return db.put(blockHash, key, delByte)
 }
 
-func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
 	stakeBlockNumber uint64) error {
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 

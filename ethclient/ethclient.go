@@ -26,11 +26,10 @@ import (
 
 	"github.com/bubblenet/bubble/params"
 
-	bubble "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/core/types"
-	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/rpc"
 )
 
@@ -487,7 +486,7 @@ func (ec *Client) EstimateGas(ctx context.Context, msg bubble.CallMsg) (uint64, 
 // If the transaction was a contract creation use the TransactionReceipt method to get the
 // contract address after the transaction has been mined.
 func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	data, err := rlp.EncodeToBytes(tx)
+	data, err := tx.MarshalBinary()
 	if err != nil {
 		return err
 	}

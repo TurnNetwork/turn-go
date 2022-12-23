@@ -20,13 +20,14 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 )
 
 type OptionsConfig struct {
 	NodePriKey *ecdsa.PrivateKey `json:"-"`
-	NodeID     discover.NodeID   `json:"nodeID"`
+	NodeID     enode.IDv0        `json:"nodeID"`
+	Node       *enode.Node       `json:"-"`
 	BlsPriKey  *bls.SecretKey    `json:"-"`
 	WalMode    bool              `json:"walMode"`
 

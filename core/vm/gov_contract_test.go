@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/bubblenet/bubble/common/mock"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/x/gov"
 
 	"github.com/bubblenet/bubble/common"
@@ -104,7 +104,7 @@ func buildSubmitTextInput() []byte {
 
 	return common.MustRlpEncode(input)
 }
-func buildSubmitText(nodeID discover.NodeID, pipID string) []byte {
+func buildSubmitText(nodeID enode.IDv0, pipID string) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
@@ -114,7 +114,7 @@ func buildSubmitText(nodeID discover.NodeID, pipID string) []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitParam(nodeID discover.NodeID, pipID string, module, name, newValue string) []byte {
+func buildSubmitParam(nodeID enode.IDv0, pipID string, module, name, newValue string) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
@@ -139,7 +139,7 @@ func buildSubmitVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitVersion(nodeID discover.NodeID, pipID string, newVersion uint32, endVotingRounds uint64) []byte {
+func buildSubmitVersion(nodeID enode.IDv0, pipID string, newVersion uint32, endVotingRounds uint64) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
@@ -162,7 +162,7 @@ func buildSubmitCancelInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitCancel(nodeID discover.NodeID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) []byte {
+func buildSubmitCancel(nodeID enode.IDv0, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
@@ -209,7 +209,7 @@ func buildDeclareInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildDeclare(nodeID discover.NodeID, declaredVersion uint32, sign common.VersionSign) []byte {
+func buildDeclare(nodeID enode.IDv0, declaredVersion uint32, sign common.VersionSign) []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
@@ -371,7 +371,7 @@ func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitText(discover.ZeroNodeID, "pipid1"), t, gov.ProposerEmpty)
+	runGovContract(false, gc, buildSubmitText(enode.ZeroIDv0, "pipid1"), t, gov.ProposerEmpty)
 }
 
 func TestGovContract_ListGovernParam(t *testing.T) {
@@ -494,7 +494,7 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[5])
-	punished := make(map[discover.NodeID]struct{})
+	punished := make(map[enode.IDv0]struct{})
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
 	// punish last one
@@ -1638,7 +1638,7 @@ func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing
 func Test_ResetVoteOption(t *testing.T) {
 	v := gov.VoteInfo{}
 	v.ProposalID = common.ZeroHash
-	v.VoteNodeID = discover.NodeID{}
+	v.VoteNodeID = enode.ZeroIDv0
 	v.VoteOption = gov.Abstention
 	t.Log(v)
 

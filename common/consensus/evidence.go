@@ -18,7 +18,7 @@ package consensus
 
 import (
 	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 type EvidenceType uint8
@@ -32,7 +32,7 @@ type Evidence interface {
 	ViewNumber() uint64
 	Hash() []byte
 	//Address() common.NodeAddress
-	NodeID() discover.NodeID
+	NodeID() enode.IDv0
 	BlsPubKey() *bls.PublicKey
 	Validate() error
 	Type() EvidenceType

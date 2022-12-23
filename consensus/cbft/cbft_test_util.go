@@ -106,7 +106,7 @@ func newTestView(start bool, nodeNumber int) *testView {
 }
 func (tv *testView) firstProposer() *Cbft {
 	for _, c := range tv.allCbft {
-		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.NodeID())
+		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -124,7 +124,7 @@ func (tv *testView) firstProposerBlsKey() *bls.SecretKey {
 }
 func (tv *testView) secondProposer() *Cbft {
 	for _, c := range tv.allCbft {
-		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.NodeID())
+		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -142,7 +142,7 @@ func (tv *testView) secondProposerBlsKey() *bls.SecretKey {
 }
 func (tv *testView) thirdProposer() *Cbft {
 	for _, c := range tv.allCbft {
-		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.NodeID())
+		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -165,7 +165,7 @@ func (tv *testView) currentProposerInfo(cbft *Cbft) (uint32, uint64) {
 func (tv *testView) currentProposer(cbft *Cbft) *Cbft {
 	currentProposer, _ := tv.currentProposerInfo(cbft)
 	for _, c := range tv.allCbft {
-		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.NodeID())
+		index, err := c.validatorPool.GetIndexByNodeID(c.state.Epoch(), c.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -354,7 +354,7 @@ func mockViewChange(priv *bls.SecretKey, epoch uint64, viewNumber uint64, hash c
 func mockBlockQC(nodes []*TestCBFT, block *types.Block, blockIndex uint32, qc *ctypes.QuorumCert) *protocols.BlockQuorumCert {
 	votes := make(map[uint32]*protocols.PrepareVote)
 	for _, node := range nodes {
-		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.NodeID())
+		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -378,7 +378,7 @@ func mockBlockQCWithNotConsensus(nodes []*TestCBFT, block *types.Block, blockInd
 func mockBlockQCWithViewNumber(nodes []*TestCBFT, block *types.Block, blockIndex uint32, qc *ctypes.QuorumCert, viewNumber uint64) *protocols.BlockQuorumCert {
 	votes := make(map[uint32]*protocols.PrepareVote)
 	for _, node := range nodes {
-		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.NodeID())
+		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -392,7 +392,7 @@ func mockBlockQCWithViewNumber(nodes []*TestCBFT, block *types.Block, blockIndex
 func mockBlockQCWithEpoch(nodes []*TestCBFT, block *types.Block, blockIndex uint32, qc *ctypes.QuorumCert, epoch uint64) *protocols.BlockQuorumCert {
 	votes := make(map[uint32]*protocols.PrepareVote)
 	for _, node := range nodes {
-		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.NodeID())
+		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.Node().ID())
 		if err != nil {
 			panic("find proposer node failed")
 		}
@@ -455,7 +455,7 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 func mockViewQC(block *types.Block, nodes []*TestCBFT, qc *ctypes.QuorumCert) *ctypes.ViewChangeQC {
 	votes := make(map[uint32]*protocols.ViewChange)
 	for _, node := range nodes {
-		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.NodeID())
+		index, err := node.engine.validatorPool.GetIndexByNodeID(node.engine.state.Epoch(), node.engine.Node().ID())
 		if err != nil {
 			panic(err.Error())
 		}

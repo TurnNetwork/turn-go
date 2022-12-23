@@ -24,7 +24,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 const (
@@ -91,7 +91,7 @@ func (can *Candidate) IsEmpty() bool {
 }
 
 type CandidateBase struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	Name   string
 	// The micro node version represent by uint32, only store large version (2.1.x == 2.1.0)
 	Version uint32
@@ -203,7 +203,7 @@ func (can *CandidateMutable) IsEmpty() bool {
 }
 
 type MarshalAbleCandidate struct {
-	NodeId      discover.NodeID
+	NodeId      enode.IDv0
 	Name        string
 	Status      CandidateStatus
 	Version     uint32

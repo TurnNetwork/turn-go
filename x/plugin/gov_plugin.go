@@ -25,7 +25,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/types"
@@ -62,7 +62,7 @@ func (govPlugin *GovPlugin) SetChainDB(chainDB ethdb.Writer) {
 	govPlugin.chainDB = chainDB
 }
 
-func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 
@@ -214,7 +214,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	return nil
 }
 
-/*func NewVerifiersForNextEpoch(newVerifiers []discover.NodeID, endBlockHashOfCurrentEpoch common.Hash, endBlockNumberOfCurrentEpoch uint64) error {
+/*func NewVerifiersForNextEpoch(newVerifiers []enode.IDv0, endBlockHashOfCurrentEpoch common.Hash, endBlockNumberOfCurrentEpoch uint64) error {
 	if xutil.IsEndOfEpoch(endBlockNumberOfCurrentEpoch) {
 		if err := accuVerifiersAtBeginOfSettlement(newVerifiers, endBlockHashOfCurrentEpoch, endBlockNumberOfCurrentEpoch); err != nil {
 			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
@@ -498,7 +498,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		}
 	}
 	// for now, do not remove these data.
-	// If really want to remove these data, please confirmed with Bubble Explorer Project
+	// If really want to remove these data, please confirmed with bubble Explorer Project
 	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return false, err

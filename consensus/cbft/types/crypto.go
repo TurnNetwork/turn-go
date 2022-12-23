@@ -17,6 +17,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
@@ -45,6 +46,11 @@ func (sig *Signature) Bytes() []byte {
 	target := make([]byte, len(sig))
 	copy(target[:], sig[:])
 	return target
+}
+
+func (sig *Signature) NotEmpty() bool {
+	var a Signature
+	return bytes.Compare(sig.Bytes(), a.Bytes()) != 0
 }
 
 // MarshalText returns the hex representation of a.

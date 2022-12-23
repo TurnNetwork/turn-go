@@ -21,7 +21,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"os"
 
-	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/internal/flags"
 )
 
 const (
@@ -34,7 +34,7 @@ var gitDate = ""
 var app *cli.App
 
 func init() {
-	app = utils.NewApp(gitCommit, gitDate, "an bubble key manager")
+	app = flags.NewApp(gitCommit, gitDate, "an bubble key manager")
 	app.Commands = []cli.Command{
 		commandGenerate,
 		commandInspect,
@@ -44,7 +44,7 @@ func init() {
 		commandGenkeypair,
 		commandGenblskeypair,
 	}
-	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 }
 
 // Commonly used command line flags.
@@ -60,7 +60,7 @@ var (
 )
 
 func main() {
-	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

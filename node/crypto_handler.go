@@ -22,13 +22,12 @@ import (
 	"golang.org/x/crypto/sha3"
 	"sync"
 
-	"github.com/bubblenet/bubble/rlp"
-
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/rlp"
 
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 var (
@@ -71,13 +70,13 @@ func (chandler *CryptoHandler) MustSign(data interface{}) []byte {
 	return sig
 }
 
-func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeID discover.NodeID) bool {
+func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeID enode.IDv0) bool {
 	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), sig)
 	if err != nil {
 		log.Error("Check if the signature is signed by a node", "err", err)
 		return false
 	}
-	id := discover.PubkeyID(pubKey)
+	id := enode.PublicKeyToIDv0(pubKey)
 
 	if id == nodeID {
 		return true

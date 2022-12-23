@@ -18,7 +18,7 @@ package gov
 
 import (
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 type TallyResult struct {
@@ -32,14 +32,14 @@ type TallyResult struct {
 }
 
 type VoteInfo struct {
-	ProposalID common.Hash     `json:"proposalID"`
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
+	ProposalID common.Hash `json:"proposalID"`
+	VoteNodeID enode.IDv0  `json:"voteNodeID"`
+	VoteOption VoteOption  `json:"voteOption"`
 }
 
 type VoteValue struct {
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
+	VoteNodeID enode.IDv0 `json:"voteNodeID"`
+	VoteOption VoteOption `json:"voteOption"`
 }
 
 type ActiveVersionValue struct {

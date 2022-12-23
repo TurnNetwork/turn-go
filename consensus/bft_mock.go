@@ -35,7 +35,7 @@ import (
 	"github.com/bubblenet/bubble/core/state"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/p2p"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/rpc"
 
 	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
@@ -97,6 +97,9 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	bm.Base = block
 	if bm.database != nil {
 		rawdb.WriteBlock(bm.database, block)
+		rawdb.WriteHeadBlockHash(bm.database, block.Hash())
+		rawdb.WriteCanonicalHash(bm.database, block.Hash(), block.NumberU64())
+		rawdb.WriteHeadHeaderHash(bm.database, block.Hash())
 	}
 	return nil
 }
@@ -158,12 +161,12 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	return nil, nil
 }
 
-func (bm *BftMock) NodeID() discover.NodeID {
+func (bm *BftMock) Node() *enode.Node {
 	privateKey, err := crypto.GenerateKey()
 	if nil != err {
 		panic(fmt.Sprintf("Failed to generate random NodeId private key: %v", err))
 	}
-	return discover.PubkeyID(&privateKey.PublicKey)
+	return enode.NewV4(&privateKey.PublicKey, nil, 0, 0)
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -296,7 +299,7 @@ func (bm *BftMock) Stop() error {
 }
 
 // ConsensusNodes returns the current consensus node address list.
-func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
+func (bm *BftMock) ConsensusNodes() ([]enode.ID, error) {
 	return nil, nil
 }
 
@@ -307,7 +310,7 @@ func (bm *BftMock) ShouldSeal(curTime time.Time) (bool, error) {
 
 // OnBlockSignature received a new block signature
 // Need to verify if the signature is signed by nodeID
-func (bm *BftMock) OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
+func (bm *BftMock) OnBlockSignature(chain ChainReader, nodeID enode.IDv0, sig *cbfttypes.BlockSignature) error {
 	return nil
 }
 
@@ -317,7 +320,7 @@ func (bm *BftMock) OnNewBlock(chain ChainReader, block *types.Block) error {
 }
 
 // OnPong processes the BFT signatures
-func (bm *BftMock) OnPong(nodeID discover.NodeID, netLatency int64) error {
+func (bm *BftMock) OnPong(nodeID enode.IDv0, netLatency int64) error {
 	return nil
 
 }
@@ -328,7 +331,7 @@ func (bm *BftMock) OnBlockSynced() {
 }
 
 // CheckConsensusNode is a fake interface, no need to implement.
-func (bm *BftMock) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+func (bm *BftMock) CheckConsensusNode(nodeID enode.IDv0) (bool, error) {
 	return true, nil
 }
 

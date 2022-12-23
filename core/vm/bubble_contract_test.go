@@ -26,7 +26,7 @@ import (
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/xcom"
@@ -70,7 +70,7 @@ var (
 		delegateSender,
 	}
 	L2SettleTxHash = common.HexToHash("0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e")
-	currentNodeId  = discover.NodeID{0x1}
+	currentNodeId  = enode.IDv0{0x1}
 )
 
 func runBubbleTx(bubContract *BubbleContract, params [][]byte, title string, t *testing.T) {

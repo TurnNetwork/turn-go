@@ -42,7 +42,7 @@ import (
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/x/staking"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -84,7 +84,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 		pri = sk
 	}
 
-	nodeIdA := discover.PubkeyID(&pri.PublicKey)
+	nodeIdA := enode.PublicKeyToIDv0(&pri.PublicKey)
 	addrA, _ := xutil.NodeId2Addr(nodeIdA)
 
 	nodeIdB := nodeIdArr[1]
@@ -491,7 +491,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
 	stakingAddr := common.HexToAddress("0x195667cDeFCad94C521BdfF0Bf85079761E0f8F3")
-	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	stakingNodeId, err := enode.HexIDv0("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -544,7 +544,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	slashNodeId, err := discover.HexID("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
+	slashNodeId, err := enode.HexIDv0("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -606,7 +606,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	// The following uses multiple nodes to simulate a variety of different scenarios
-	validatorMap := make(map[discover.NodeID]bool)
+	validatorMap := make(map[enode.IDv0]bool)
 	// Blocks were produced in the last round; removed from pending list
 	// bits：1 -> delete
 	validatorMap[nodeIdArr[0]] = true
@@ -617,7 +617,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	noSlashingNodeId := discover.PubkeyID(&nodePrivate.PublicKey)
+	noSlashingNodeId := enode.PublicKeyToIDv0(&nodePrivate.PublicKey)
 	// Current round of production blocks; removed from pending list
 	// bits: 1 -> delete
 	validatorMap[noSlashingNodeId] = false
@@ -725,7 +725,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Third consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.IDv0]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -751,7 +751,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Fourth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.IDv0]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[0]] = true
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -765,7 +765,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	}
 	// Fifth consensus round
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.IDv0]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[2]] = false
 	validatorMap[nodeIdArr[3]] = false
@@ -797,7 +797,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.IDv0]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[1]] = false
 	validatorMap[nodeIdArr[2]] = false
@@ -825,7 +825,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
-	validatorMap = make(map[discover.NodeID]bool)
+	validatorMap = make(map[enode.IDv0]bool)
 	validatorQueue = make(staking.ValidatorQueue, 0)
 	validatorMap[nodeIdArr[5]] = false
 	validatorQueue = append(validatorQueue, &staking.Validator{
@@ -846,7 +846,7 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		t.Errorf("waitSlashingNodeList amount: have %v, want %v", len(waitSlashingNodeList), 0)
 		return
 	}
-	expectMap := make(map[discover.NodeID]*WaitSlashingNode)
+	expectMap := make(map[enode.IDv0]*WaitSlashingNode)
 	expectMap[nodeIdArr[1]] = &WaitSlashingNode{
 		CountBit: 1,
 		Round:    5,

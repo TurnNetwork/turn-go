@@ -30,10 +30,10 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"github.com/bubblenet/bubble/core/snapshotdb"
-
 	"github.com/bubblenet/bubble/cmd/utils"
-	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/eth/ethconfig"
+	"github.com/bubblenet/bubble/metrics"
 	"github.com/bubblenet/bubble/node"
 	"github.com/bubblenet/bubble/params"
 	"github.com/naoina/toml"
@@ -79,9 +79,10 @@ type ethstatsConfig struct {
 }
 
 type bubbleConfig struct {
-	Eth      eth.Config
+	Eth      ethconfig.Config
 	Node     node.Config
 	Ethstats ethstatsConfig
+	Metrics  metrics.Config
 }
 
 func loadConfig(file string, cfg *bubbleConfig) error {
@@ -128,8 +129,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, bubbleConfig) {
 
 	// Load defaults.
 	cfg := bubbleConfig{
-		Eth:  eth.DefaultConfig,
-		Node: defaultNodeConfig(),
+		Eth:     ethconfig.Defaults,
+		Node:    defaultNodeConfig(),
+		Metrics: metrics.DefaultConfig,
 	}
 
 	// Load config file.
@@ -141,10 +143,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, bubbleConfig) {
 			utils.Fatalf("%v", err)
 		}
 	}
-
-	// Current version only supports full syncmode
-	// ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
-
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
 	utils.SetCbft(ctx, &cfg.Eth.CbftConfig, &cfg.Node)
@@ -171,6 +169,8 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, bubbleConfig) {
 	//}
 
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
+
+	applyMetricConfig(ctx, &cfg)
 
 	return stack, cfg
 }
@@ -213,4 +213,37 @@ func dumpConfig(ctx *cli.Context) error {
 	io.WriteString(os.Stdout, comment)
 	os.Stdout.Write(out)
 	return nil
+}
+
+func applyMetricConfig(ctx *cli.Context, cfg *bubbleConfig) {
+	if ctx.GlobalIsSet(utils.MetricsEnabledFlag.Name) {
+		cfg.Metrics.Enabled = ctx.GlobalBool(utils.MetricsEnabledFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsEnabledExpensiveFlag.Name) {
+		cfg.Metrics.EnabledExpensive = ctx.GlobalBool(utils.MetricsEnabledExpensiveFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsHTTPFlag.Name) {
+		cfg.Metrics.HTTP = ctx.GlobalString(utils.MetricsHTTPFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsPortFlag.Name) {
+		cfg.Metrics.Port = ctx.GlobalInt(utils.MetricsPortFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsEnableInfluxDBFlag.Name) {
+		cfg.Metrics.EnableInfluxDB = ctx.GlobalBool(utils.MetricsEnableInfluxDBFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBEndpointFlag.Name) {
+		cfg.Metrics.InfluxDBEndpoint = ctx.GlobalString(utils.MetricsInfluxDBEndpointFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBDatabaseFlag.Name) {
+		cfg.Metrics.InfluxDBDatabase = ctx.GlobalString(utils.MetricsInfluxDBDatabaseFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBUsernameFlag.Name) {
+		cfg.Metrics.InfluxDBUsername = ctx.GlobalString(utils.MetricsInfluxDBUsernameFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBPasswordFlag.Name) {
+		cfg.Metrics.InfluxDBPassword = ctx.GlobalString(utils.MetricsInfluxDBPasswordFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBTagsFlag.Name) {
+		cfg.Metrics.InfluxDBTags = ctx.GlobalString(utils.MetricsInfluxDBTagsFlag.Name)
+	}
 }

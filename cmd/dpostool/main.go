@@ -32,7 +32,7 @@ import (
 	"github.com/bubblenet/bubble/cmd/utils"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/restricting"
 )
@@ -44,7 +44,7 @@ var (
 
 // L2_Dpos_2000 L2 createStaking
 type Dpos_2000 struct {
-	NodeId             discover.NodeID
+	NodeId             enode.IDv0
 	Amount             *big.Int
 	BenefitAddress     common.Address
 	Name               string
@@ -62,7 +62,7 @@ type Dpos_2000 struct {
 type Dpos_1000 struct {
 	Typ                uint16
 	BenefitAddress     common.Address
-	NodeId             discover.NodeID
+	NodeId             enode.IDv0
 	ExternalId         string
 	NodeName           string
 	Website            string
@@ -78,7 +78,7 @@ type Dpos_1000 struct {
 // editorCandidate
 type Dpos_1001 struct {
 	BenefitAddress common.Address
-	NodeId         discover.NodeID
+	NodeId         enode.IDv0
 	RewardPer      uint16
 	ExternalId     string
 	NodeName       string
@@ -88,27 +88,27 @@ type Dpos_1001 struct {
 
 // increaseStaking
 type Dpos_1002 struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	Typ    uint16
 	Amount *big.Int
 }
 
 // withdrewStaking
 type Dpos_1003 struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 }
 
 // delegate
 type Dpos_1004 struct {
 	Typ    uint16
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	Amount *big.Int
 }
 
 // withdrewDelegate
 type Dpos_1005 struct {
 	StakingBlockNum uint64
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	Amount          *big.Int
 }
 
@@ -121,23 +121,23 @@ type Dpos_1103 struct {
 type Dpos_1104 struct {
 	StakingBlockNum uint64
 	DelAddr         common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 }
 
 // getCandidateInfo
 type Dpos_1105 struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 }
 
 // submitText
 //type Dpos_2000 struct {
-//	Verifier discover.NodeID
+//	Verifier enode.IDv0
 //	PIPID    string
 //}
 
 // submitVersion
 type Dpos_2001 struct {
-	Verifier        discover.NodeID
+	Verifier        enode.IDv0
 	PIPID           string
 	NewVersion      uint32
 	EndVotingRounds uint64
@@ -145,7 +145,7 @@ type Dpos_2001 struct {
 
 // submitParam
 type Dpos_2002 struct {
-	Verifier discover.NodeID
+	Verifier enode.IDv0
 	PIPID    string
 	Module   string
 	Name     string
@@ -154,7 +154,7 @@ type Dpos_2002 struct {
 
 // submitCancel
 type Dpos_2005 struct {
-	Verifier        discover.NodeID
+	Verifier        enode.IDv0
 	PIPID           string
 	EndVotingRounds uint64
 	TobeCanceled    common.Hash
@@ -162,7 +162,7 @@ type Dpos_2005 struct {
 
 // vote
 type Dpos_2003 struct {
-	Verifier       discover.NodeID
+	Verifier       enode.IDv0
 	ProposalID     common.Hash
 	Option         uint8
 	ProgramVersion uint32
@@ -171,7 +171,7 @@ type Dpos_2003 struct {
 
 // declareVersion
 type Dpos_2004 struct {
-	Verifier       discover.NodeID
+	Verifier       enode.IDv0
 	ProgramVersion uint32
 	VersionSign    common.VersionSign
 }
@@ -241,7 +241,7 @@ type Dpos_5000 struct {
 
 type Dpos_5100 struct {
 	Addr    common.Address
-	NodeIDs []discover.NodeID
+	NodeIDs []enode.IDv0
 }
 
 // stakingToken

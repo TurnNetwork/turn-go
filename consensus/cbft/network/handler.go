@@ -31,7 +31,7 @@ import (
 	"github.com/bubblenet/bubble/consensus/cbft/types"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/p2p"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 const (
@@ -297,7 +297,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			NodeInfo: func() interface{} {
 				return h.NodeInfo()
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
@@ -333,7 +333,7 @@ func (h *EngineManager) Unregister(id string) error {
 }
 
 // ConsensusNodes returns a list of all consensus nodes.
-func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
+func (h *EngineManager) ConsensusNodes() ([]enode.ID, error) {
 	return h.engine.ConsensusNodes()
 }
 
@@ -390,11 +390,10 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
 		}
 
-		// If blockNumber in the local is better than the remote
-		// then determine if there is a fork.
-		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-			err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
-		}
+		// QCBn fork allowed and does not require check
+		//if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
+		//	err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
+		//}
 		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
 			err = h.engine.BlockExists(remoteStatus.LockBn.Uint64(), remoteStatus.LockBlock)
 		}
@@ -429,7 +428,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// is processing abnormally.
 	for {
 		if err := h.handleMsg(peer); err != nil {
-			p.Log().Error("CBFT message handling failed", "peerID", peer.PeerID(), "err", err)
+			p.Log().Error("CBFT message handling failed", "err", err)
 			return err
 		}
 	}

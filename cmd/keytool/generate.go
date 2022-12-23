@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/google/uuid"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/bubblenet/bubble/accounts/keystore"
 	"github.com/bubblenet/bubble/cmd/utils"
 	"github.com/bubblenet/bubble/crypto"
-	"github.com/pborman/uuid"
 )
 
 type outputGenerate struct {
@@ -86,9 +86,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 		}
 
 		// Create the keyfile object with a random UUID.
-		id := uuid.NewRandom()
+		UUID, err := uuid.NewRandom()
+		if err != nil {
+			utils.Fatalf("Failed to generate random uuid: %v", err)
+		}
 		key := &keystore.Key{
-			Id:         id,
+			Id:         UUID,
 			Address:    crypto.PubkeyToAddress(privateKey.PublicKey),
 			PrivateKey: privateKey,
 		}

@@ -30,11 +30,11 @@ type NewMinedBlockEvent struct{ Block *types.Block }
 
 type PrepareMinedBlockEvent struct {
 	Block *types.Block
-	// ConsensusNodes []discover.NodeID
+	// ConsensusNodes []enode.IDv0
 }
 type BlockSignatureEvent struct {
 	BlockSignature *cbfttypes.BlockSignature
-	// ConsensusNodes []discover.NodeID
+	// ConsensusNodes []enode.IDv0
 }
 
 // RemovedLogsEvent is posted when a reorg happens

@@ -28,7 +28,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/plugin"
 	"github.com/bubblenet/bubble/x/staking"
@@ -41,7 +41,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	}()
 
 	addr := common.HexToAddress("0x195667cDeFCad94C521BdfF0Bf85079761E0f8F3")
-	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	nodeId, err := enode.HexIDv0("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	nodeId, err := enode.HexIDv0("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}

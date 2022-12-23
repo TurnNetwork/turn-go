@@ -1,18 +1,18 @@
-// Copyright 2021 The Bubble Network Authors
-// This file is part of the bubble library.
+// Copyright 2021 The bubble Network Authors
+// This file is part of the bubble-go library.
 //
-// The bubble library is free software: you can redistribute it and/or modify
+// The bubble-go library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The bubble library is distributed in the hope that it will be useful,
+// The bubble-go library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble-go library. If not, see <http://www.gnu.org/licenses/>.
 
 package handler
 
@@ -24,12 +24,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/bubblenet/bubble/p2p/enode"
+
 	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/bubblenet/bubble/core/snapshotdb"
-	"github.com/bubblenet/bubble/p2p/discover"
-
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/crypto/vrf"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/rlp"
@@ -85,7 +85,7 @@ func (vh *VrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash comm
 		if len(value) > 0 {
 			log.Info("Generate vrf proof Success", "blockNumber", currentBlockNumber.Uint64(),
 				"parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value),
-				"nodeId", discover.PubkeyID(&vh.privateKey.PublicKey).String())
+				"nodeId", enode.PublicKeyToIDv0(&vh.privateKey.PublicKey).String())
 			return value, nil
 		}
 	}
@@ -97,7 +97,7 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	// Verify VRF Proof
 	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
 		"current hash", blockHash, "parentHash", parentBlockHash,
-		"proof", hex.EncodeToString(proof), "nodeId", discover.PubkeyID(pk).String())
+		"proof", hex.EncodeToString(proof), "nodeId", enode.PublicKeyToIDv0(pk).String())
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentBlockHash)
 	if nil != err {
 		return err

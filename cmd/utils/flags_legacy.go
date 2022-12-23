@@ -21,7 +21,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"strings"
 
-	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/eth/ethconfig"
 	"github.com/bubblenet/bubble/node"
 )
 
@@ -89,12 +89,12 @@ var (
 	LegacyGpoBlocksFlag = cli.IntFlag{
 		Name:  "gpoblocks",
 		Usage: "Number of recent blocks to check for gas prices (deprecated, use --gpo.blocks)",
-		Value: eth.DefaultConfig.GPO.Blocks,
+		Value: ethconfig.Defaults.GPO.Blocks,
 	}
 	LegacyGpoPercentileFlag = cli.IntFlag{
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices (deprecated, use --gpo.percentile)",
-		Value: eth.DefaultConfig.GPO.Percentile,
+		Value: ethconfig.Defaults.GPO.Percentile,
 	}
 )
 

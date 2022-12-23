@@ -43,4 +43,6 @@ var (
 
 	dposStorageInMeter   = metrics.NewRegisteredMeter("eth/downloader/dposStorage/in", nil)
 	dposStorageDropMeter = metrics.NewRegisteredMeter("eth/downloader/dposStorage/drop", nil)
+
+	throttleCounter = metrics.NewRegisteredCounter("eth/downloader/throttle", nil)
 )

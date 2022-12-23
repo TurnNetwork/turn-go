@@ -62,9 +62,8 @@ func (s *snapshotDB) loopWriteWal() {
 				continue
 			}
 			s.walSync.Done()
-		case <-s.walExitCh:
+		case <-s.walLoopCtx.Done():
 			logger.Info("loopWriteWal exist")
-			close(s.walCh)
 			return
 		}
 	}

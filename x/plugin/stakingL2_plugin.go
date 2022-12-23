@@ -28,7 +28,7 @@ import (
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -77,7 +77,7 @@ func (sk *StakingL2Plugin) EndBlock(blockHash common.Hash, header *types.Header,
 	return nil
 }
 
-func (sk *StakingL2Plugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (sk *StakingL2Plugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 
@@ -534,7 +534,7 @@ func lazyCalcL2StakeAmount(epoch uint64, can *stakingL2.CandidateMutable) {
 }
 
 func (sk *StakingL2Plugin) addUnStakeRecord(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
-	nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
+	nodeId enode.IDv0, canAddr common.NodeAddress, stakingBlockNum uint64) error {
 
 	refundEpoch := xutil.CalculateEpoch(blockNumber) + 0
 	log.Debug("Call addUnStakeRecord, AddUnStakeRecordStore start", "current blockNumber", blockNumber,

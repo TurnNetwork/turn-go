@@ -33,7 +33,7 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
 
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/plugin"
@@ -143,7 +143,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 		return nil, nil
 	}
 
-	reward, err := rc.Plugin.WithdrawDelegateReward(blockHash, blockNum.Uint64(), from, delegationInfoWithRewardPerList, state)
+	reward, err := rc.Plugin.WithdrawDelegateReward(blockHash, blockNum.Uint64(), from, delegationInfoWithRewardPerList, state, rc.Evm.chainRules)
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward,
@@ -157,7 +157,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), []interface{}{reward}...), nil
 }
 
-func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {
+func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []enode.IDv0) ([]byte, error) {
 	state := rc.Evm.StateDB
 
 	blockNum := rc.Evm.Context.BlockNumber

@@ -21,20 +21,27 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/bubblenet/bubble/metrics/exp"
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"gopkg.in/urfave/cli.v1"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/big"
-	"os"
 	"path/filepath"
+	godebug "runtime/debug"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 	"time"
 
+	"github.com/bubblenet/bubble/eth/ethconfig"
+	"github.com/bubblenet/bubble/eth/tracers"
 	"github.com/bubblenet/bubble/graphql"
 	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/internal/flags"
+
+	"github.com/bubblenet/bubble/p2p/enode"
 
 	"github.com/bubblenet/bubble/miner"
 
@@ -61,7 +68,6 @@ import (
 	"github.com/bubblenet/bubble/metrics/influxdb"
 	"github.com/bubblenet/bubble/node"
 	"github.com/bubblenet/bubble/p2p"
-	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/p2p/nat"
 	"github.com/bubblenet/bubble/p2p/netutil"
 	"github.com/bubblenet/bubble/params"
@@ -104,19 +110,8 @@ GLOBAL OPTIONS:
    {{range .Flags}}{{.}}
    {{end}}{{end}}
 `
-	cli.CommandHelpTemplate = CommandHelpTemplate
+	cli.CommandHelpTemplate = flags.CommandHelpTemplate
 	cli.HelpPrinter = printHelp
-}
-
-// NewApp creates an app with sane defaults.
-func NewApp(gitCommit, gitDate, usage string) *cli.App {
-	app := cli.NewApp()
-	app.Name = filepath.Base(os.Args[0])
-	app.Author = ""
-	app.Email = ""
-	app.Version = params.VersionWithCommit(gitCommit, gitDate)
-	app.Usage = usage
-	return app
 }
 
 func printHelp(out io.Writer, templ string, data interface{}) {
@@ -148,6 +143,10 @@ var (
 		Name:  "datadir.ancient",
 		Usage: "Data directory for ancient chain segments (default = inside chaindata)",
 	}
+	MinFreeDiskSpaceFlag = DirectoryFlag{
+		Name:  "datadir.minfreedisk",
+		Usage: "Minimum free disk space in MB, once reached triggers auto shut down (default = --cache.gc converted to MB, 0 = disabled)",
+	}
 	KeyStoreDirFlag = DirectoryFlag{
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
@@ -159,7 +158,7 @@ var (
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Explicitly set network id (integer)",
-		Value: eth.DefaultConfig.NetworkId,
+		Value: ethconfig.Defaults.NetworkId,
 	}
 	MainFlag = cli.BoolFlag{
 		Name:  "main",
@@ -182,10 +181,11 @@ var (
 		Usage: "Document Root for HTTPClient file scheme",
 		Value: DirectoryString(HomeDir()),
 	}
-	defaultSyncMode = eth.DefaultConfig.SyncMode
+	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
+		Usage: `Blockchain sync mode ("fast", "full")`,
+		//Usage: `Blockchain sync mode ("fast", "full", "snap")`,
 		Value: &defaultSyncMode,
 	}
 	TxLookupLimitFlag = cli.Uint64Flag{
@@ -219,42 +219,42 @@ var (
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
 		Usage: "Price bump percentage to replace an already existing transaction",
-		Value: eth.DefaultConfig.TxPool.PriceBump,
+		Value: ethconfig.Defaults.TxPool.PriceBump,
 	}
 	TxPoolAccountSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.accountslots",
 		Usage: "Minimum number of executable transaction slots guaranteed per account",
-		Value: eth.DefaultConfig.TxPool.AccountSlots,
+		Value: ethconfig.Defaults.TxPool.AccountSlots,
 	}
 	TxPoolGlobalSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.globalslots",
 		Usage: "Maximum number of executable transaction slots for all accounts",
-		Value: eth.DefaultConfig.TxPool.GlobalSlots,
+		Value: ethconfig.Defaults.TxPool.GlobalSlots,
 	}
 	TxPoolAccountQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.accountqueue",
 		Usage: "Maximum number of non-executable transaction slots permitted per account",
-		Value: eth.DefaultConfig.TxPool.AccountQueue,
+		Value: ethconfig.Defaults.TxPool.AccountQueue,
 	}
 	TxPoolGlobalQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.globalqueue",
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
-		Value: eth.DefaultConfig.TxPool.GlobalQueue,
+		Value: ethconfig.Defaults.TxPool.GlobalQueue,
 	}
 	TxPoolGlobalTxCountFlag = cli.Uint64Flag{
 		Name:  "txpool.globaltxcount",
 		Usage: "Maximum number of transactions for package",
-		Value: eth.DefaultConfig.TxPool.GlobalTxCount,
+		Value: ethconfig.Defaults.TxPool.GlobalTxCount,
 	}
 	TxPoolLifetimeFlag = cli.DurationFlag{
 		Name:  "txpool.lifetime",
 		Usage: "Maximum amount of time non-executable transaction are queued",
-		Value: eth.DefaultConfig.TxPool.Lifetime,
+		Value: ethconfig.Defaults.TxPool.Lifetime,
 	}
 	TxPoolCacheSizeFlag = cli.Uint64Flag{
 		Name:  "txpool.cacheSize",
 		Usage: "After receiving the specified number of transactions from the remote, move the transactions in the queen to pending",
-		Value: eth.DefaultConfig.TxPool.TxCacheSize,
+		Value: ethconfig.Defaults.TxPool.TxCacheSize,
 	}
 	// Performance tuning settings
 	CacheFlag = cli.IntFlag{
@@ -265,36 +265,55 @@ var (
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
 		Usage: "Percentage of cache memory allowance to use for database io",
-		Value: 75,
+		Value: 50,
+	}
+	CacheTrieFlag = cli.IntFlag{
+		Name:  "cache.trie",
+		Usage: "Percentage of cache memory allowance to use for trie caching",
+		Value: 25,
 	}
 	CacheTrieJournalFlag = cli.StringFlag{
 		Name:  "cache.trie.journal",
 		Usage: "Disk journal directory for trie cache to survive node restarts",
-		Value: eth.DefaultConfig.TrieCleanCacheJournal,
+		Value: ethconfig.Defaults.TrieCleanCacheJournal,
 	}
 	CacheTrieRejournalFlag = cli.DurationFlag{
 		Name:  "cache.trie.rejournal",
 		Usage: "Time interval to regenerate the trie cache journal",
-		Value: eth.DefaultConfig.TrieCleanCacheRejournal,
+		Value: ethconfig.Defaults.TrieCleanCacheRejournal,
+	}
+	SnapshotFlag = cli.BoolFlag{
+		Name:  "snapshot",
+		Usage: `Enables snapshot-database mode`,
+	}
+	BloomFilterSizeFlag = cli.Uint64Flag{
+		Name:  "bloomfilter.size",
+		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
+		Value: 2048,
 	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
 		Usage: "Percentage of cache memory allowance to use for trie pruning (default = 25% full mode, 0% archive mode)",
 		Value: 25,
 	}
+	CacheSnapshotFlag = cli.IntFlag{
+		Name:  "cache.snapshot",
+		Usage: "Percentage of cache memory allowance to use for snapshot caching (default = 10% full mode, 20% archive mode)",
+		Value: 10,
+	}
 	CacheTrieDBFlag = cli.IntFlag{
 		Name:  "cache.triedb",
 		Usage: "Megabytes of memory allocated to triedb internal caching",
-		Value: eth.DefaultConfig.TrieDBCache,
+		Value: ethconfig.Defaults.TrieDBCache,
 	}
-	CachePreimagesFlag = cli.BoolTFlag{
+	CachePreimagesFlag = cli.BoolFlag{
 		Name:  "cache.preimages",
-		Usage: "Enable recording the SHA3/keccak preimages of trie keys (default: true)",
+		Usage: "Enable recording the SHA3/keccak preimages of trie keys",
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.Miner.GasPrice,
+		Value: ethconfig.Defaults.Miner.GasPrice,
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -313,13 +332,13 @@ var (
 	}
 	RPCGlobalGasCapFlag = cli.Uint64Flag{
 		Name:  "rpc.gascap",
-		Usage: "Sets a cap on gas that can be used in bub_call/estimateGas (0=infinite)",
-		Value: eth.DefaultConfig.RPCGasCap,
+		Usage: "Sets a cap on gas that can be used in bubble_call/estimateGas (0=infinite)",
+		Value: ethconfig.Defaults.RPCGasCap,
 	}
 	RPCGlobalTxFeeCapFlag = cli.Float64Flag{
 		Name:  "rpc.txfeecap",
 		Usage: "Sets a cap on transaction fee (in ether) that can be sent via the RPC APIs (0 = no cap)",
-		Value: eth.DefaultConfig.RPCTxFeeCap,
+		Value: ethconfig.Defaults.RPCTxFeeCap,
 	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
@@ -368,6 +387,11 @@ var (
 		Usage: "API's offered over the HTTP-RPC interface",
 		Value: "",
 	}
+	HTTPPathPrefixFlag = cli.StringFlag{
+		Name:  "http.rpcprefix",
+		Usage: "HTTP path path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
+		Value: "",
+	}
 	HTTPEnabledEthCompatibleFlag = cli.BoolFlag{
 		Name:  "http.ethcompatible",
 		Usage: "Enable eth compatible",
@@ -408,6 +432,11 @@ var (
 	WSAllowedOriginsFlag = cli.StringFlag{
 		Name:  "ws.origins",
 		Usage: "Origins from which to accept websockets requests",
+		Value: "",
+	}
+	WSPathPrefixFlag = cli.StringFlag{
+		Name:  "ws.rpcprefix",
+		Usage: "HTTP path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
 		Value: "",
 	}
 	ExecFlag = cli.StringFlag{
@@ -482,6 +511,10 @@ var (
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
 	}
+	DNSDiscoveryFlag = cli.StringFlag{
+		Name:  "discovery.dns",
+		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
+	}
 
 	// ATM the url is left to the user and deployment to
 	JSpathFlag = cli.StringFlag{
@@ -494,17 +527,17 @@ var (
 	GpoBlocksFlag = cli.IntFlag{
 		Name:  "gpo.blocks",
 		Usage: "Number of recent blocks to check for gas prices",
-		Value: eth.DefaultConfig.GPO.Blocks,
+		Value: ethconfig.Defaults.GPO.Blocks,
 	}
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpo.percentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
-		Value: eth.DefaultConfig.GPO.Percentile,
+		Value: ethconfig.Defaults.GPO.Percentile,
 	}
 	GpoMaxGasPriceFlag = cli.Int64Flag{
 		Name:  "gpo.maxprice",
 		Usage: "Maximum gas price will be recommended by gpo",
-		Value: eth.DefaultConfig.GPO.MaxPrice.Int64(),
+		Value: ethconfig.Defaults.GPO.MaxPrice.Int64(),
 	}
 
 	// Metrics flags
@@ -524,12 +557,12 @@ var (
 	MetricsHTTPFlag = cli.StringFlag{
 		Name:  "metrics.addr",
 		Usage: "Enable stand-alone metrics HTTP server listening interface",
-		Value: "127.0.0.1",
+		Value: metrics.DefaultConfig.HTTP,
 	}
 	MetricsPortFlag = cli.IntFlag{
 		Name:  "metrics.port",
 		Usage: "Metrics HTTP server listening port",
-		Value: 6060,
+		Value: metrics.DefaultConfig.Port,
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
 		Name:  "metrics.influxdb",
@@ -538,22 +571,22 @@ var (
 	MetricsInfluxDBEndpointFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.endpoint",
 		Usage: "InfluxDB API endpoint to report metrics to",
-		Value: "http://localhost:8086",
+		Value: metrics.DefaultConfig.InfluxDBEndpoint,
 	}
 	MetricsInfluxDBDatabaseFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.database",
 		Usage: "InfluxDB database name to push reported metrics to",
-		Value: "bubble",
+		Value: metrics.DefaultConfig.InfluxDBDatabase,
 	}
 	MetricsInfluxDBUsernameFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.username",
 		Usage: "Username to authorize access to the database",
-		Value: "test",
+		Value: metrics.DefaultConfig.InfluxDBUsername,
 	}
 	MetricsInfluxDBPasswordFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.password",
 		Usage: "Password to authorize access to the database",
-		Value: "test",
+		Value: metrics.DefaultConfig.InfluxDBPassword,
 	}
 	// Tags are part of every measurement sent to InfluxDB. Queries on tags are faster in InfluxDB.
 	// For example `host` tag could be used so that we can group all nodes and average a measurement
@@ -562,7 +595,7 @@ var (
 	MetricsInfluxDBTagsFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.tags",
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
-		Value: "host=localhost",
+		Value: metrics.DefaultConfig.InfluxDBTags,
 	}
 
 	CbftPeerMsgQueueSize = cli.Uint64Flag{
@@ -600,12 +633,12 @@ var (
 	DBGCIntervalFlag = cli.Uint64Flag{
 		Name:  "db.gc_interval",
 		Usage: "Block interval for garbage collection",
-		Value: eth.DefaultConfig.DBGCInterval,
+		Value: ethconfig.Defaults.DBGCInterval,
 	}
 	DBGCTimeoutFlag = cli.DurationFlag{
 		Name:  "db.gc_timeout",
 		Usage: "Maximum time for database garbage collection",
-		Value: eth.DefaultConfig.DBGCTimeout,
+		Value: ethconfig.Defaults.DBGCTimeout,
 	}
 	DBGCMptFlag = cli.BoolFlag{
 		Name:  "db.gc_mpt",
@@ -614,7 +647,7 @@ var (
 	DBGCBlockFlag = cli.IntFlag{
 		Name:  "db.gc_block",
 		Usage: "Number of cache block states, default 10",
-		Value: eth.DefaultConfig.DBGCBlock,
+		Value: ethconfig.Defaults.DBGCBlock,
 	}
 	DBValidatorsHistoryFlag = cli.BoolFlag{
 		Name:  "db.validators_history",
@@ -625,14 +658,14 @@ var (
 		Name:   "vm.wasm_type",
 		Usage:  "The actual implementation type of the wasm instance",
 		EnvVar: "",
-		Value:  eth.DefaultConfig.VMWasmType,
+		Value:  ethconfig.Defaults.VMWasmType,
 	}
 
 	VmTimeoutDuration = cli.Uint64Flag{
 		Name:   "vm.timeout_duration",
 		Usage:  "The VM execution timeout duration (uint: ms)",
 		EnvVar: "",
-		Value:  eth.DefaultConfig.VmTimeoutDuration,
+		Value:  ethconfig.Defaults.VmTimeoutDuration,
 	}
 
 	OpPriKeyFlag = cli.StringFlag{
@@ -712,9 +745,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
-			urls = strings.Split(ctx.GlobalString(BootnodesV4Flag.Name), ",")
+			urls = SplitAndTrim(ctx.GlobalString(BootnodesV4Flag.Name))
 		} else {
-			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+			urls = SplitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
@@ -726,10 +759,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.MainnetBootnodes
 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
 		if url != "" {
-			node, err := discover.ParseNode(url)
+			node, err := enode.Parse(enode.ValidSchemes, url)
 			if err != nil {
 				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
 			}
@@ -746,9 +779,9 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
-			urls = strings.Split(ctx.GlobalString(BootnodesV5Flag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
 		} else {
-			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
 		}
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
@@ -871,6 +904,9 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.GlobalString(HTTPVirtualHostsFlag.Name))
 	}
+	if ctx.GlobalIsSet(HTTPPathPrefixFlag.Name) {
+		cfg.HTTPPathPrefix = ctx.GlobalString(HTTPPathPrefixFlag.Name)
+	}
 }
 
 // setGraphQL creates the GraphQL listener interface string from the set
@@ -920,6 +956,10 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(WSApiFlag.Name) {
 		cfg.WSModules = SplitAndTrim(ctx.GlobalString(WSApiFlag.Name))
 	}
+
+	if ctx.GlobalIsSet(WSPathPrefixFlag.Name) {
+		cfg.WSPathPrefix = ctx.GlobalString(WSPathPrefixFlag.Name)
+	}
 }
 
 // setIPC creates an IPC path configuration from the set command line flags,
@@ -934,9 +974,9 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
-// makeDatabaseHandles raises out the number of allowed file handles per process
+// MakeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
-func makeDatabaseHandles() int {
+func MakeDatabaseHandles() int {
 	limit, err := fdlimit.Maximum()
 	if err != nil {
 		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
@@ -1027,16 +1067,13 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	// if we're running a light client or server, force enable the v5 peer discovery
 	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
 	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
-	forceV5Discovery := !ctx.GlobalBool(NoDiscoverFlag.Name)
-	if forceV5Discovery {
+	//forceV5Discovery := /*(lightClient || lightServer) && */ !ctx.GlobalBool(NoDiscoverFlag.Name)
+	/*if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
+		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
+	} else if forceV5Discovery {
 		cfg.DiscoveryV5 = true
-	}
-	/*
-		if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
-			cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
-		} else if forceV5Discovery {
-			cfg.DiscoveryV5 = true
-		}*/
+	}*/
+	// 没用discoverv5
 
 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
 		list, err := netutil.ParseNetlist(netrestrict)
@@ -1143,12 +1180,32 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 }
 
 // SetEthConfig applies eth-related command line flags to the config.
-func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
+func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, TestnetFlag)
 
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
+
+	// Cap the cache allowance and tune the garbage collector
+	mem, err := gopsutil.VirtualMemory()
+	if err == nil {
+		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+			log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+			mem.Total = 2 * 1024 * 1024 * 1024
+		}
+		allowance := int(mem.Total / 1024 / 1024 / 3)
+		if cache := ctx.GlobalInt(CacheFlag.Name); cache > allowance {
+			log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+			ctx.GlobalSet(CacheFlag.Name, strconv.Itoa(allowance))
+		}
+	}
+	// Ensure Go's GC ignores the database cache for trigger percentage
+	cache := ctx.GlobalInt(CacheFlag.Name)
+	gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
+
+	log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
+	godebug.SetGCPercent(int(gogc))
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.CbftConfig.WalMode = false
@@ -1168,7 +1225,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CacheTrieRejournalFlag.Name) {
 		cfg.TrieCleanCacheRejournal = ctx.GlobalDuration(CacheTrieRejournalFlag.Name)
 	}
-	cfg.DatabaseHandles = makeDatabaseHandles()
+	cfg.DatabaseHandles = MakeDatabaseHandles()
 	if ctx.GlobalIsSet(AncientFlag.Name) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
@@ -1179,8 +1236,23 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	cfg.NoPruning = true
 
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cfg.TrieDirtyCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
+		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
+	}
+	if !ctx.GlobalBool(SnapshotFlag.Name) {
+		// If snap-sync is requested, this flag is also required
+		if cfg.SyncMode == downloader.SnapSync {
+			log.Info("Snap sync requested, enabling --snapshot")
+		} else {
+			cfg.TrieCleanCache += cfg.SnapshotCache
+			cfg.SnapshotCache = 0 // Disabled
+		}
 	}
 	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
 		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
@@ -1210,6 +1282,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+	default:
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	}
 
 	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
@@ -1261,10 +1335,27 @@ func SetFrpsConfig(ctx *cli.Context, stack *node.Node) {
 	}
 }
 
+// SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
+// no URLs are set.
+func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
+	if cfg.EthDiscoveryURLs != nil {
+		return // already set through flags/config
+	}
+	protocol := "all"
+	if cfg.SyncMode == downloader.LightSync {
+		protocol = "les"
+	}
+	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
+		cfg.EthDiscoveryURLs = []string{url}
+		cfg.SnapDiscoveryURLs = cfg.EthDiscoveryURLs
+	}
+}
+
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if nodeCfg.P2P.PrivateKey != nil {
 		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
-		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+		cfg.Node = enode.NewV4(&cfg.NodePriKey.PublicKey, nil, 0, 0)
+		cfg.NodeID = cfg.Node.IDv0()
 	}
 
 	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {
@@ -1296,15 +1387,16 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) ethapi.Backend {
 	if cfg.SyncMode == downloader.LightSync {
 		Fatalf("Failed to register the bubble service: not les")
 		return nil
 	} else {
 		backend, err := eth.New(stack, cfg)
 		if err != nil {
-			Fatalf("Failed to register the Ethereum service: %v", err)
+			Fatalf("Failed to register the bubble service: %v", err)
 		}
+		stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 		return backend.APIBackend
 	}
 }
@@ -1378,16 +1470,16 @@ func SplitTagsFlag(tagsFlag string) map[string]string {
 }
 
 // MakeChainDatabase open an LevelDB using the flags passed to the client and will hard crash if it fails.
-func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
+func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.Database {
 	var (
 		cache   = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
-		handles = makeDatabaseHandles()
+		handles = MakeDatabaseHandles()
 	)
 	name := "chaindata"
 	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
 		name = "lightchaindata"
 	}
-	chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "")
+	chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
@@ -1404,9 +1496,9 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ethdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
-	chainDb = MakeChainDatabase(ctx, stack)
+	chainDb = MakeChainDatabase(ctx, stack, false)
 	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
 		Fatalf("%v", err)
@@ -1424,16 +1516,23 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 
 	cache := &core.CacheConfig{
 		Disabled:        true,
-		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
+		TrieCleanLimit:  ethconfig.Defaults.TrieCleanCache,
+		TrieDirtyLimit:  ethconfig.Defaults.TrieCache,
+		TrieTimeLimit:   ethconfig.Defaults.TrieTimeout,
+		BodyCacheLimit:  ethconfig.Defaults.BodyCacheLimit,
+		BlockCacheLimit: ethconfig.Defaults.BlockCacheLimit,
+		MaxFutureBlocks: ethconfig.Defaults.MaxFutureBlocks,
+		TriesInMemory:   ethconfig.Defaults.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
+		SnapshotLimit:   ethconfig.Defaults.SnapshotCache,
 	}
-	if eth.DefaultConfig.DBDisabledGC && !cache.Preimages {
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
+	if !ctx.GlobalBool(SnapshotFlag.Name) {
+		cache.SnapshotLimit = 0 // Disabled
+	}
+	if ethconfig.Defaults.DBDisabledGC && !cache.Preimages {
 		cache.Preimages = true
 		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
@@ -1441,12 +1540,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{}
-	var limit *uint64
-	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readOnly {
-		l := ctx.GlobalUint64(TxLookupLimitFlag.Name)
-		limit = &l
-	}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, limit)
+
+	// TODO(rjl493456442) disable snapshot generation/wiping if the chain is read only.
+	// Disable transaction indexing/unindexing by default.
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, nil)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}
@@ -1464,9 +1561,8 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 	// Otherwise resolve absolute paths and return them
 	preloads := []string{}
 
-	assets := ctx.GlobalString(JSpathFlag.Name)
 	for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
-		preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
+		preloads = append(preloads, strings.TrimSpace(file))
 	}
 	return preloads
 }

@@ -24,6 +24,7 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
+	"github.com/mattn/go-colorable"
 )
 
 func TestEncryption(t *testing.T) {

@@ -19,11 +19,8 @@ package main
 import (
 	"fmt"
 	"gopkg.in/urfave/cli.v1"
-	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/bubblenet/bubble/cmd/utils"
 	"github.com/bubblenet/bubble/console"
@@ -205,13 +202,10 @@ func ephemeralConsole(ctx *cli.Context) error {
 			utils.Fatalf("Failed to execute %s: %v", file, err)
 		}
 	}
-	// Wait for pending callbacks, but stop for Ctrl-C.
-	abort := make(chan os.Signal, 1)
-	signal.Notify(abort, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		<-abort
-		os.Exit(0)
+		stack.Wait()
+		console.Stop(false)
 	}()
 	console.Stop(true)
 

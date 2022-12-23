@@ -21,8 +21,6 @@ import (
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/crypto/bls"
-	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -136,7 +134,7 @@ var (
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
-		GenesisVersion: GenesisVersion,
+		GenesisVersion: CodeVersion(),
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
@@ -181,41 +179,6 @@ type ChainConfig struct {
 	Cbft           *CbftConfig   `json:"cbft,omitempty"`
 	Frps           *FrpsConfig   `json:"frps,omitempty"`
 	GenesisVersion uint32        `json:"genesisVersion"`
-}
-
-type CbftNode struct {
-	Node      discover.Node `json:"node"`
-	BlsPubKey bls.PublicKey `json:"blsPubKey"`
-	RPC       string
-}
-
-type InitNode struct {
-	Enode     string
-	BlsPubkey string
-	RPC       string
-}
-
-// AuthConfig frp server authenticate struct:Enable token authentication
-type AuthConfig struct {
-	Method       string // authentication method
-	HeartBeats   bool   // authenticate heartbeats
-	NewWorkConns bool   // authenticate_new_work_conns
-	Token        string // token authentication
-}
-
-// FrpsConfig frp server configuration structure
-type FrpsConfig struct {
-	ServerIP    string      // frp server ip
-	ServerPort  int         // frp server port
-	StunAddress string      // stun server address
-	Auth        *AuthConfig // Enable authentication mode
-}
-
-type CbftConfig struct {
-	Period        uint64     `json:"period,omitempty"`        // Number of seconds between blocks to enforce
-	Amount        uint32     `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
-	InitialNodes  []CbftNode `json:"initialNodes,omitempty"`  //Genesis consensus node
-	ValidatorMode string     `json:"validatorMode,omitempty"` //Validator mode for easy testing
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -263,6 +226,39 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
 	return GasTableConstantinople
+}
+
+// CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
+// to guarantee that forks can be implemented in a different order than on official networks
+func (c *ChainConfig) CheckConfigForkOrder() error {
+	type fork struct {
+		name     string
+		block    *big.Int
+		optional bool // if true, the fork may be nil and next fork is still allowed
+	}
+	var lastFork fork
+	for _, cur := range []fork{
+		{name: "eip155Block", block: c.EIP155Block},
+	} {
+		if lastFork.name != "" {
+			// Next one must be higher number
+			if lastFork.block == nil && cur.block != nil {
+				return fmt.Errorf("unsupported fork ordering: %v not enabled, but %v enabled at %v",
+					lastFork.name, cur.name, cur.block)
+			}
+			if lastFork.block != nil && cur.block != nil {
+				if lastFork.block.Cmp(cur.block) > 0 {
+					return fmt.Errorf("unsupported fork ordering: %v enabled at %v, but %v enabled at %v",
+						lastFork.name, lastFork.block, cur.name, cur.block)
+				}
+			}
+		}
+		// If it was optional and not set, then ignore it
+		if !cur.optional || cur.block != nil {
+			lastFork = cur
+		}
+	}
+	return nil
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -348,26 +344,24 @@ func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
 }
 
-func ConvertNodeUrl(initialNodes []InitNode) []CbftNode {
-	bls.Init(bls.BLS12_381)
-	NodeList := make([]CbftNode, 0, len(initialNodes))
-	for _, n := range initialNodes {
+// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
+// that do not have or require information about the block.
+//
+// Rules is a one time interface meaning that it shouldn't be used in between transition
+// phases.
+type Rules struct {
+	ChainID  *big.Int
+	IsEIP155 bool
+}
 
-		cbftNode := new(CbftNode)
-
-		if node, err := discover.ParseNode(n.Enode); nil == err {
-			cbftNode.Node = *node
-		}
-
-		if n.BlsPubkey != "" {
-			var blsPk bls.PublicKey
-			if err := blsPk.UnmarshalText([]byte(n.BlsPubkey)); nil == err {
-				cbftNode.BlsPubKey = blsPk
-			}
-		}
-
-		cbftNode.RPC = n.RPC
-		NodeList = append(NodeList, *cbftNode)
+// Rules ensures c's ChainID is not nil.
+func (c *ChainConfig) Rules(num *big.Int) Rules {
+	chainID := c.ChainID
+	if chainID == nil {
+		chainID = new(big.Int)
 	}
-	return NodeList
+	return Rules{
+		ChainID:  new(big.Int).Set(chainID),
+		IsEIP155: c.IsEIP155(num),
+	}
 }

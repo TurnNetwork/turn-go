@@ -6,7 +6,7 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/math"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/xcom"
 )
@@ -14,11 +14,11 @@ import (
 // Operator Includes the operator's node ID, rpc url, operation address,
 // and initial balance (to send the transaction in the child-chain to pay fees).
 type Operator struct {
-	NodeId      discover.NodeID `json:"nodeId"` // Operator node id
-	ElectronRPC string          `json:"ElectronRPC"`
-	RPC         string          `json:"rpc"`     // Operation node RPC URL
-	OpAddr      common.Address  `json:"opAddr"`  // Address of operation
-	Balance     *big.Int        `json:"balance"` // Operating address balance
+	NodeId      enode.IDv0     `json:"nodeId"` // Operator node id
+	ElectronRPC string         `json:"ElectronRPC"`
+	RPC         string         `json:"rpc"`     // Operation node RPC URL
+	OpAddr      common.Address `json:"opAddr"`  // Address of operation
+	Balance     *big.Int       `json:"balance"` // Operating address balance
 }
 
 // OpConfig is operator profiles, including main-chain operator

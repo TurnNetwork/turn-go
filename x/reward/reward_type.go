@@ -23,7 +23,7 @@ import (
 	"github.com/bubblenet/bubble/common/hexutil"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/enode"
 )
 
 func NewDelegateRewardPer(epoch uint64, totalReward, totalDelegate *big.Int) *DelegateRewardPer {
@@ -106,15 +106,15 @@ func (d *DelegateRewardPerList) IsChange() bool {
 }
 
 type NodeDelegateReward struct {
-	NodeID     discover.NodeID `json:"nodeID"`
-	StakingNum uint64          `json:"stakingNum"`
-	Reward     *big.Int        `json:"reward" rlp:"nil"`
+	NodeID     enode.IDv0 `json:"nodeID"`
+	StakingNum uint64     `json:"stakingNum"`
+	Reward     *big.Int   `json:"reward" rlp:"nil"`
 }
 
 type NodeDelegateRewardPresenter struct {
-	NodeID     discover.NodeID `json:"nodeID" `
-	Reward     *hexutil.Big    `json:"reward" `
-	StakingNum uint64          `json:"stakingNum"`
+	NodeID     enode.IDv0   `json:"nodeID" `
+	Reward     *hexutil.Big `json:"reward" `
+	StakingNum uint64       `json:"stakingNum"`
 }
 
 type DelegateRewardReceipt struct {
