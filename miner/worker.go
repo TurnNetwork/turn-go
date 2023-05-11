@@ -760,7 +760,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state)),
+		signer:     types.MakeSigner(w.chainConfig),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,

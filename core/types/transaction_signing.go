@@ -39,14 +39,9 @@ type sigCache struct {
 }
 
 // MakeSigner returns a Signer based on the given chain config and block number.
-func MakeSigner(config *params.ChainConfig, pip7 bool) Signer {
-	var signer Signer
-	if pip7 {
-		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
-	} else {
-		signer = NewEIP155Signer(config.ChainID)
-	}
-	return signer
+func MakeSigner(config *params.ChainConfig) Signer {
+	return NewEIP155Signer(config.ChainID)
+
 }
 
 // SignTx signs the transaction using the given signer and private key
@@ -174,89 +169,6 @@ func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byt
 	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
 	V.Sub(V, big8)
 	return recoverPubKeyAndSender(s.Hash(tx, s.chainId), tx.data.R, tx.data.S, V, true)
-}
-
-type PIP7Signer struct {
-	EIP155Signer
-	chainId, chainIdMul         *big.Int
-	PIP7ChainId, PIP7ChainIdMul *big.Int
-}
-
-func NewPIP7Signer(chainId *big.Int, pip7ChainId *big.Int) PIP7Signer {
-	if chainId == nil {
-		chainId = new(big.Int)
-	}
-	// https://github.com/PlatONnetwork/PIPs/blob/master/PIPs/PIP-7.md
-	return PIP7Signer{
-		chainId:        chainId,
-		chainIdMul:     new(big.Int).Mul(chainId, big.NewInt(2)),
-		PIP7ChainId:    pip7ChainId,
-		PIP7ChainIdMul: new(big.Int).Mul(pip7ChainId, big.NewInt(2)),
-	}
-}
-
-func (s PIP7Signer) Equal(s2 Signer) bool {
-	pip7, ok := s2.(PIP7Signer)
-	return ok && pip7.chainId.Cmp(s.chainId) == 0 && pip7.PIP7ChainId.Cmp(s.PIP7ChainId) == 0
-}
-
-func (s PIP7Signer) Sender(tx *Transaction) (common.Address, error) {
-	txChainId := tx.ChainId()
-	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
-		return common.Address{}, ErrInvalidChainId
-	}
-	h := s.Hash(tx, txChainId)
-
-	//ChainIdMul
-	V := new(big.Int).Sub(tx.data.V, txChainId.Mul(txChainId, big.NewInt(2)))
-	V.Sub(V, big8)
-
-	return recoverPlain(h, tx.data.R, tx.data.S, V, true)
-}
-
-// Hash returns the hash to be signed by the sender.
-// It does not uniquely identify the transaction.
-func (s PIP7Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
-	cid := chainId
-	if chainId == nil {
-		cid = s.chainId
-	}
-	return rlpHash([]interface{}{
-		tx.data.AccountNonce,
-		tx.data.Price,
-		tx.data.GasLimit,
-		tx.data.Recipient,
-		tx.data.Amount,
-		tx.data.Payload,
-		cid, uint(0), uint(0),
-	})
-}
-
-func (s PIP7Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
-	txChainId := tx.ChainId()
-	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
-		return common.Address{}, []byte{}, ErrInvalidChainId
-	}
-	//ChainIdMul
-	V := new(big.Int).Sub(tx.data.V, txChainId.Mul(txChainId, big.NewInt(2)))
-	V.Sub(V, big8)
-
-	return recoverPubKeyAndSender(s.Hash(tx, txChainId), tx.data.R, tx.data.S, V, true)
-}
-
-// SignatureValues returns the raw R, S, V values corresponding to the
-// given signature.This signature
-// needs to be in the [R || S || V] format where V is 0 or 1.
-func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != 65 {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
-	}
-	R = new(big.Int).SetBytes(sig[:32])
-	S = new(big.Int).SetBytes(sig[32:64])
-	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
-	V.Add(V, s.chainIdMul)
-
-	return R, S, V, nil
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {

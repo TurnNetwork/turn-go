@@ -23,8 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -318,7 +316,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
-	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state)), block)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig), block)
 	if err != nil {
 		return errors.New("execute block error")
 	}

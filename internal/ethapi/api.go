@@ -25,8 +25,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
@@ -514,15 +512,7 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 
 // ChainId is the PIP-7 replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
-	stateDB, _, err := s.b.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(s.b.CurrentBlock().Number().Uint64()))
-	config := s.b.ChainConfig()
-	if err == nil {
-		pip7 := gov.Gte120VersionState(stateDB)
-		if pip7 {
-			return (*hexutil.Big)(config.PIP7ChainID), nil
-		}
-	}
-	return (*hexutil.Big)(config.ChainID), nil
+	return (*hexutil.Big)(s.b.ChainConfig().ChainID), nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -1586,7 +1576,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.MakeSigner(b.ChainConfig(), true)
+		signer := types.MakeSigner(b.ChainConfig())
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
@@ -1629,7 +1619,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 		if config.GenesisVersion < params.FORKVERSION_1_2_0 {
 			chainID = config.ChainID
 		} else {
-			chainID = config.PIP7ChainID
+			chainID = config.ChainID
 		}
 	}
 	log.Info("Sign transaction with:", "ChainID", chainID.String())
