@@ -321,20 +321,12 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
-	pip7 := false
-	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
-		stateDB, err := chain.GetState(currentBlock.Header())
-		if err == nil && stateDB != nil {
-			pip7 = gov.Gte120VersionState(stateDB)
-		}
-	}
-
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.MakeSigner(chainconfig, pip7),
+		signer:      types.MakeSigner(chainconfig),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -509,7 +501,7 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 
 	// reset signer
 	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig, true)
+		pool.signer = types.MakeSigner(pool.chainconfig)
 		pool.locals.signer = pool.signer
 		pool.cacheAccountNeedPromoted.signer = pool.signer
 	}
@@ -1422,7 +1414,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentMaxGas = newHead.GasLimit
 	// reset signer
 	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig, true)
+		pool.signer = types.MakeSigner(pool.chainconfig)
 		pool.locals.signer = pool.signer
 		pool.cacheAccountNeedPromoted.signer = pool.signer
 	}

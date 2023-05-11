@@ -230,9 +230,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		return newcfg, stored, nil
 	}
 	if genesis == nil {
-		if storedcfg.PIP7ChainID == nil {
-			storedcfg.PIP7ChainID = params.PrivatePIP7ChainID
-		}
 		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
 			return newcfg, stored, err
 		}
@@ -349,9 +346,6 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	}
 	if g.Config.ChainID == nil {
 		return errors.New("chainId configuration is missed")
-	}
-	if g.Config.PIP7ChainID == nil {
-		g.Config.PIP7ChainID = params.PrivatePIP7ChainID
 	}
 	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
 		file.Seek(0, io.SeekStart)
