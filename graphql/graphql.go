@@ -215,7 +215,10 @@ func (t *Transaction) From(ctx context.Context, args BlockNumberArgs) (*Account,
 		return nil, err
 	}
 
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	//	var signer types.Signer = types.FrontierSigner{}
+	//	if tx.Protected() {
+	signer := types.NewEIP155Signer(tx.ChainId())
+	//	}
 	from, _ := types.Sender(signer, tx)
 
 	return &Account{

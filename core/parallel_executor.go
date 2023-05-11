@@ -25,11 +25,11 @@ const (
 )
 
 var (
-	executorOnce sync.Once
-	executor     Executor
-	EIP155Signer types.Signer
-	PIP7Signer   types.Signer
-	PIP11Signer  types.Signer
+	executorOnce      sync.Once
+	executor          Executor
+	EIP155Signer      types.Signer
+	PIP7Signer        types.Signer
+	UnprotectedSigner types.Signer
 )
 
 type Executor struct {
@@ -64,7 +64,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 		EIP155Signer = types.MakeSigner(chainConfig, false, false)
 		PIP7Signer = types.MakeSigner(chainConfig, true, false)
-		PIP11Signer = types.MakeSigner(chainConfig, true, true)
+		UnprotectedSigner = types.MakeSigner(chainConfig, true, true)
 		executor.signer = EIP155Signer
 		executor.vmCfg = vmCfg
 		executor.txpool = txpool
@@ -78,7 +78,7 @@ func GetExecutor() *Executor {
 func (exe *Executor) MakeSigner(stateDB *state.StateDB) types.Signer {
 	gte140 := gov.Gte140VersionState(stateDB)
 	if gte140 {
-		exe.signer = PIP11Signer
+		exe.signer = UnprotectedSigner
 	} else if gov.Gte120VersionState(stateDB) {
 		exe.signer = PIP7Signer
 	} else {
