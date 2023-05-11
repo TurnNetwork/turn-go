@@ -46,9 +46,8 @@ type Backend interface {
 	ChainDb() ethdb.Database
 	AccountManager() *accounts.Manager
 	ExtRPCEnabled() bool
-	RPCTxFeeCap() float64     // global tx fee cap for all transaction related APIs
-	RPCGasCap() uint64        // global gas cap for eth_call over rpc: DoS protection
-	UnprotectedAllowed() bool // allows only for EIP155 transactions.
+	RPCTxFeeCap() float64 // global tx fee cap for all transaction related APIs
+	RPCGasCap() uint64    // global gas cap for eth_call over rpc: DoS protection
 
 	// Blockchain API
 	//SetHead(number uint64)

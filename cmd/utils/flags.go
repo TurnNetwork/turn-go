@@ -423,10 +423,6 @@ var (
 		Name:  "preload",
 		Usage: "Comma separated list of JavaScript files to preload into the console",
 	}
-	AllowUnprotectedTxs = &cli.BoolFlag{
-		Name:  "rpc.allow-unprotected-txs",
-		Usage: "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC",
-	}
 
 	// Network Settings
 	MaxPeersFlag = cli.IntFlag{
@@ -833,9 +829,6 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.GlobalString(HTTPVirtualHostsFlag.Name))
-	}
-	if ctx.IsSet(AllowUnprotectedTxs.Name) {
-		cfg.AllowUnprotectedTxs = ctx.Bool(AllowUnprotectedTxs.Name)
 	}
 }
 
