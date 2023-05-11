@@ -375,7 +375,12 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args *SendTxArg
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-	return wallet.SignTxWithPassphrase(account, passwd, tx, s.b.ChainConfig().PIP7ChainID)
+
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
 }
 
 // SendTransaction will create a transaction from the given arguments and
@@ -1236,7 +1241,7 @@ type RPCTransaction struct {
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 
@@ -1435,7 +1440,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	receipt := receipts[index]
 
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1474,7 +1479,11 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 		return nil, err
 	}
 	// Request the wallet to sign the transaction
-	return wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return wallet.SignTx(account, tx, chainID)
 }
 
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
@@ -1619,7 +1628,16 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
 
-	signed, err := wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		if config.GenesisVersion < params.FORKVERSION_1_2_0 {
+			chainID = config.ChainID
+		} else {
+			chainID = config.PIP7ChainID
+		}
+	}
+	log.Info("Sign transaction with:", "ChainID", chainID.String())
+	signed, err := wallet.SignTx(account, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -1725,7 +1743,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	}
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
-		var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+		var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 		from, _ := types.Sender(signer, tx)
 		if _, exists := accounts[from]; exists {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
@@ -1758,7 +1776,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	}
 
 	for _, p := range pending {
-		var signer types.Signer = types.NewPIP11Signer(p.ChainId(), p.ChainId())
+		var signer types.Signer = types.NewEIP155Signer(p.ChainId())
 		wantSigHash := signer.Hash(matchTx, p.ChainId())
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p, p.ChainId()) == wantSigHash {
