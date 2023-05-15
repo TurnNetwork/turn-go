@@ -33,9 +33,6 @@ var (
 	// headHeaderKey tracks the latest known header's hash.
 	headHeaderKey = []byte("LastHeader")
 
-	// chain address hrp key
-	AddressHRPKey = []byte("address-hrp-key-")
-
 	// headBlockKey tracks the latest known full block's hash.
 	headBlockKey = []byte("LastBlock")
 

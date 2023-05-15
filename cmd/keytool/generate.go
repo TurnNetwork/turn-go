@@ -23,8 +23,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"github.com/pborman/uuid"
 	"gopkg.in/urfave/cli.v1"
 
@@ -55,18 +53,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 			Name:  "privatekey",
 			Usage: "file containing a raw private key to encrypt",
 		},
-		utils.AddressHRPFlag,
 		cli.BoolFlag{
 			Name:  "lightkdf",
 			Usage: "use less secure scrypt parameters",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		hrp := ctx.String(utils.AddressHRPFlag.Name)
-		if err := common.SetAddressHRP(hrp); err != nil {
-			return err
-		}
-
 		// Check if keyfile path given and make sure it doesn't already exist.
 		keyfilepath := ctx.Args().First()
 		if keyfilepath == "" {

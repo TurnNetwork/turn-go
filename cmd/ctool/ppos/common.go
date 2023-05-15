@@ -97,14 +97,6 @@ func funcTypeToContractAddress(funcType uint16) common.Address {
 	return toadd
 }
 
-func netCheck(context *cli.Context) error {
-	hrp := context.String(addressHRPFlag.Name)
-	if err := common.SetAddressHRP(hrp); err != nil {
-		return err
-	}
-	return nil
-}
-
 func query(c *cli.Context, funcType uint16, params ...interface{}) error {
 	url := c.String(rpcUrlFlag.Name)
 	if url == "" {

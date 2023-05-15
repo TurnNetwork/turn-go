@@ -43,7 +43,6 @@ func init() {
 		commandVerifyMessage,
 		commandGenkeypair,
 		commandGenblskeypair,
-		commandAddressHexToBech32,
 	}
 	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }

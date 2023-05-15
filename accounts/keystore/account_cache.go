@@ -264,7 +264,7 @@ func (ac *accountCache) scanAccounts() error {
 			return nil
 		}
 
-		addr, err := common.Bech32ToAddress(key.Address)
+		addr, err := common.StringToAddress(key.Address)
 		switch {
 		case err != nil:
 			log.Debug("Failed to decode keystore key", "path", path, "err", err)

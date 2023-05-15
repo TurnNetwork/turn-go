@@ -159,10 +159,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressHRP", genesis.Config.AddressHRP)
-		}
-		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
-			return nil, common.Hash{}, err
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
 
 		// check EconomicModel configuration
@@ -185,9 +182,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil)); err != nil {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
-		}
-		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
-			return nil, common.Hash{}, err
 		}
 
 		// check EconomicModel configuration
@@ -223,20 +217,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 
-		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
-	}
-	if genesis == nil {
-		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
-	} else {
-		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
 	}
 
 	// Get the existing EconomicModel configuration.
@@ -279,18 +261,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
-	var genesisAddressHRP struct {
-		Config *struct {
-			AddressHRP string `json:"addressHRP"`
-		} `json:"config"`
-	}
-	if err := json.NewDecoder(r).Decode(&genesisAddressHRP); err != nil {
-		return "", fmt.Errorf("invalid genesis file address hrp: %v", err)
-	}
-	return genesisAddressHRP.Config.AddressHRP, nil
-}
-
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
 	var genesisEcConfig struct {
 		EconomicModel *xcom.EconomicModelExtend `json:"economicModel"`
@@ -310,15 +280,6 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	hrp, err := g.UnmarshalAddressHRP(file)
-	if err != nil {
-		return err
-	}
-
-	if err := common.SetAddressHRP(hrp); err != nil {
-		return err
-	}
-
 	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
 
 	file.Seek(0, io.SeekStart)
@@ -454,14 +415,6 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	if gov.Gte130Version(genesisVersion) {
 		if err := gov.WriteEcHash130(statedb); nil != err {
 			panic("Failed Store EcHash130: " + err.Error())
-		}
-	}
-
-	if g.Config != nil {
-		if g.Config.AddressHRP != "" {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
-		} else {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
 		}
 	}
 

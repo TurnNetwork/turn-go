@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -52,14 +50,8 @@ make sure to use this feature with great caution!`,
 			Name:  "private",
 			Usage: "include the private key in the output",
 		},
-		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		hrp := ctx.String(utils.AddressHRPFlag.Name)
-		if err := common.SetAddressHRP(hrp); err != nil {
-			return err
-		}
-
 		keyfilepath := ctx.Args().First()
 
 		// Read key from file.

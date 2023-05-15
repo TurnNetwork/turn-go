@@ -113,7 +113,7 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 	*u = uuid.Parse(keyJSON.Id)
 	k.Id = *u
 
-	addr, err := common.Bech32ToAddress(keyJSON.Address)
+	addr, err := common.StringToAddress(keyJSON.Address)
 	if err != nil {
 		return err
 	}

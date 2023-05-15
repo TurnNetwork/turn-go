@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -266,13 +265,13 @@ type TestRestrictingPlugin struct {
 func NewTestRestrictingPlugin() *TestRestrictingPlugin {
 	tp := new(TestRestrictingPlugin)
 	tp.log = log.Root()
-	tp.from, tp.to = common.MustBech32ToAddress("lax1avltgjnqmy6alefayfry3cd9rpguduawcph8ja"), common.MustBech32ToAddress("lax1rkdnqnnsl5shqm7e00897dpey33h3pcntluqar")
+	tp.from, tp.to = common.HexToAddress("0xeB3eb44a60d935DfE53D224648E1a51851c6f3Ae"), common.HexToAddress("0x1D9B304e70FD21706fd97BCe5f34392463788713")
 	tp.mockDB = mock.NewChain().StateDB
 	tp.mockDB.AddBalance(tp.from, big.NewInt(9e18))
 	return tp
 }
 
-//the plan is AdvanceLockedFunds,then release, then ReturnLockFunds,the info will delete
+// the plan is AdvanceLockedFunds,then release, then ReturnLockFunds,the info will delete
 func TestRestrictingPlugin_Compose3(t *testing.T) {
 	plugin := NewTestRestrictingPlugin()
 
@@ -308,7 +307,7 @@ func TestRestrictingPlugin_Compose3(t *testing.T) {
 	}
 }
 
-//the record  exist,have NeedRelease,the NeedRelease amount is less than add plan amount
+// the record  exist,have NeedRelease,the NeedRelease amount is less than add plan amount
 func TestRestrictingPlugin_Compose2(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 
@@ -360,7 +359,7 @@ func TestRestrictingPlugin_Compose2(t *testing.T) {
 	infoAssertF(big.NewInt(3e18), []uint64{2}, big.NewInt(2e18), big.NewInt(0))
 }
 
-//the record  exist,have NeedRelease,the NeedRelease amount is grate or equal than  add plan amount
+// the record  exist,have NeedRelease,the NeedRelease amount is grate or equal than  add plan amount
 func TestRestrictingPlugin_Compose(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()

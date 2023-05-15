@@ -30,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
-var testAddrString = "lax1ju8gz29tsd8gatqh4w8rsyhszpnceau340amnz"
+var testAddrString = "0x970E8128AB834E8EAC17Ab8E3812F010678CF791"
 var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
 
 // These tests are sanity checks.
@@ -87,7 +87,7 @@ func TestUnmarshalPubkey(t *testing.T) {
 
 func TestSign(t *testing.T) {
 	key, _ := HexToECDSA(testPrivHex)
-	addr := common.MustBech32ToAddress(testAddrString)
+	addr := common.HexToAddress(testAddrString)
 
 	msg := Keccak256([]byte("foo"))
 	sig, err := Sign(msg, key)
@@ -126,7 +126,7 @@ func TestInvalidSign(t *testing.T) {
 
 func TestNewContractAddress(t *testing.T) {
 	key, _ := HexToECDSA(testPrivHex)
-	addr := common.MustBech32ToAddress(testAddrString)
+	addr := common.HexToAddress(testAddrString)
 	genAddr := PubkeyToAddress(key.PublicKey)
 	// sanity check before using addr to create contract address
 	checkAddr(t, genAddr, addr)
@@ -134,9 +134,9 @@ func TestNewContractAddress(t *testing.T) {
 	caddr0 := CreateAddress(addr, 0)
 	caddr1 := CreateAddress(addr, 1)
 	caddr2 := CreateAddress(addr, 2)
-	checkAddr(t, common.MustBech32ToAddress("lax1xv7rxyyzfd7xs5fn72ldkt9yhz6d7ceac8r3c4"), caddr0)
-	checkAddr(t, common.MustBech32ToAddress("lax130d8svcuj94qsjq59rjtqlyk6053d5t9wsgpsh"), caddr1)
-	checkAddr(t, common.MustBech32ToAddress("lax1e8w7maz3h33vaz9lj2f2lvfa7ddkwp5eyjeay2"), caddr2)
+	checkAddr(t, common.HexToAddress("0x333c3310824b7c685133F2BeDb2CA4b8b4DF633d"), caddr0)
+	checkAddr(t, common.HexToAddress("0x8bDa78331C916A08481428e4b07C96D3e916D165"), caddr1)
+	checkAddr(t, common.HexToAddress("0xC9DdEDF451bC62ce88Bf9292AFB13df35b670699"), caddr2)
 }
 
 func TestLoadECDSA(t *testing.T) {

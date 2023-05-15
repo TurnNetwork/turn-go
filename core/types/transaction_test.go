@@ -35,14 +35,14 @@ import (
 var (
 	emptyTx = NewTransaction(
 		0,
-		common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"),
+		common.HexToAddress("0x095E7BAea6a6c7c4c2DfeB977eFac326aF552d87"),
 		big.NewInt(0), 0, big.NewInt(0),
 		nil,
 	)
 
 	rightvrsTx, _ = NewTransaction(
 		3,
-		common.MustBech32ToAddress("lax1h984xa8uuhkmer32s6tuz5e3valxa0ctd9shx6"),
+		common.HexToAddress("0xb94f5374fCe5EDbc8E2A8697c15331677E6EBf0B"),
 		big.NewInt(10),
 		2000,
 		big.NewInt(1),
@@ -137,7 +137,7 @@ func TestRecipientNormal(t *testing.T) {
 	key, _ := crypto.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
 	newtx := NewTransaction(
 		3,
-		common.MustBech32ToAddress("lax1h984xa8uuhkmer32s6tuz5e3valxa0ctd9shx6"),
+		common.HexToAddress("0xb94f5374fCe5EDbc8E2A8697c15331677E6EBf0B"),
 		big.NewInt(10),
 		2000,
 		big.NewInt(1),

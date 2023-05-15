@@ -510,7 +510,7 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{b}
 }
 
-// ChainId is the PIP-7 replay-protection chain id for the current chain config.
+// ChainId is the replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 	return (*hexutil.Big)(s.b.ChainConfig().ChainID), nil
 }
@@ -531,15 +531,6 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	}
 	state.ClearParentReference()
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
-}
-
-func (s *PublicBlockChainAPI) GetAddressHrp() string {
-	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
-	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
-	if chainConfig == nil || chainConfig.AddressHRP == "" {
-		return common.DefaultAddressHRP
-	}
-	return chainConfig.AddressHRP
 }
 
 // Result structs for GetProof
@@ -1616,11 +1607,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		if config.GenesisVersion < params.FORKVERSION_1_2_0 {
-			chainID = config.ChainID
-		} else {
-			chainID = config.ChainID
-		}
+		chainID = config.ChainID
 	}
 	log.Info("Sign transaction with:", "ChainID", chainID.String())
 	signed, err := wallet.SignTx(account, tx, chainID)
