@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -44,7 +43,7 @@ func newFakePrepareBlock() *protocols.PrepareBlock {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
+		Coinbase: common.HexToAddress("0x8888f1F195AFa192CfeE860698584c030f4c9dB1"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     1426516743,
@@ -167,7 +166,7 @@ func newFakeQCBlockList() *protocols.QCBlockList {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
+		Coinbase: common.HexToAddress("0x8888f1F195AFa192CfeE860698584c030f4c9dB1"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     1426516743,

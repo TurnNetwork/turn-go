@@ -41,12 +41,6 @@ Change the password of a keyfile.
 use the `--newpasswordfile` to point to the new password file.
 
 
-### `platonkey updateaddress <address> <address>...`
-
-update hex/bech32 address to  bech32 address.  
-use the `--addressPrefix` to  set the address hrp,if not set,use default address hrp lat.
-
-
 ## Password
 
 For every command that uses a keyfile, you will be prompted to provide the 

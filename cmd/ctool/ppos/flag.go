@@ -28,9 +28,4 @@ var (
 		Name:  "json",
 		Usage: "print raw transaction",
 	}
-
-	addressHRPFlag = cli.StringFlag{
-		Name:  "addressHRP",
-		Usage: "set address hrp",
-	}
 )

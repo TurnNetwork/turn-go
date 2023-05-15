@@ -54,8 +54,7 @@ type Config struct {
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
-			ChainID:     big.NewInt(1),
-			ChainID:     big.NewInt(210425),
+			ChainID:     big.NewInt(2500),
 			EIP155Block: new(big.Int),
 		}
 	}

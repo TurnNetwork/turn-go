@@ -12,7 +12,7 @@ import (
 )
 
 //func TestEmptyAddress(t *testing.T) {
-//	add := MustBech32ToAddress("")
+//	add := HexToAddress("")
 //	if add != ZeroAddr {
 //		t.Error("ZeroAddr not compare")
 //	}
@@ -35,7 +35,7 @@ func TestIsStringAddress(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if result := IsBech32Address(test.str); result != test.exp {
+		if result := IsHexAddress(test.str); result != test.exp {
 			t.Errorf("IsHexAddress(%s) == %v; expected %v",
 				test.str, result, test.exp)
 		}
@@ -57,7 +57,7 @@ func TestAddressUnmarshalJSON(t *testing.T) {
 		{`"0x0000000000000000000000000000000000000000"`, false, big.NewInt(0)},
 		{`"0x0000000000000000000000000000000000000010"`, false, big.NewInt(16)},
 		{`"lac1flzyluu23zjknw70duwd00z6u9jgx7vug9n7t4"`, true, nil},
-		{`"lax1lkdax58s3m3upsvmsk5wzcg55ydxp2jwqpvpf2"`, false, byteInt},
+		{`"0xfd9BD350F08eE3C0c19b85A8e16114a11a60aA4e"`, false, byteInt},
 	}
 
 	for i, test := range tests {
@@ -163,7 +163,7 @@ func TestJsonEncodeWithEIP55(t *testing.T) {
 //}
 
 func BenchmarkAddressString(b *testing.B) {
-	testAddr := MustBech32ToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")
+	testAddr := HexToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")
 	for n := 0; n < b.N; n++ {
 		testAddr.String()
 	}

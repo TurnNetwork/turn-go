@@ -108,7 +108,7 @@ func TestDump(t *testing.T) {
 
 func TestNull(t *testing.T) {
 	s := newStateTest()
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.HexToAddress("0x00000000823140710BF13990e4500136726D8b55")
 	s.state.CreateAccount(address)
 	value := common.FromHex("0x823140710bf13990e4500136726d8b55")
 	//value := nil
@@ -278,7 +278,7 @@ func TestEmptyByte(t *testing.T) {
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.HexToAddress("0x00000000823140710BF13990e4500136726D8b55")
 	state.CreateAccount(address)
 	so := state.getStateObject(address)
 
@@ -342,7 +342,7 @@ func TestForEachStorage(t *testing.T) {
 	defer db.Close()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	address := common.HexToAddress("0x00000000823140710BF13990e4500136726D8b55")
 	state.CreateAccount(address)
 
 	key := []byte("a")
@@ -377,10 +377,10 @@ func TestMigrateStorage(t *testing.T) {
 	defer db.Close()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
-	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
+	from := common.HexToAddress("0x00000000823140710BF13990e4500136726D8b55")
 	state.CreateAccount(from)
 
-	to := common.MustBech32ToAddress("lax1qqqqqqrjxpq8zzl38xgwg5qpxeex6mnxwyzlxv")
+	to := common.HexToAddress("0x00000000723040710Bf13990E4500136726d6E66")
 	state.CreateAccount(to)
 
 	state.SetState(from, []byte("a"), []byte("fromA"))

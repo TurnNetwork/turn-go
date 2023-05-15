@@ -2787,7 +2787,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	// Double sign penalty
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
-	caller := common.MustBech32ToAddress("lax1uj3zd9yz00axz7ls88ynwsp3jprhjd9ldx9qpm")
+	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
 	slashItem2 := &staking.SlashNodeItem{
 		NodeId:      slash2.NodeId,
 		Amount:      sla,

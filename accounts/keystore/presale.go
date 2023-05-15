@@ -91,7 +91,7 @@ func decryptPreSaleKey(fileContent []byte, password string) (key *Key, err error
 		PrivateKey: ecKey,
 	}
 
-	expectedAddr, err := common.Bech32ToAddress(preSaleKeyStruct.EthAddr)
+	expectedAddr, err := common.StringToAddress(preSaleKeyStruct.EthAddr)
 	if err != nil {
 		return nil, err
 	}

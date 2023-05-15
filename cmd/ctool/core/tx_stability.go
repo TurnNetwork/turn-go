@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -174,7 +173,7 @@ func StabilityTest(pkFile string, times, interval int) error {
 			continue
 		}
 
-		acc, ok := accountPool[common.MustBech32ToAddress(from)]
+		acc, ok := accountPool[common.HexToAddress(from)]
 		if !ok {
 			return fmt.Errorf("private key not found,addr:%s", from)
 		}

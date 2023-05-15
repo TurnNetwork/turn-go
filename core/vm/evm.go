@@ -229,7 +229,6 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 	if statedb != nil && gov.Gte130VersionState(statedb) {
 		cpyChainCfg := &params.ChainConfig{
 			ChainID:        chainConfig.ChainID,
-			AddressHRP:     chainConfig.AddressHRP,
 			EmptyBlock:     chainConfig.EmptyBlock,
 			EIP155Block:    chainConfig.EIP155Block,
 			EWASMBlock:     chainConfig.EWASMBlock,

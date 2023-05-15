@@ -40,7 +40,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		chain.SnapDB.Clear()
 	}()
 
-	addr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
+	addr := common.HexToAddress("0x195667cDeFCad94C521BdfF0Bf85079761E0f8F3")
 	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -160,7 +159,7 @@ func SendRawTransaction(from, to, value string, pkFilePath string) (string, erro
 	//	fmt.Println("value", fmt.Sprintf("%+v", v))
 	//}
 
-	acc, ok := accountPool[common.MustBech32ToAddress(from)]
+	acc, ok := accountPool[common.HexToAddress(from)]
 	if !ok {
 		return "", fmt.Errorf("private key not found in private key file,addr:%s", from)
 	}
@@ -208,7 +207,7 @@ func sendRawTransaction(transaction *types.Transaction) (string, error) {
 func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, nonce uint64) *types.Transaction {
 	gas, _ := strconv.Atoi(config.Gas)
 	gasPrice, _ := new(big.Int).SetString(config.GasPrice, 10)
-	newTx, err := types.SignTx(types.NewTransaction(nonce, common.MustBech32ToAddress(to), big.NewInt(value), uint64(gas), gasPrice, []byte{}), types.NewEIP155Signer(new(big.Int).SetInt64(100)), priv)
+	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), uint64(gas), gasPrice, []byte{}), types.NewEIP155Signer(new(big.Int).SetInt64(100)), priv)
 	if err != nil {
 		panic(fmt.Errorf("sign error,%s", err.Error()))
 	}
