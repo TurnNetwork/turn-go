@@ -65,7 +65,6 @@ type jsonrpcMessage struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 	Error   *jsonError      `json:"error,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
-	Bech32  bool            `json:"bech32,omitempty"`
 }
 
 func (msg *jsonrpcMessage) isEthMessage() bool {
@@ -73,9 +72,6 @@ func (msg *jsonrpcMessage) isEthMessage() bool {
 		return true
 	} else if strings.HasPrefix(msg.Method, platonMethodPrefix) {
 		return false
-	}
-	if !msg.Bech32 {
-		return true
 	}
 	return false
 }
