@@ -7,8 +7,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
 )
 
 var _ = (*receiptMarshaling)(nil)

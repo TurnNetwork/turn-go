@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mock"
 )
 
 func TestWasmRun(t *testing.T) {

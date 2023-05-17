@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
+	"github.com/bubblenet/bubble/internal/cmdtest"
 	"github.com/docker/docker/pkg/reexec"
 )
 
@@ -29,17 +29,17 @@ type testKeytool struct {
 	*cmdtest.TestCmd
 }
 
-// spawns platonkey with the given command line args.
+// spawns bubblekey with the given command line args.
 func runKeytool(t *testing.T, args ...string) *testKeytool {
 	tt := new(testKeytool)
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
-	tt.Run("platonkey-test", args...)
+	tt.Run("bubblekey-test", args...)
 	return tt
 }
 
 func TestMain(m *testing.M) {
-	// Run the app if we've been exec'd as "platonkey-test" in runKeytool.
-	reexec.Register("platonkey-test", func() {
+	// Run the app if we've been exec'd as "bubblekey-test" in runKeytool.
+	reexec.Register("bubblekey-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

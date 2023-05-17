@@ -23,12 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 func init() {

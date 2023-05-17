@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 // Tests that fast sync gets disabled as soon as a real block is successfully

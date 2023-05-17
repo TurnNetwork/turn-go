@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 var (

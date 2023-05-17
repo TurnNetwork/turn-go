@@ -19,19 +19,19 @@ package rpc_test
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // In this example, our client wishes to track the latest 'block number'
 // known to the server. The server supports two methods:
 //
-// platon_getBlockByNumber("latest", {})
+// bub_getBlockByNumber("latest", {})
 //    returns the latest block object.
 //
-// platon_subscribe("newBlocks")
+// bub_subscribe("newBlocks")
 //    creates a subscription which fires block objects when new blocks arrive.
 
 type Block struct {
@@ -75,7 +75,7 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	// The connection is established now.
 	// Update the channel with the current block.
 	var lastBlock Block
-	if err := client.CallContext(ctx, &lastBlock, "platon_getBlockByNumber", "latest", false); err != nil {
+	if err := client.CallContext(ctx, &lastBlock, "bub_getBlockByNumber", "latest", false); err != nil {
 		fmt.Println("can't get latest block:", err)
 		return
 	}

@@ -19,30 +19,29 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/bubblenet/bubble/console/prompt"
+	"gopkg.in/urfave/cli.v1"
 	"io"
 	"path/filepath"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/bubblenet/bubble/eth"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/trie"
 
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
 )
 
 var (
@@ -116,7 +115,7 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The first argument must be the directory containing the blockchain to download from,The second argument must be the directory containing the ppos to download from`,
+The first argument must be the directory containing the blockchain to download from,The second argument must be the directory containing the dpos to download from`,
 	}
 	removedbCommand = cli.Command{
 		Action:    utils.MigrateFlags(removeDB),
@@ -291,7 +290,7 @@ func copyDb(ctx *cli.Context) error {
 	}
 	// Ensure we have a source chain directory to copy
 	if len(ctx.Args()) < 3 {
-		utils.Fatalf("Source SnapshotDBD directory (path to a local ppos database) path argument missing")
+		utils.Fatalf("Source SnapshotDBD directory (path to a local dpos database) path argument missing")
 	}
 	// Initialize a new chain for the running node to sync into
 	stack, _ := makeFullNode(ctx)

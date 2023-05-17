@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 )
 
 func TestTransaction(t *testing.T) {
@@ -28,8 +28,8 @@ func TestTransaction(t *testing.T) {
 
 	txt := new(testMatcher)
 	txt.config(`^EIP155/`, params.ChainConfig{
-		EIP155Block:    big.NewInt(0),
-		ChainID:        big.NewInt(1),
+		EIP155Block: big.NewInt(0),
+		ChainID:     big.NewInt(1),
 	})
 
 	txt.walk(t, transactionTestDir, func(t *testing.T, name string, test *TransactionTest) {

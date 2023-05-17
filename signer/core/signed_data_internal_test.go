@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 )
 
 func TestBytesPadding(t *testing.T) {

@@ -28,15 +28,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/params"
 )
 
 // testTxPoolConfig is a transaction pool configuration without stateful disk
@@ -171,7 +171,7 @@ func (c *testChain) State() (*state.StateDB, error) {
 		c.statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 		// simulate that the new head block included tx0 and tx1
 		c.statedb.SetNonce(c.address, 2)
-		c.statedb.SetBalance(c.address, new(big.Int).SetUint64(params.LAT))
+		c.statedb.SetBalance(c.address, new(big.Int).SetUint64(params.BUB))
 		*c.trigger = false
 	}
 	return stdb, nil
@@ -189,7 +189,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 		trigger    = false
 	)
 
-	statedb.SetBalance(address, new(big.Int).SetUint64(params.LAT))
+	statedb.SetBalance(address, new(big.Int).SetUint64(params.BUB))
 	blockchain := &testChain{&testBlockChain{statedb, 1000000000, new(event.Feed)}, address, &trigger}
 
 	// setup pool with 2 transaction in it

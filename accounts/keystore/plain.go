@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 type keyStorePlain struct {

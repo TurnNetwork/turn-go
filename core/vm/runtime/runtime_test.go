@@ -23,16 +23,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/asm"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core/asm"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/bubblenet/bubble/accounts/abi"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/vm"
 )
 
 func TestDefaults(t *testing.T) {

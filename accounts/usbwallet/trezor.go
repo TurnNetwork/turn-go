@@ -27,12 +27,12 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/usbwallet/internal/trezor"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/accounts/usbwallet/internal/trezor"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -80,13 +80,13 @@ func (w *trezorDriver) Status() (string, error) {
 
 // Open implements usbwallet.driver, attempting to initialize the connection to
 // the Trezor hardware wallet. Initializing the Trezor is a two phase operation:
-//  * The first phase is to initialize the connection and read the wallet's
-//    features. This phase is invoked is the provided passphrase is empty. The
-//    device will display the pinpad as a result and will return an appropriate
-//    error to notify the user that a second open phase is needed.
-//  * The second phase is to unlock access to the Trezor, which is done by the
-//    user actually providing a passphrase mapping a keyboard keypad to the pin
-//    number of the user (shuffled according to the pinpad displayed).
+//   - The first phase is to initialize the connection and read the wallet's
+//     features. This phase is invoked is the provided passphrase is empty. The
+//     device will display the pinpad as a result and will return an appropriate
+//     error to notify the user that a second open phase is needed.
+//   - The second phase is to unlock access to the Trezor, which is done by the
+//     user actually providing a passphrase mapping a keyboard keypad to the pin
+//     number of the user (shuffled according to the pinpad displayed).
 func (w *trezorDriver) Open(device io.ReadWriter, passphrase string) error {
 	w.device, w.failure = device, nil
 

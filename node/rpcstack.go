@@ -31,8 +31,8 @@ import (
 
 	"github.com/rs/cors"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // httpConfig is the JSON-RPC/HTTP configuration.

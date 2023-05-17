@@ -24,13 +24,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/metrics"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	cvm "github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -96,7 +96,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	if cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(s.address) {
+	if cvm.PrecompiledContractCheckInstance.IsBubblePrecompiledContract(s.address) {
 		return false
 	}
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)

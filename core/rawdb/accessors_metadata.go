@@ -19,14 +19,14 @@ package rawdb
 import (
 	"encoding/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/ethdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/x/xcom"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.

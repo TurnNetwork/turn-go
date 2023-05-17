@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 	"github.com/holiman/uint256"
 )
 

@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 // TestPack tests the general pack/unpack tests in packing_test.go

@@ -36,13 +36,13 @@ import (
 	pcsc "github.com/gballet/go-libpcsclite"
 	"github.com/status-im/keycard-go/derivationpath"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	ethereum "github.com/bubblenet/bubble"
 )
 
 // ErrPairingPasswordNeeded is returned if opening the smart card requires pairing with a pairing

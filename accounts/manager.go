@@ -21,8 +21,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/event"
 )
 
 // Config contains the settings of the global account manager.

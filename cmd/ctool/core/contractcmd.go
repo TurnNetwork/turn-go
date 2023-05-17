@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
-
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -23,8 +22,8 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/rlp"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -88,7 +87,7 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 	//paramJson, _ := json.Marshal(paramList)
 	//fmt.Printf("\n request json data：%s\n", string(paramJson))
 
-	r, err := Send(params, "platon_sendTransaction")
+	r, err := Send(params, "bub_sendTransaction")
 
 	//fmt.Printf("\nresponse json：%s\n", r)
 
@@ -149,8 +148,8 @@ func invoke(c *cli.Context) error {
 	return nil
 }
 
-/**
-
+/*
+*
  */
 func InvokeContract(contractAddr string, abiPath string, funcParams string, txType int) error {
 
@@ -211,14 +210,14 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 
 		paramJson, _ := json.Marshal(params)
 		fmt.Printf("\n request json data：%s \n", string(paramJson))
-		r, err = Send(params, "platon_call")
+		r, err = Send(params, "bub_call")
 	} else {
 		params := make([]interface{}, 1)
 		params[0] = txParams
 
 		paramJson, _ := json.Marshal(params)
 		fmt.Printf("\n request json data：%s \n", string(paramJson))
-		r, err = Send(params, "platon_sendTransaction")
+		r, err = Send(params, "bub_sendTransaction")
 	}
 
 	fmt.Printf("\n response json：%s \n", r)
@@ -243,13 +242,15 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 	return nil
 }
 
-/**
-  Judging whether a contract exists through platon_getCode
+/*
+*
+
+	Judging whether a contract exists through bub_getCode
 */
 func getContractByAddress(addr string) bool {
 
 	params := []string{addr, "latest"}
-	r, err := Send(params, "platon_getCode")
+	r, err := Send(params, "bub_getCode")
 	if err != nil {
 		fmt.Printf("send http post to get contract address error ")
 		return false
@@ -258,12 +259,12 @@ func getContractByAddress(addr string) bool {
 	var resp = Response{}
 	err = json.Unmarshal([]byte(r), &resp)
 	if err != nil {
-		fmt.Printf("parse platon_getCode result error ! \n %s", err.Error())
+		fmt.Printf("parse bub_getCode result error ! \n %s", err.Error())
 		return false
 	}
 
 	if resp.Error.Code != 0 {
-		fmt.Printf("platon_getCode error ,error:%v", resp.Error.Message)
+		fmt.Printf("bub_getCode error ,error:%v", resp.Error.Message)
 		return false
 	}
 	//fmt.Printf("trasaction hash: %s\n", resp.Result)
@@ -276,13 +277,13 @@ func getContractByAddress(addr string) bool {
 }
 
 /*
-  Loop call to get transactionReceipt... until 200s timeout
+Loop call to get transactionReceipt... until 200s timeout
 */
 func GetTransactionReceipt(txHash string, ch chan string, exit chan string) {
 	var receipt = Receipt{}
 	var contractAddr string
 	for {
-		res, e := Send([]string{txHash}, "platon_getTransactionReceipt")
+		res, e := Send([]string{txHash}, "bub_getTransactionReceipt")
 		if e != nil {
 			panic(fmt.Sprintf("send http post to get transaction receipt error！\n %s", e.Error()))
 		}

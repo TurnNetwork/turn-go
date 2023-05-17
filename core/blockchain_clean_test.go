@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -25,16 +25,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+	"github.com/bubblenet/bubble/ethdb/memorydb"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
 var (
@@ -51,7 +51,7 @@ func randBytes(n int) []byte {
 }
 
 func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
-	buf, err := ioutil.ReadFile("../eth/downloader/testdata/platon.json")
+	buf, err := ioutil.ReadFile("../eth/downloader/testdata/bubble.json")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 }
 
 func TestCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := ioutil.TempDir("", "bubble")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestCleaner(t *testing.T) {
 }
 
 func TestStopCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := ioutil.TempDir("", "bubble")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}

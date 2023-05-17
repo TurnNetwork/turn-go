@@ -20,17 +20,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/signer/core"
 	"io/ioutil"
 	"path"
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
 )
 
 var typesStandard = core.Types{

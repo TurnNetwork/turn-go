@@ -13,11 +13,11 @@ root="$PWD"
 
 echo "$root" "$workspace"
 
-platondir="$workspace/src/github.com/PlatONnetwork"
-if [ ! -L "$platondir/PlatON-Go" ]; then
-    mkdir -p "$platondir"
-    cd "$platondir"
-    ln -s ../../../../../. PlatON-Go
+bubbledir="$workspace/src/github.com/bubblenet"
+if [ ! -L "$bubbledir/bubble" ]; then
+    mkdir -p "$bubbledir"
+    cd "$bubbledir"
+    ln -s ../../../../../. bubble
     cd "$root"
 fi
 
@@ -28,8 +28,8 @@ GOPATH="$workspace"
 export GOPATH
 
 # Run the command inside the workspace.
-cd "$platondir/PlatON-Go"
-PWD="$platondir/PlatON-Go"
+cd "$bubbledir/bubble"
+PWD="$bubbledir/bubble"
 
 # Launch the arguments with the configured environment.
 exec "$@"

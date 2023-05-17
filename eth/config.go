@@ -17,16 +17,16 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/bubblenet/bubble/miner"
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/eth/gasprice"
 )
 
 // DefaultFullGPOConfig contains default gasprice oracle settings for full node.
@@ -92,7 +92,7 @@ var DefaultConfig = Config{
 	TxPool:      core.DefaultTxPoolConfig,
 	RPCGasCap:   25000000,
 	GPO:         DefaultFullGPOConfig,
-	RPCTxFeeCap: 1, // 1 lat
+	RPCTxFeeCap: 1, // 1 bub
 }
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go

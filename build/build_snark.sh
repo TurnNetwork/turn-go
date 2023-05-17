@@ -44,7 +44,7 @@ root=`pwd`
 root=$root/life/resolver
 
 if [ "`ls $root/vc`" = "" ]; then
-    git submodule add https://github.com/PlatONnetwork/libcsnark.git life/resolver/vc
+    git submodule add https://github.com/bubblenet/libcsnark.git life/resolver/vc
 fi
 
 if [ "`ls $root/vc/build`" = "" ]; then

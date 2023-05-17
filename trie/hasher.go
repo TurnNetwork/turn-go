@@ -20,9 +20,9 @@ import (
 	"golang.org/x/crypto/sha3"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // hasher is a type used for the trie Hash operation. A hasher has some
@@ -165,8 +165,8 @@ func (h *hasher) store(n node, force bool) (node, error) {
 //
 // All node encoding must be done like this:
 //
-//     node.encode(h.encbuf)
-//     enc := h.encodedBytes()
+//	node.encode(h.encbuf)
+//	enc := h.encodedBytes()
 //
 // This convention exists because node.encode can only be inlined/escape-analyzed when
 // called on a concrete receiver type.

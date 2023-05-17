@@ -17,18 +17,18 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core/rawdb"
 	"math/big"
 	"testing"
 
-	//"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	//"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/params"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 // So we can deterministically seed different blockchains

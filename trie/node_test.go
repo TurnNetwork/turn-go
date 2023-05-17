@@ -18,7 +18,7 @@ package trie
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"testing"
 )
 

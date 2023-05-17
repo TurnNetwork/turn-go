@@ -38,7 +38,7 @@ import (
 	"math/big"
 	"unsafe"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 )
 
 var context *C.secp256k1_context

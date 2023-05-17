@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 )
 
 func TestStreamKind(t *testing.T) {

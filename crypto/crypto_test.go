@@ -26,8 +26,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
 )
 
 var testAddrString = "0x970E8128AB834E8EAC17Ab8E3812F010678CF791"

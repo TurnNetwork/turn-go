@@ -17,7 +17,7 @@
 package keystore
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -29,9 +29,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/event"
 )
 
 var testSigData = make([]byte, 32)

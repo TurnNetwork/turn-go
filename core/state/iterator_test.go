@@ -20,13 +20,13 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/bubblenet/bubble/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
-var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
+var TestBubblePrecompiledContracts = map[common.Address]interface{}{
 	vm.ValidatorInnerContractAddr: nil,
 	// add by economic model
 	vm.StakingContractAddr:     nil,
@@ -39,8 +39,8 @@ var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
 
 type TestPrecompiledContractCheck struct{}
 
-func (pcc *TestPrecompiledContractCheck) IsPlatONPrecompiledContract(address common.Address) bool {
-	if _, ok := TestPlatONPrecompiledContracts[address]; ok {
+func (pcc *TestPrecompiledContractCheck) IsBubblePrecompiledContract(address common.Address) bool {
+	if _, ok := TestBubblePrecompiledContracts[address]; ok {
 		return true
 	}
 	return false

@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -83,7 +83,7 @@ var (
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
-			ValidatorMode: "ppos",
+			ValidatorMode: "dpos",
 			Period:        20000,
 		},
 		GenesisVersion: GenesisVersion,
@@ -106,7 +106,7 @@ var (
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
-			ValidatorMode: "ppos",
+			ValidatorMode: "dpos",
 			Period:        20000,
 		},
 		GenesisVersion: GenesisVersion,

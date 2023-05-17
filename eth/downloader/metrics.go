@@ -19,7 +19,7 @@
 package downloader
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/metrics"
 )
 
 var (
@@ -41,6 +41,6 @@ var (
 	stateInMeter   = metrics.NewRegisteredMeter("eth/downloader/states/in", nil)
 	stateDropMeter = metrics.NewRegisteredMeter("eth/downloader/states/drop", nil)
 
-	pposStorageInMeter   = metrics.NewRegisteredMeter("eth/downloader/pposStorage/in", nil)
-	pposStorageDropMeter = metrics.NewRegisteredMeter("eth/downloader/pposStorage/drop", nil)
+	dposStorageInMeter   = metrics.NewRegisteredMeter("eth/downloader/dposStorage/in", nil)
+	dposStorageDropMeter = metrics.NewRegisteredMeter("eth/downloader/dposStorage/drop", nil)
 )

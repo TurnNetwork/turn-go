@@ -27,12 +27,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 func tmpKeyStoreIface(t *testing.T, encrypted bool) (dir string, ks keyStore) {
-	d, err := ioutil.TempDir("", "platon-keystore-test")
+	d, err := ioutil.TempDir("", "bubble-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

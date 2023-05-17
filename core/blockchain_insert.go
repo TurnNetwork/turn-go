@@ -19,10 +19,10 @@ package core
 import (
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mclock"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
 )
 
 // insertStats tracks and reports on block insertion.

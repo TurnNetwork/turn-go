@@ -20,25 +20,25 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/bubblenet/bubble/console/prompt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/internal/jsre"
+	"github.com/bubblenet/bubble/node"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 const (
@@ -76,8 +76,8 @@ func (p *hookedPrompter) PromptPassword(prompt string) (string, error) {
 func (p *hookedPrompter) PromptConfirm(prompt string) (bool, error) {
 	return false, errors.New("not implemented")
 }
-func (p *hookedPrompter) SetHistory(history []string)              {}
-func (p *hookedPrompter) AppendHistory(command string)             {}
+func (p *hookedPrompter) SetHistory(history []string)                     {}
+func (p *hookedPrompter) AppendHistory(command string)                    {}
 func (p *hookedPrompter) ClearHistory()                                   {}
 func (p *hookedPrompter) SetWordCompleter(completer prompt.WordCompleter) {}
 
@@ -195,43 +195,43 @@ func TestWelcome(t *testing.T) {
 func TestApi(t *testing.T) {
 	tester := newTester(t, nil)
 	defer tester.Close(t)
-	fmt.Fprintf(tester.console.printer, "Welcome to the PlatON JavaScript console!\n\n")
+	fmt.Fprintf(tester.console.printer, "Welcome to the Bubble JavaScript console!\n\n")
 	_, err := tester.console.jsre.Run(`
 		console.log("aaaaaaa");
 		console.log("instance: " + web3.version.node);
-		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
+		console.log("at block: " + bubble.blockNumber + " (" + new Date(1000 * bubble.getBlock(bubble.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
-		console.log(" protocolVersion: " + platon.protocolVersion);
-		console.log(" sync: " + platon.syncing);
-		console.log("",platon.protocolVersion)
-		console.log("syncing",platon.syncing)
-		console.log("gasPrice",platon.gasPrice)
-		console.log("accounts",platon.accounts)
-		console.log("blockNumber",platon.blockNumber)
-		console.log("getBalance",platon.getBalance("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getStorageAt",platon.getStorageAt("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getTransactionCount",platon.getTransactionCount("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getBlockTransactionCountByHash or ByNumber",platon.getBlockTransactionCount("1234"))
-		//console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log(" protocolVersion: " + bubble.protocolVersion);
+		console.log(" sync: " + bubble.syncing);
+		console.log("",bubble.protocolVersion)
+		console.log("syncing",bubble.syncing)
+		console.log("gasPrice",bubble.gasPrice)
+		console.log("accounts",bubble.accounts)
+		console.log("blockNumber",bubble.blockNumber)
+		console.log("getBalance",bubble.getBalance("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getStorageAt",bubble.getStorageAt("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getTransactionCount",bubble.getTransactionCount("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getBlockTransactionCountByHash or ByNumber",bubble.getBlockTransactionCount("1234"))
+		//console.log("getCode",bubble.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")
 		//personal.unlockAccount(adr,"123456",30)
-		//console.log("sign",platon.sign(adr, "0xdeadbeaf"))
-		//console.log("sendTransaction",platon.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
-		//console.log("sendRawTransaction",platon.sendRawTransaction({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("call",platon.call({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("estimateGas",platon.estimateGas({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("getBlockByHash or number",platon.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
-		//console.log("getTransactionByHash",platon.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
-		//console.log("getTransactionByBlockHashAndIndex",platon.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
-		//console.log("getTransactionReceipt",platon.getTransactionReceipt())
-		//console.log("newFilter",platon.newFilter())
-		//console.log("newBlockFilter",platon.newBlockFilter())
-		//console.log("newPendingTransactionFilter",platon.newPendingTransactionFilter())
-		//console.log("uninstallFilter",platon.uninstallFilter())
-		//console.log("getFilterChanges",platon.getFilterChanges())
-		//console.log("getFilterLogs",platon.getFilterLogs())
-		//console.log("getLogs",platon.getLogs({"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}))
-		//console.log("signTransaction",platon.signTransaction())
+		//console.log("sign",bubble.sign(adr, "0xdeadbeaf"))
+		//console.log("sendTransaction",bubble.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
+		//console.log("sendRawTransaction",bubble.sendRawTransaction({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("call",bubble.call({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("estimateGas",bubble.estimateGas({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("getBlockByHash or number",bubble.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByHash",bubble.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByBlockHashAndIndex",bubble.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
+		//console.log("getTransactionReceipt",bubble.getTransactionReceipt())
+		//console.log("newFilter",bubble.newFilter())
+		//console.log("newBlockFilter",bubble.newBlockFilter())
+		//console.log("newPendingTransactionFilter",bubble.newPendingTransactionFilter())
+		//console.log("uninstallFilter",bubble.uninstallFilter())
+		//console.log("getFilterChanges",bubble.getFilterChanges())
+		//console.log("getFilterLogs",bubble.getFilterLogs())
+		//console.log("getLogs",bubble.getLogs({"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}))
+		//console.log("signTransaction",bubble.signTransaction())
 		//console.log("test personal",personal.openWallet("adad"))
 	`)
 	if err != nil {

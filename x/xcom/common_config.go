@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package xcom
 
@@ -20,14 +20,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 // plugin rule key
@@ -74,19 +74,19 @@ const (
 var (
 	one, _ = new(big.Int).SetString("1000000000000000000", 10)
 
-	// 10 LAT
+	// 10 BUB
 	DelegateLowerLimit, _ = new(big.Int).SetString("10000000000000000000", 10)
 
-	// 1W LAT
+	// 1W BUB
 	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
-	// 15W LAT
+	// 15W BUB
 	GeneStakingAmount, _ = new(big.Int).SetString("150000000000000000000000", 10)
 
 	// 10W
 	StakeLowerLimit, _ = new(big.Int).SetString("100000000000000000000000", 10)
-	// 1000W LAT
+	// 1000W BUB
 	StakeUpperLimit, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
 	FloorMinimumRelease = new(big.Int).Mul(new(big.Int).SetUint64(100), one)
@@ -135,7 +135,7 @@ type governanceConfig struct {
 
 type rewardConfig struct {
 	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	BubbleFoundationYear         uint32 `json:"bubbleFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
 	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
@@ -145,9 +145,9 @@ type restrictingConfig struct {
 }
 
 type innerAccount struct {
-	// Account of PlatONFoundation
-	PlatONFundAccount common.Address `json:"platonFundAccount"`
-	PlatONFundBalance *big.Int       `json:"platonFundBalance"`
+	// Account of BubbleFoundation
+	BubbleFundAccount common.Address `json:"bubbleFundAccount"`
+	BubbleFundBalance *big.Int       `json:"bubbleFundBalance"`
 	// Account of CommunityDeveloperFoundation
 	CDFAccount common.Address `json:"cdfAccount"`
 	CDFBalance *big.Int       `json:"cdfBalance"`
@@ -218,9 +218,9 @@ func ResetEconomicExtendConfigUnDelegateFreezeDuration(UnDelegateFreezeDuration 
 }
 
 const (
-	DefaultMainNet     = iota // PlatON default main net flag
-	DefaultTestNet            // PlatON default test net flag
-	DefaultUnitTestNet        // PlatON default unit test
+	DefaultMainNet     = iota // Bubble default main net flag
+	DefaultTestNet            // Bubble default test net flag
+	DefaultUnitTestNet        // Bubble default unit test
 )
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
@@ -229,7 +229,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		cdfundBalance *big.Int
 	)
 
-	// 3.22361981  thousand millions LAT
+	// 3.22361981  thousand millions BUB
 	if cdfundBalance, ok = new(big.Int).SetString("322361981000000000000000000", 10); !ok {
 		return nil
 	}
@@ -278,7 +278,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:                 50,
-				PlatONFoundationYear:         10,
+				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
 			},
@@ -286,8 +286,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("lat1aaczrlrzylnanv57map5lndllkf7mvtnd9h8dj"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				BubbleFundAccount: common.HexToAddress("lat1aaczrlrzylnanv57map5lndllkf7mvtnd9h8dj"),
+				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("lat1fpccktpn37a94rdj9yxszxp7pt3kae05j6lr9l"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -338,7 +338,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:                 50,
-				PlatONFoundationYear:         10,
+				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
 			},
@@ -346,8 +346,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x01C71CecaeFF76b78325577E6a74A94D24A86BE2"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				BubbleFundAccount: common.HexToAddress("0x01C71CecaeFF76b78325577E6a74A94D24A86BE2"),
+				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x02CddA362DCA508709a651fDe1513b22D3C2a4e5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -398,7 +398,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Reward: rewardConfig{
 				NewBlockRate:                 50,
-				PlatONFoundationYear:         10,
+				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 2,
 			},
@@ -406,8 +406,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821"),
-				PlatONFundBalance: new(big.Int).SetInt64(0),
+				BubbleFundAccount: common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821"),
+				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xC1f330B214668beAc2E6418Dd651B09C759a4Bf5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
@@ -428,14 +428,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 func CheckStakeThreshold(threshold *big.Int) error {
 
 	if threshold.Cmp(StakeLowerLimit) < 0 || threshold.Cmp(StakeUpperLimit) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", StakeLowerLimit, StakeUpperLimit))
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] BUB", StakeLowerLimit, StakeUpperLimit))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
 	if threshold.Cmp(DelegateLowerLimit) < 0 || threshold.Cmp(DelegateUpperLimit) > 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] LAT ", DelegateLowerLimit, DelegateUpperLimit))
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] BUB ", DelegateLowerLimit, DelegateUpperLimit))
 	}
 	return nil
 }
@@ -601,8 +601,8 @@ func CheckEconomicModel(version uint32) error {
 		return err
 	}
 
-	if ec.Reward.PlatONFoundationYear < 1 {
-		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
+	if ec.Reward.BubbleFoundationYear < 1 {
+		return errors.New("The BubbleFoundationYear must be greater than or equal to 1")
 	}
 
 	if ec.Reward.NewBlockRate < 0 || ec.Reward.NewBlockRate > 100 {
@@ -796,8 +796,8 @@ func NewBlockRewardRate() uint64 {
 	return ec.Reward.NewBlockRate
 }
 
-func PlatONFoundationYear() uint32 {
-	return ec.Reward.PlatONFoundationYear
+func BubbleFoundationYear() uint32 {
+	return ec.Reward.BubbleFoundationYear
 }
 
 func IncreaseIssuanceRatio() uint16 {
@@ -866,12 +866,12 @@ func ParamProposal_SupportRate() uint64 {
 /******
  * Inner Account Config
  ******/
-func PlatONFundAccount() common.Address {
-	return ec.InnerAcc.PlatONFundAccount
+func BubbleFundAccount() common.Address {
+	return ec.InnerAcc.BubbleFundAccount
 }
 
-func PlatONFundBalance() *big.Int {
-	return ec.InnerAcc.PlatONFundBalance
+func BubbleFundBalance() *big.Int {
+	return ec.InnerAcc.BubbleFundBalance
 }
 
 func CDFAccount() common.Address {

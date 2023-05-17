@@ -20,7 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/rlpx"
+	"github.com/bubblenet/bubble/p2p/rlpx"
 	"net"
 	"reflect"
 	"testing"
@@ -28,9 +28,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 func init() {

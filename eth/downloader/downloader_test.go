@@ -28,18 +28,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	ethereum "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/trie"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 var logger = log.New("test", "down")
@@ -528,20 +528,20 @@ func (dlp *downloadTesterPeer) RequestNodeData(hashes []common.Hash) error {
 	return nil
 }
 
-func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
+func (dlp *downloadTesterPeer) RequestDPOSStorage() error {
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
 	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum]]
 	Latest := dlp.chain.headBlock().Header()
-	log.Debug("DeliverPposInfo")
-	if err := dlp.dl.downloader.DeliverPposInfo(dlp.id, Latest, Pivot); err != nil {
-		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+	log.Debug("DeliverDposInfo")
+	if err := dlp.dl.downloader.DeliverDposInfo(dlp.id, Latest, Pivot); err != nil {
+		logger.Error("[GetDPOSStorageMsg]send last dpos meassage fail", "error", err)
 		return err
 	}
 	var count int
-	ps := make([]PPOSStorageKV, 0)
+	ps := make([]DPOSStorageKV, 0)
 	var KVNum uint64
-	for _, value := range dlp.chain.pposData {
+	for _, value := range dlp.chain.dposData {
 		kv := [2][]byte{
 			value[0],
 			value[1],
@@ -549,16 +549,16 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		ps = append(ps, kv)
 		KVNum++
 		count++
-		if count >= PPOSStorageKVSizeFetch {
-			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum); err != nil {
-				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
+		if count >= DPOSStorageKVSizeFetch {
+			if err := dlp.dl.downloader.DeliverDposStorage(dlp.id, ps, false, KVNum); err != nil {
+				logger.Error("[GetDPOSStorageMsg]send dpos meassage fail", "error", err, "kvnum", KVNum)
 				return err
 			}
 			count = 0
-			ps = make([]PPOSStorageKV, 0)
+			ps = make([]DPOSStorageKV, 0)
 		}
-		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum); err != nil {
-			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		if err := dlp.dl.downloader.DeliverDposStorage(dlp.id, ps, true, KVNum); err != nil {
+			logger.Error("[GetDPOSStorageMsg]send last dpos meassage fail", "error", err)
 			return err
 		}
 		return nil
@@ -613,7 +613,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 	if rs := len(tester.ownReceipts) + len(tester.ancientReceipts) - 1; rs != receipts {
 		t.Fatalf("synchronised receipts mismatch: have %v, want %v", rs, receipts)
 	}
-	// test ppos
+	// test dpos
 	if tester.downloader.getMode() == FastSync {
 		baseNum, err := tester.snapshotdb.BaseNum()
 		if err != nil {
@@ -1653,8 +1653,8 @@ func (ftp *floodingTestPeer) RequestNodeData(hashes []common.Hash) error {
 	return ftp.peer.RequestNodeData(hashes)
 }
 
-func (ftp *floodingTestPeer) RequestPPOSStorage() error {
-	return ftp.peer.RequestPPOSStorage()
+func (ftp *floodingTestPeer) RequestDPOSStorage() error {
+	return ftp.peer.RequestDPOSStorage()
 }
 
 func (ftp *floodingTestPeer) RequestOriginAndPivotByCurrent(d uint64) error {

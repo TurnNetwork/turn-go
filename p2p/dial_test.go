@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )
 

@@ -17,7 +17,7 @@
 package trie
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 func nodeToBytes(n node) []byte {

@@ -25,16 +25,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/ethdb/memorydb"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
 var toAddr = common.BytesToAddress
@@ -270,7 +270,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := ioutil.TempDir("", "bubble")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
@@ -333,9 +333,9 @@ func TestEmptyByte(t *testing.T) {
 }
 
 func TestForEachStorage(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "platon")
+	tmpDir, _ := ioutil.TempDir("", "bubble")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "bubble")
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
@@ -368,9 +368,9 @@ func TestForEachStorage(t *testing.T) {
 
 func TestMigrateStorage(t *testing.T) {
 
-	tmpDir, _ := ioutil.TempDir("", "platon")
+	tmpDir, _ := ioutil.TempDir("", "bubble")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "bubble")
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}

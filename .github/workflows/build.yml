@@ -25,15 +25,15 @@ jobs:
       - name: make all
         run: go mod tidy && make all
 
-      - name: Upload platon
+      - name: Upload bubble
         uses: actions/upload-artifact@v3
         with:
-          path: build/bin/platon
+          path: build/bin/bubble
 
-      - name: Upload platonkey
+      - name: Upload bubblekey
         uses: actions/upload-artifact@v3
         with:
-          path: build/bin/platonkey
+          path: build/bin/bubblekey
 
       - name: Upload ctool
         uses: actions/upload-artifact@v3

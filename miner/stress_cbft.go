@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build none
 // +build none
 
 // This file contains a miner stress test based on the cbft consensus engine.
@@ -29,19 +30,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/fdlimit"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/fdlimit"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/node"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
 )
 
 func main() {
@@ -179,7 +180,7 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 	datadir, _ := ioutil.TempDir("", "")
 
 	config := &node.Config{
-		Name:    "platon",
+		Name:    "bubble",
 		Version: params.Version,
 		DataDir: datadir,
 		P2P: p2p.Config{

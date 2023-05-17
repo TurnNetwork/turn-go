@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 func TestUnmarshalJSONNewFilterArgs(t *testing.T) {

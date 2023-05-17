@@ -7,8 +7,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/math"
 )
 
 var _ = (*stEnvMarshaling)(nil)

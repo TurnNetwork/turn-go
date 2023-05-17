@@ -25,19 +25,19 @@ import (
 	"testing"
 	"time"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	ethereum "github.com/bubblenet/bubble"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/bloombits"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rpc"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 type testBackend struct {

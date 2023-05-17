@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
@@ -20,32 +20,32 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
+	"github.com/bubblenet/bubble/common/sort"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/bubblenet/bubble/x/staking"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/reward"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 type RewardMgrPlugin struct {
@@ -158,15 +158,15 @@ func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId discover.NodeID) {
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
-	if thisYear < xcom.PlatONFoundationYear()-1 {
+	if thisYear < xcom.BubbleFoundationYear()-1 {
 		return true
 	}
 	return false
 }
 
-func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
-	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
+func (rmp *RewardMgrPlugin) addBubbleFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+	bubbleFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
+	state.AddBalance(xcom.BubbleFundAccount(), bubbleFoundationIncr)
 }
 
 func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
@@ -207,9 +207,9 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 	} else {
-		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and bubble", "thisYear", thisYear, "develop and bubble Balance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
-		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
+		rmp.addBubbleFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)

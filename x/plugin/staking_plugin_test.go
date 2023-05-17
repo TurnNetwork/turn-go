@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
@@ -22,42 +22,42 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+	"github.com/bubblenet/bubble/ethdb/memorydb"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/common/mock"
+	"github.com/bubblenet/bubble/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/crypto/vrf"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/bubblenet/bubble/x/reward"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/bubblenet/bubble/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/bubblenet/bubble/x/handler"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/cbfttypes"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 /*
@@ -1670,7 +1670,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	}
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
-	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
+	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.BUB))
 	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
@@ -4033,7 +4033,7 @@ func Test_IteratorCandidate(t *testing.T) {
 
 func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	del := staking.NewDelegation()
-	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.BUB))
 	del.DelegateEpoch = 1
 	per := make([]*reward.DelegateRewardPer, 0)
 	per = append(per, &reward.DelegateRewardPer{
@@ -4051,8 +4051,8 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
 
 	del = staking.NewDelegation()
-	del.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
-	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.BUB))
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.BUB))
 	del.DelegateEpoch = 2
 	per = make([]*reward.DelegateRewardPer, 0)
 	per = append(per, &reward.DelegateRewardPer{

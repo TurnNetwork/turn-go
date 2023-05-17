@@ -3,9 +3,9 @@ package vm
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/validate"

@@ -19,14 +19,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 type outputSign struct {

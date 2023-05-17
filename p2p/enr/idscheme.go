@@ -22,9 +22,9 @@ import (
 	"golang.org/x/crypto/sha3"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // Registry of known identity schemes.

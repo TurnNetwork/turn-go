@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	json2 "github.com/bubblenet/bubble/common/json"
 )
 
 var (

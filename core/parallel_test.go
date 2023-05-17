@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	state2 "github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	state2 "github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	cvm "github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -216,7 +216,7 @@ func makeExtraData() []byte {
 	// create default extradata
 	extra, _ := rlp.EncodeToBytes([]interface{}{
 		uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-		"platon",
+		"bub",
 		runtime.Version(),
 		runtime.GOOS,
 	})

@@ -19,7 +19,7 @@ package downloader
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
@@ -75,20 +75,20 @@ func (p *statePack) PeerId() string { return p.peerID }
 func (p *statePack) Items() int     { return len(p.states) }
 func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
 
-// pposStoragePack is a batch of ppos storage returned by a peer.
-type pposStoragePack struct {
+// dposStoragePack is a batch of dpos storage returned by a peer.
+type dposStoragePack struct {
 	peerID string
-	kvs    []PPOSStorageKV
+	kvs    []DPOSStorageKV
 	last   bool
 	kvNum  uint64
 }
 
-type PPOSStorageKV [2][]byte
+type DPOSStorageKV [2][]byte
 
-func (p *pposStoragePack) PeerId() string { return p.peerID }
-func (p *pposStoragePack) Items() int     { return len(p.kvs) }
-func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)) }
-func (p *pposStoragePack) KVs() [][2][]byte {
+func (p *dposStoragePack) PeerId() string { return p.peerID }
+func (p *dposStoragePack) Items() int     { return len(p.kvs) }
+func (p *dposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)) }
+func (p *dposStoragePack) KVs() [][2][]byte {
 	var kv [][2][]byte
 	for _, value := range p.kvs {
 		kv = append(kv, value)
@@ -96,13 +96,13 @@ func (p *pposStoragePack) KVs() [][2][]byte {
 	return kv
 }
 
-// pposStoragePack is a batch of ppos storage returned by a peer.
-type pposInfoPack struct {
+// dposStoragePack is a batch of dpos storage returned by a peer.
+type dposInfoPack struct {
 	peerID string
 	latest *types.Header
 	pivot  *types.Header
 }
 
-func (p *pposInfoPack) PeerId() string { return p.peerID }
-func (p *pposInfoPack) Items() int     { return 1 }
-func (p *pposInfoPack) Stats() string  { return fmt.Sprint(1) }
+func (p *dposInfoPack) PeerId() string { return p.peerID }
+func (p *dposInfoPack) Items() int     { return 1 }
+func (p *dposInfoPack) Stats() string  { return fmt.Sprint(1) }

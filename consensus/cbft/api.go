@@ -1,28 +1,27 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package cbft
 
 import (
 	"encoding/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/bubblenet/bubble/consensus/cbft/state"
+	"github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/crypto/bls"
 )
 
 type Status struct {
@@ -39,14 +38,14 @@ type API interface {
 	GetSchnorrNIZKProve() (*bls.SchnorrProof, error)
 }
 
-// PublicDebugConsensusAPI provides an API to access the PlatON blockchain.
+// PublicDebugConsensusAPI provides an API to access the Bubble blockchain.
 // It offers only methods that operate on public data that
 // is freely available to anyone.
 type PublicDebugConsensusAPI struct {
 	engine API
 }
 
-// NewDebugConsensusAPI creates a new PlatON blockchain API.
+// NewDebugConsensusAPI creates a new Bubble blockchain API.
 func NewDebugConsensusAPI(engine API) *PublicDebugConsensusAPI {
 	return &PublicDebugConsensusAPI{engine: engine}
 }
@@ -67,31 +66,31 @@ func (s *PublicDebugConsensusAPI) GetPrepareQC(number uint64) *types.QuorumCert 
 	return s.engine.GetPrepareQC(number)
 }
 
-// PublicPlatonConsensusAPI provides an API to access the PlatON blockchain.
+// PublicBubbleConsensusAPI provides an API to access the Bubble blockchain.
 // It offers only methods that operate on public data that
 // is freely available to anyone.
-type PublicPlatonConsensusAPI struct {
+type PublicBubbleConsensusAPI struct {
 	engine API
 }
 
-// NewPublicPlatonConsensusAPI creates a new PlatON blockchain API.
-func NewPublicPlatonConsensusAPI(engine API) *PublicPlatonConsensusAPI {
-	return &PublicPlatonConsensusAPI{engine: engine}
+// NewPublicBubbleConsensusAPI creates a new Bubble blockchain API.
+func NewPublicBubbleConsensusAPI(engine API) *PublicBubbleConsensusAPI {
+	return &PublicBubbleConsensusAPI{engine: engine}
 }
 
 // Evidences returns the relevant data of the verification.
-func (s *PublicPlatonConsensusAPI) Evidences() string {
+func (s *PublicBubbleConsensusAPI) Evidences() string {
 	return s.engine.Evidences()
 }
 
-// PublicAdminConsensusAPI provides an API to access the PlatON blockchain.
+// PublicAdminConsensusAPI provides an API to access the Bubble blockchain.
 // It offers only methods that operate on public data that
 // is freely available to anyone.
 type PublicAdminConsensusAPI struct {
 	engine API
 }
 
-// NewPublicAdminConsensusAPI creates a new PlatON blockchain API.
+// NewPublicAdminConsensusAPI creates a new Bubble blockchain API.
 func NewPublicAdminConsensusAPI(engine API) *PublicAdminConsensusAPI {
 	return &PublicAdminConsensusAPI{engine: engine}
 }

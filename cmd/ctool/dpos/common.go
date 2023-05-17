@@ -1,20 +1,20 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
-package ppos
+package dpos
 
 import (
 	"bytes"
@@ -25,17 +25,17 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	platon "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethclient"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	bubble "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/ethclient"
+	"github.com/bubblenet/bubble/rlp"
 )
 
-func CallPPosContract(client *ethclient.Client, funcType uint16, params ...interface{}) ([]byte, error) {
-	send, to := EncodePPOS(funcType, params...)
-	var msg platon.CallMsg
+func CallDPOSContract(client *ethclient.Client, funcType uint16, params ...interface{}) ([]byte, error) {
+	send, to := EncodeDPOS(funcType, params...)
+	var msg bubble.CallMsg
 	msg.Data = send
 	msg.To = &to
 	return client.CallContract(context.Background(), msg, nil)
@@ -47,15 +47,15 @@ type CallMsg struct {
 	Data hexutil.Bytes   // input data, usually an ABI-encoded contract method invocation
 }
 
-func BuildPPosContract(funcType uint16, params ...interface{}) ([]byte, error) {
-	send, to := EncodePPOS(funcType, params...)
+func BuildDPOSContract(funcType uint16, params ...interface{}) ([]byte, error) {
+	send, to := EncodeDPOS(funcType, params...)
 	var msg CallMsg
 	msg.Data = send
 	msg.To = &to
 	return json.Marshal(msg)
 }
 
-func EncodePPOS(funcType uint16, params ...interface{}) ([]byte, common.Address) {
+func EncodeDPOS(funcType uint16, params ...interface{}) ([]byte, common.Address) {
 	par := buildParams(funcType, params...)
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, par)
@@ -103,7 +103,7 @@ func query(c *cli.Context, funcType uint16, params ...interface{}) error {
 		return errors.New("rpc url not set")
 	}
 	if c.Bool(jsonFlag.Name) {
-		res, err := BuildPPosContract(funcType, params...)
+		res, err := BuildDPOSContract(funcType, params...)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func query(c *cli.Context, funcType uint16, params ...interface{}) error {
 		if err != nil {
 			return err
 		}
-		res, err := CallPPosContract(client, funcType, params...)
+		res, err := CallDPOSContract(client, funcType, params...)
 		if err != nil {
 			return err
 		}

@@ -27,22 +27,22 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/x/xcom"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 var (

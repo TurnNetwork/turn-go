@@ -19,19 +19,19 @@ package console
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/bubblenet/bubble/console/prompt"
 	"io"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/scwallet"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
+	"github.com/bubblenet/bubble/accounts/scwallet"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/internal/jsre"
 	"github.com/dop251/goja"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/usbwallet"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/accounts/usbwallet"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime
@@ -51,17 +51,17 @@ func newBridge(client *rpc.Client, prompter prompt.UserPrompter, printer io.Writ
 	}
 }
 
-func getJplaton(vm *goja.Runtime) *goja.Object {
-	jeth := vm.Get("jplaton")
+func getJbubble(vm *goja.Runtime) *goja.Object {
+	jeth := vm.Get("jbubble")
 	if jeth == nil {
-		panic(vm.ToValue("jplaton object does not exist"))
+		panic(vm.ToValue("jbubble object does not exist"))
 	}
 	return jeth.ToObject(vm)
 }
 
 // NewAccount is a wrapper around the personal.newAccount RPC method that uses a
 // non-echoing password prompt to acquire the passphrase and executes the original
-// RPC method (saved in jplaton.newAccount) with it to actually execute the RPC call.
+// RPC method (saved in jbubble.newAccount) with it to actually execute the RPC call.
 func (b *bridge) NewAccount(call jsre.Call) (goja.Value, error) {
 	var (
 		password string
@@ -87,9 +87,9 @@ func (b *bridge) NewAccount(call jsre.Call) (goja.Value, error) {
 		return nil, fmt.Errorf("expected 0 or 1 string argument")
 	}
 	// Password acquired, execute the call and return
-	newAccount, callable := goja.AssertFunction(getJplaton(call.VM).Get("newAccount"))
+	newAccount, callable := goja.AssertFunction(getJbubble(call.VM).Get("newAccount"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.newAccount is not callable")
+		return nil, fmt.Errorf("jbubble.newAccount is not callable")
 	}
 	ret, err := newAccount(goja.Null(), call.VM.ToValue(password))
 	if err != nil {
@@ -114,9 +114,9 @@ func (b *bridge) OpenWallet(call jsre.Call) (goja.Value, error) {
 		passwd = call.Argument(1)
 	}
 	// Open the wallet and return if successful in itself
-	openWallet, callable := goja.AssertFunction(getJplaton(call.VM).Get("openWallet"))
+	openWallet, callable := goja.AssertFunction(getJbubble(call.VM).Get("openWallet"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.openWallet is not callable")
+		return nil, fmt.Errorf("jbubble.openWallet is not callable")
 	}
 	val, err := openWallet(goja.Null(), wallet, passwd)
 	if err == nil {
@@ -197,9 +197,9 @@ func (b *bridge) readPassphraseAndReopenWallet(call jsre.Call) (goja.Value, erro
 	if err != nil {
 		return nil, err
 	}
-	openWallet, callable := goja.AssertFunction(getJplaton(call.VM).Get("openWallet"))
+	openWallet, callable := goja.AssertFunction(getJbubble(call.VM).Get("openWallet"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.openWallet is not callable")
+		return nil, fmt.Errorf("jbubble.openWallet is not callable")
 	}
 	return openWallet(goja.Null(), wallet, call.VM.ToValue(input))
 }
@@ -218,16 +218,16 @@ func (b *bridge) readPinAndReopenWallet(call jsre.Call) (goja.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	openWallet, callable := goja.AssertFunction(getJplaton(call.VM).Get("openWallet"))
+	openWallet, callable := goja.AssertFunction(getJbubble(call.VM).Get("openWallet"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.openWallet is not callable")
+		return nil, fmt.Errorf("jbubble.openWallet is not callable")
 	}
 	return openWallet(goja.Null(), wallet, call.VM.ToValue(input))
 }
 
 // UnlockAccount is a wrapper around the personal.unlockAccount RPC method that
 // uses a non-echoing password prompt to acquire the passphrase and executes the
-// original RPC method (saved in jplaton.unlockAccount) with it to actually execute
+// original RPC method (saved in jbubble.unlockAccount) with it to actually execute
 // the RPC call.
 func (b *bridge) UnlockAccount(call jsre.Call) (goja.Value, error) {
 	if len(call.Arguments) < 1 {
@@ -266,16 +266,16 @@ func (b *bridge) UnlockAccount(call jsre.Call) (goja.Value, error) {
 	}
 
 	// Send the request to the backend and return.
-	unlockAccount, callable := goja.AssertFunction(getJplaton(call.VM).Get("unlockAccount"))
+	unlockAccount, callable := goja.AssertFunction(getJbubble(call.VM).Get("unlockAccount"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.unlockAccount is not callable")
+		return nil, fmt.Errorf("jbubble.unlockAccount is not callable")
 	}
 	return unlockAccount(goja.Null(), account, passwd, duration)
 }
 
 // Sign is a wrapper around the personal.sign RPC method that uses a non-echoing password
 // prompt to acquire the passphrase and executes the original RPC method (saved in
-// jplaton.sign) with it to actually execute the RPC call.
+// jbubble.sign) with it to actually execute the RPC call.
 func (b *bridge) Sign(call jsre.Call) (goja.Value, error) {
 	if nArgs := len(call.Arguments); nArgs < 2 {
 		return nil, fmt.Errorf("usage: sign(message, account, [ password ])")
@@ -306,9 +306,9 @@ func (b *bridge) Sign(call jsre.Call) (goja.Value, error) {
 	}
 
 	// Send the request to the backend and return
-	sign, callable := goja.AssertFunction(getJplaton(call.VM).Get("sign"))
+	sign, callable := goja.AssertFunction(getJbubble(call.VM).Get("sign"))
 	if !callable {
-		return nil, fmt.Errorf("jplaton.sign is not callable")
+		return nil, fmt.Errorf("jbubble.sign is not callable")
 	}
 	return sign(goja.Null(), message, account, passwd)
 }
@@ -355,12 +355,12 @@ func (b *bridge) SleepBlocks(call jsre.Call) (goja.Value, error) {
 	// Poll the current block number until either it or a timeout is reached.
 	deadline := time.Now().Add(time.Duration(sleep) * time.Second)
 	var lastNumber hexutil.Uint64
-	if err := b.client.Call(&lastNumber, "platon_blockNumber"); err != nil {
+	if err := b.client.Call(&lastNumber, "bub_blockNumber"); err != nil {
 		return nil, err
 	}
 	for time.Now().Before(deadline) {
 		var number hexutil.Uint64
-		if err := b.client.Call(&number, "platon_blockNumber"); err != nil {
+		if err := b.client.Call(&number, "bub_blockNumber"); err != nil {
 			return nil, err
 		}
 		if number != lastNumber {

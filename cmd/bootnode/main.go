@@ -24,13 +24,13 @@ import (
 	"net"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discv5"
+	"github.com/bubblenet/bubble/p2p/nat"
+	"github.com/bubblenet/bubble/p2p/netutil"
 )
 
 func main() {

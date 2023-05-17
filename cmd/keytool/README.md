@@ -1,12 +1,12 @@
-platonkey
+bubblekey
 ======
 
-platonkey is a simple command-line tool for working with PlatON keyfiles.
+bubblekey is a simple command-line tool for working with Bubble keyfiles.
 
 
 # Usage
 
-### `platonkey generate`
+### `bubblekey generate`
 
 Generate a new keyfile.
 If you want to use an existing private key to use in the keyfile, it can be 
@@ -14,28 +14,28 @@ specified by setting `--privatekey` with the location of the file containing the
 private key.
 
 
-### `platonkey inspect <keyfile>`
+### `bubblekey inspect <keyfile>`
 
 Print various information about the keyfile.
 Private key information can be printed by using the `--private` flag;
 make sure to use this feature with great caution!
 
 
-### `platonkey signmessage <keyfile> <message/file>`
+### `bubblekey signmessage <keyfile> <message/file>`
 
 Sign the message with a keyfile.
 It is possible to refer to a file containing the message.
 To sign a message contained in a file, use the `--msgfile` flag.
 
 
-### `platonkey verifymessage <address> <signature> <message/file>`
+### `bubblekey verifymessage <address> <signature> <message/file>`
 
 Verify the signature of the message.
 It is possible to refer to a file containing the message.
 To sign a message contained in a file, use the --msgfile flag.
 
 
-### `platonkey changepassword <keyfile>`
+### `bubblekey changepassword <keyfile>`
 
 Change the password of a keyfile.
 use the `--newpasswordfile` to point to the new password file.

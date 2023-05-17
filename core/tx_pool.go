@@ -19,7 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 	"math"
 	"math/big"
 	"sort"
@@ -27,14 +27,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/prque"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
+	"github.com/bubblenet/bubble/params"
 )
 
 const (
@@ -102,11 +102,11 @@ var (
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
 
-	// PlatON inner contract tx data invalid
-	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
+	// Bubble inner contract tx data invalid
+	ErrBubbleTxDataInvalid = errors.New("the tx data is invalid")
 
-	// the txSizeLimit of PlatON govern param found failed
-	//ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
+	// the txSizeLimit of Bubble govern param found failed
+	//ErrBubbleGovTxDataSize = errors.New("not found the govern txData size")
 )
 
 var (
@@ -731,7 +731,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if nil != tx.To() {
 		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
 			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
-			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
+			return fmt.Errorf("%s: %s", ErrBubbleTxDataInvalid.Error(), err.Error())
 		}
 	}
 

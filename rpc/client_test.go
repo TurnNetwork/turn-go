@@ -31,7 +31,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 	"github.com/davecgh/go-spew/spew"
 )
 

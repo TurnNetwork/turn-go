@@ -21,11 +21,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/prque"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 
 	"golang.org/x/crypto/sha3"
 )

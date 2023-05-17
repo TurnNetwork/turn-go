@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mock"
 )
 
 func TestWASMInterpreterRun(t *testing.T) {

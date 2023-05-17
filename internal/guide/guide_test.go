@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 // Tests that the account management snippets work correctly.

@@ -18,9 +18,9 @@ package p2p
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/simulations/pipes"
 	"reflect"
 	"sync"
 	"testing"

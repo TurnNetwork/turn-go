@@ -32,9 +32,9 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // SignatureLength indicates the byte length required to carry a signature with recovery id.

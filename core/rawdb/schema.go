@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/metrics"
 )
 
 // The fields below define the low level database schema prefixing.

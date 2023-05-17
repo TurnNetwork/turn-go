@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/bubblenet/bubble/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/gov"
+	"github.com/bubblenet/bubble/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
 
-	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
-		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
+	if g.Config.Cbft.ValidatorMode != common.DPOS_VALIDATOR_MODE {
+		log.Info("Init staking snapshotdb data, validatorMode is not dpos")
 		return prevHash, nil
 	}
 
@@ -84,9 +84,9 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
-				NodeName:   "platon.node." + fmt.Sprint(index+1),
-				Website:    "www.platon.network",
-				Details:    "The PlatON Node",
+				NodeName:   "bubble.node." + fmt.Sprint(index+1),
+				Website:    "www.bubble.network",
+				Details:    "The Bubble Node",
 			},
 		}
 
@@ -240,23 +240,23 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		return lastHash, fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 
-	log.Info("Call genesisStakingData, Store genesis pposHash by stake data", "pposHash", lastHash.Hex())
+	log.Info("Call genesisStakingData, Store genesis dposHash by stake data", "dposHash", lastHash.Hex())
 
-	stateDB.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), lastHash.Bytes())
+	stateDB.SetState(vm.StakingContractAddr, staking.GetDPOSHASHKey(), lastHash.Bytes())
 
 	return lastHash, nil
 }
 
 func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
 
-	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
-		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
+	if g.Config.Cbft.ValidatorMode != common.DPOS_VALIDATOR_MODE {
+		log.Info("Init xxPlugin genesis statedb, validatorMode is not dpos")
 		return nil
 	}
 
 	// Store genesis yearEnd reward balance item
 
-	// Store genesis Issue for LAT
+	// Store genesis Issue for BUB
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
 	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", g.Config.GenesisVersion, params.FormatVersion(g.Config.GenesisVersion)))

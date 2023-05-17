@@ -23,8 +23,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
-	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
+	"github.com/bubblenet/bubble/signer/core"
+	"github.com/bubblenet/bubble/signer/fourbyte"
 )
 
 func init() {

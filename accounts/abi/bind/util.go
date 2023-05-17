@@ -21,9 +21,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
 )
 
 // WaitMined waits for tx to be mined on the blockchain.

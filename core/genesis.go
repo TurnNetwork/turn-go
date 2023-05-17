@@ -27,23 +27,23 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/trie"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
@@ -354,11 +354,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	genesisIssuance := new(big.Int)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
-	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
+	// First, Store the BubbleFoundation and CommunityDeveloperFoundation
+	statedb.AddBalance(xcom.BubbleFundAccount(), xcom.BubbleFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
 
-	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.BubbleFundBalance())
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
 
 	for addr, account := range g.Alloc {
@@ -514,7 +514,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the PlatON main net genesis block.
+// DefaultGenesisBlock returns the Bubble main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
 	generalAddr := common.HexToAddress("0x51625d7FFda8B38a6987EAa99aeA3269923237a3")
@@ -541,7 +541,7 @@ func DefaultGenesisBlock() *Genesis {
 	return &genesis
 }
 
-// DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
+// DefaultTestnetGenesisBlock returns the Bubble test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change

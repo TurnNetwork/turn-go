@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 )
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that

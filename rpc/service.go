@@ -26,7 +26,7 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 )
 
 var (
@@ -101,7 +101,7 @@ func (r *serviceRegistry) callback(method string) *callback {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if elem[0] == ethMethod {
-		elem[0] = platonMethod
+		elem[0] = bubbleMethod
 	}
 	return r.services[elem[0]].callbacks[elem[1]]
 }
@@ -111,7 +111,7 @@ func (r *serviceRegistry) subscription(service, name string) *callback {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if service == ethMethod {
-		service = platonMethod
+		service = bubbleMethod
 	}
 	return r.services[service].subscriptions[name]
 }
