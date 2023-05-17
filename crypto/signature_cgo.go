@@ -24,8 +24,8 @@ import (
 	"crypto/elliptic"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/crypto/secp256k1"
 )
 
 // Ecrecover returns the uncompressed public key that created the given signature.

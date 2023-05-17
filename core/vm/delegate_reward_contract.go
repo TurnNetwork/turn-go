@@ -1,42 +1,42 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
+	"github.com/bubblenet/bubble/common/sort"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/bubblenet/bubble/x/reward"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/x/xutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/bubblenet/bubble/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/plugin"
 )
 
 const (
@@ -65,7 +65,7 @@ func (rc *DelegateRewardContract) Run(input []byte) ([]byte, error) {
 	if checkInputEmpty(input) {
 		return nil, nil
 	}
-	return execPlatonContract(input, rc.FnSigns())
+	return execBubbleContract(input, rc.FnSigns())
 }
 
 func (rc *DelegateRewardContract) FnSigns() map[uint16]interface{} {

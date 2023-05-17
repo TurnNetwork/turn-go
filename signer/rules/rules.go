@@ -22,11 +22,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
-	"github.com/PlatONnetwork/PlatON-Go/signer/rules/deps"
-	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/signer/core"
+	"github.com/bubblenet/bubble/signer/rules/deps"
+	"github.com/bubblenet/bubble/signer/storage"
 	"github.com/dop251/goja"
 )
 

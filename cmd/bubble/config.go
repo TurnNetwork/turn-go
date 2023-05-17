@@ -26,16 +26,16 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/bubblenet/bubble/internal/ethapi"
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/node"
+	"github.com/bubblenet/bubble/params"
 	"github.com/naoina/toml"
 )
 
@@ -78,13 +78,13 @@ type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
 
-type platonConfig struct {
+type bubbleConfig struct {
 	Eth      eth.Config
 	Node     node.Config
 	Ethstats ethstatsConfig
 }
 
-func loadConfig(file string, cfg *platonConfig) error {
+func loadConfig(file string, cfg *bubbleConfig) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func loadConfig(file string, cfg *platonConfig) error {
 	return err
 }
 
-func loadConfigFile(filePath string, cfg *platonConfig) error {
+func loadConfigFile(filePath string, cfg *bubbleConfig) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		utils.Fatalf("Failed to read config file: %v", err)
@@ -117,17 +117,17 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)
-	cfg.HTTPModules = append(cfg.HTTPModules, "platon")
-	cfg.WSModules = append(cfg.WSModules, "platon")
-	cfg.IPCPath = "platon.ipc"
+	cfg.HTTPModules = append(cfg.HTTPModules, "bub")
+	cfg.WSModules = append(cfg.WSModules, "bub")
+	cfg.IPCPath = "bubble.ipc"
 	return cfg
 }
 
-// makeConfigNode loads platon configuration and creates a blank node instance.
-func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
+// makeConfigNode loads bubble configuration and creates a blank node instance.
+func makeConfigNode(ctx *cli.Context) (*node.Node, bubbleConfig) {
 
 	// Load defaults.
-	cfg := platonConfig{
+	cfg := bubbleConfig{
 		Eth:  eth.DefaultConfig,
 		Node: defaultNodeConfig(),
 	}
@@ -175,7 +175,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	return stack, cfg
 }
 
-// makeFullNode loads platon configuration and creates the backend.
+// makeFullNode loads bubble configuration and creates the backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	stack, cfg := makeConfigNode(ctx)

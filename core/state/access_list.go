@@ -17,7 +17,7 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 type accessList struct {

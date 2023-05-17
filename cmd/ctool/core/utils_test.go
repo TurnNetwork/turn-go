@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
-
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -48,11 +47,11 @@ func TestParseAbiFromJson(t *testing.T) {
 
 func TestHttpPostTransfer(t *testing.T) {
 
-	//platon, datadir := prepare(t)
+	//bubble, datadir := prepare(t)
 	//
 	//param := JsonParam{
 	//	Jsonrpc: "2.0",
-	//	Method:  "platon_sendTransaction",
+	//	Method:  "bub_sendTransaction",
 	//	Params: []TxParams{
 	//		{
 	//			From:     from,
@@ -69,11 +68,11 @@ func TestHttpPostTransfer(t *testing.T) {
 	//assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
 	//assert.NotEqual(t, r, "", "the result is nil")
 	//t.Log("the result ", r)
-	//clean(platon, datadir)
+	//clean(bubble, datadir)
 }
 
 func TestHttpPostDeploy(t *testing.T) {
-	//platon, datadir := prepare(t)
+	//bubble, datadir := prepare(t)
 	//
 	//deployParams := DeployParams{
 	//	From:     from,
@@ -85,7 +84,7 @@ func TestHttpPostDeploy(t *testing.T) {
 	//params[0] = deployParams
 	//param := JsonParam{
 	//	Jsonrpc: "2.0",
-	//	Method:  "platon_sendTransaction",
+	//	Method:  "bub_sendTransaction",
 	//	Params: []TxParams{
 	//		{
 	//			From:     from,
@@ -128,11 +127,11 @@ func TestHttpPostDeploy(t *testing.T) {
 	//	fmt.Printf("get contract receipt timeout...more than 100 second.\n")
 	//}
 	//
-	//clean(platon, datadir)
+	//clean(bubble, datadir)
 }
 
 func TestHttpCallContact(t *testing.T) {
-	//platon, datadir := prepare(t)
+	//bubble, datadir := prepare(t)
 	//
 	//param1 := uint(33)
 	//b := new(bytes.Buffer)
@@ -149,7 +148,7 @@ func TestHttpCallContact(t *testing.T) {
 	//
 	//param := JsonParam{
 	//	Jsonrpc: "2.0",
-	//	Method:  "platon_sendTransaction",
+	//	Method:  "bub_sendTransaction",
 	//	Params:  []TxParams{params},
 	//	Id:      1,
 	//}
@@ -159,7 +158,7 @@ func TestHttpCallContact(t *testing.T) {
 	//assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
 	//assert.NotEqual(t, r, "", "the result is nil")
 	//t.Log("the result ", r)
-	//clean(platon, datadir)
+	//clean(bubble, datadir)
 
 }
 

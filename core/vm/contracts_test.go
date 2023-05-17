@@ -24,11 +24,11 @@ import (
 	"testing"
 
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/common/mock"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.
@@ -437,7 +437,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	})
 }
 
-func TestRunPlatONPrecompiledContract(t *testing.T) {
+func TestRunBubblePrecompiledContract(t *testing.T) {
 	restricting := &RestrictingContract{
 		Plugin: plugin.RestrictingInstance(),
 		Evm: &EVM{
@@ -453,7 +453,7 @@ func TestRunPlatONPrecompiledContract(t *testing.T) {
 	contract := NewContract(AccountRef(common.HexToAddress("1337")),
 		nil, new(big.Int), gas)
 	restricting.Contract = contract
-	_, err := RunPlatONPrecompiledContract(restricting, in, contract)
+	_, err := RunBubblePrecompiledContract(restricting, in, contract)
 	if err == nil {
 		t.Errorf("Expect non-il, got nil")
 	}

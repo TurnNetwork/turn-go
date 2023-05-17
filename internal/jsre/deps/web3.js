@@ -1105,8 +1105,6 @@ var formatOutputString = function (param) {
 var formatOutputAddress = function (param) {
     var value = param.staticPart();
     return "0x" + value.slice(value.length - 40, value.length);
-    //address = "0x" + value.slice(value.length - 40, value.length);
-    //return utils.toChecksumAddress("lat", address)
 };
 
 module.exports = {
@@ -1754,27 +1752,27 @@ var ETH_UNITS = [
     'Gvon',
     'szabo',
     'finney',
-    'femtolat',
-    'picolat',
-    'nanolat',
-    'microlat',
-    'millilat',
+    'femtobub',
+    'picobub',
+    'nanobub',
+    'microbub',
+    'millibub',
     'nano',
     'micro',
     'milli',
-    'lat',
+    'bub',
     'grand',
-    'Mlat',
-    'Glat',
-    'Tlat',
-    'Plat',
-    'Elat',
-    'Zlat',
-    'Ylat',
-    'Nlat',
-    'Dlat',
-    'Vlat',
-    'Ulat'
+    'Mbub',
+    'Gbub',
+    'Tbub',
+    'Pbub',
+    'Ebub',
+    'Zbub',
+    'Ybub',
+    'Nbub',
+    'Dbub',
+    'Vbub',
+    'Ubub'
 ];
 
 module.exports = {
@@ -1870,33 +1868,33 @@ var sha3 = require('./sha3.js');
 var utf8 = require('utf8');
 
 var unitMap = {
-    'nolat':      '0',
+    'nobub':      '0',
     'von':          '1',
     'kvon':         '1000',
     'Kvon':         '1000',
     'babbage':      '1000',
-    'femtolat':   '1000',
+    'femtobub':   '1000',
     'mvon':         '1000000',
     'Mvon':         '1000000',
     'lovelace':     '1000000',
-    'picolat':    '1000000',
+    'picobub':    '1000000',
     'gvon':         '1000000000',
     'Gvon':         '1000000000',
     'shannon':      '1000000000',
-    'nanolat':    '1000000000',
+    'nanobub':    '1000000000',
     'nano':         '1000000000',
     'szabo':        '1000000000000',
-    'microlat':   '1000000000000',
+    'microbub':   '1000000000000',
     'micro':        '1000000000000',
     'finney':       '1000000000000000',
-    'millilat':   '1000000000000000',
+    'millibub':   '1000000000000000',
     'milli':        '1000000000000000',
-    'lat':        '1000000000000000000',
-    'klat':       '1000000000000000000000',
+    'bub':        '1000000000000000000',
+    'kbub':       '1000000000000000000000',
     'grand':        '1000000000000000000000',
-    'mlat':       '1000000000000000000000000',
-    'glat':       '1000000000000000000000000000',
-    'tlat':       '1000000000000000000000000000000'
+    'mbub':       '1000000000000000000000000',
+    'gbub':       '1000000000000000000000000000',
+    'tbub':       '1000000000000000000000000000000'
 };
 
 /**
@@ -2123,12 +2121,12 @@ var toHex = function (val) {
  * Returns value of unit in von
  *
  * @method getValueOfUnit
- * @param {String} unit the unit to convert to, default lat
+ * @param {String} unit the unit to convert to, default bub
  * @returns {BigNumber} value of the unit (in von)
  * @throws error if the unit is not correct:w
  */
 var getValueOfUnit = function (unit) {
-    unit = unit ? unit.toLowerCase() : 'lat';
+    unit = unit ? unit.toLowerCase() : 'bub';
     var unitValue = unitMap[unit];
     if (unitValue === undefined) {
         throw new Error('This unit doesn\'t exists, please use the one of the following units' + JSON.stringify(unitMap, null, 2));
@@ -2137,24 +2135,24 @@ var getValueOfUnit = function (unit) {
 };
 
 /**
- * Takes a number of von and converts it to any other lat unit.
+ * Takes a number of von and converts it to any other bub unit.
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtolat     babbage
- * - mvon       picolat      lovelace
- * - gvon       nanolat      shannon      nano
- * - --         microlat     szabo        micro
- * - --         millilat     finney       milli
- * - lat      --             --
- * - klat                    --           grand
- * - mlat
- * - glat
- * - tlat
+ * - kvon       femtobub     babbage
+ * - mvon       picobub      lovelace
+ * - gvon       nanobub      shannon      nano
+ * - --         microbub     szabo        micro
+ * - --         millibub     finney       milli
+ * - bub      --             --
+ * - kbub                    --           grand
+ * - mbub
+ * - gbub
+ * - tbub
  *
  * @method fromVon
  * @param {Number|String} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert to, default lat
+ * @param {String} unit the unit to convert to, default bub
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var fromVon = function(number, unit) {
@@ -2168,20 +2166,20 @@ var fromVon = function(number, unit) {
  *
  * Possible units are:
  *   SI Short   SI Full        Effigy       Other
- * - kvon       femtolat     babbage
- * - mvon       picolat      lovelace
- * - gvon       nanolat      shannon      nano
- * - --         microlat     szabo        micro
- * - --         millilat     finney       milli
- * - lat      --             --
- * - klat                    --           grand
- * - mlat
- * - glat
- * - tlat
+ * - kvon       femtobub     babbage
+ * - mvon       picobub      lovelace
+ * - gvon       nanobub      shannon      nano
+ * - --         microbub     szabo        micro
+ * - --         millibub     finney       milli
+ * - bub      --             --
+ * - kbub                    --           grand
+ * - mbub
+ * - gbub
+ * - tbub
  *
  * @method toVon
  * @param {Number|String|BigNumber} number can be a number, number string or a HEX of a decimal
- * @param {String} unit the unit to convert from, default lat
+ * @param {String} unit the unit to convert from, default bub
  * @return {String|Object} When given a BigNumber object it returns one as well, otherwise a number
 */
 var toVon = function(number, unit) {
@@ -2526,7 +2524,7 @@ var BigNumber = require('bignumber.js');
 function Web3 (provider) {
     this._requestManager = new RequestManager(provider);
     this.currentProvider = provider;
-    this.platon = new Eth(this);
+    this.bubble = new Eth(this);
     this.db = new DB(this);
     // this.shh = new Shh(this);
     this.net = new Net(this);
@@ -2603,8 +2601,8 @@ var properties = function () {
             inputFormatter: utils.toDecimal
         }),
         new Property({
-            name: 'version.platon',
-            getter: 'platon_protocolVersion',
+            name: 'version.bubble',
+            getter: 'bub_protocolVersion',
             inputFormatter: utils.toDecimal
         })
         // new Property({
@@ -4205,7 +4203,7 @@ SolidityFunction.prototype.request = function () {
     var format = this.unpackOutput.bind(this);
 
     return {
-        method: this._constant ? 'platon_call' : 'platon_sendTransaction',
+        method: this._constant ? 'bub_call' : 'bub_sendTransaction',
         callback: callback,
         params: [payload],
         format: format
@@ -5215,15 +5213,15 @@ var Iban = require('../iban');
 var transfer = require('../transfer');
 
 var blockCall = function (args) {
-    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? "platon_getBlockByHash" : "platon_getBlockByNumber";
+    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? "bub_getBlockByHash" : "bub_getBlockByNumber";
 };
 
 var transactionFromBlockCall = function (args) {
-    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'platon_getTransactionByBlockHashAndIndex' : 'platon_getTransactionByBlockNumberAndIndex';
+    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'bub_getTransactionByBlockHashAndIndex' : 'bub_getTransactionByBlockNumberAndIndex';
 };
 
 var getBlockTransactionCountCall = function (args) {
-    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'platon_getBlockTransactionCountByHash' : 'platon_getBlockTransactionCountByNumber';
+    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'bub_getBlockTransactionCountByHash' : 'bub_getBlockTransactionCountByNumber';
 };
 
 function Eth(web3) {
@@ -5266,7 +5264,7 @@ var methods = function () {
 
     var getBalance = new Method({
         name: 'getBalance',
-        call: 'platon_getBalance',
+        call: 'bub_getBalance',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputBigNumberFormatter
@@ -5274,14 +5272,14 @@ var methods = function () {
 
     var getStorageAt = new Method({
         name: 'getStorageAt',
-        call: 'platon_getStorageAt',
+        call: 'bub_getStorageAt',
         params: 3,
         inputFormatter: [null, utils.toHex, formatters.inputDefaultBlockNumberFormatter]
     });
 
     var getCode = new Method({
         name: 'getCode',
-        call: 'platon_getCode',
+        call: 'bub_getCode',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
     });
@@ -5304,7 +5302,7 @@ var methods = function () {
 
     var getTransaction = new Method({
         name: 'getTransaction',
-        call: 'platon_getTransactionByHash',
+        call: 'bub_getTransactionByHash',
         params: 1,
         outputFormatter: formatters.outputTransactionFormatter
     });
@@ -5319,14 +5317,14 @@ var methods = function () {
 
     var getTransactionReceipt = new Method({
         name: 'getTransactionReceipt',
-        call: 'platon_getTransactionReceipt',
+        call: 'bub_getTransactionReceipt',
         params: 1,
         outputFormatter: formatters.outputTransactionReceiptFormatter
     });
 
     var getTransactionCount = new Method({
         name: 'getTransactionCount',
-        call: 'platon_getTransactionCount',
+        call: 'bub_getTransactionCount',
         params: 2,
         inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: utils.toDecimal
@@ -5334,42 +5332,42 @@ var methods = function () {
 
     var sendRawTransaction = new Method({
         name: 'sendRawTransaction',
-        call: 'platon_sendRawTransaction',
+        call: 'bub_sendRawTransaction',
         params: 1,
         inputFormatter: [null]
     });
 
     var sendTransaction = new Method({
         name: 'sendTransaction',
-        call: 'platon_sendTransaction',
+        call: 'bub_sendTransaction',
         params: 1,
         inputFormatter: [formatters.inputTransactionFormatter]
     });
 
     var signTransaction = new Method({
         name: 'signTransaction',
-        call: 'platon_signTransaction',
+        call: 'bub_signTransaction',
         params: 1,
         inputFormatter: [formatters.inputTransactionFormatter]
     });
 
     var sign = new Method({
         name: 'sign',
-        call: 'platon_sign',
+        call: 'bub_sign',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, null]
     });
 
     var call = new Method({
         name: 'call',
-        call: 'platon_call',
+        call: 'bub_call',
         params: 2,
         inputFormatter: [formatters.inputCallFormatter, formatters.inputDefaultBlockNumberFormatter]
     });
 
     var estimateGas = new Method({
         name: 'estimateGas',
-        call: 'platon_estimateGas',
+        call: 'bub_estimateGas',
         params: 1,
         inputFormatter: [formatters.inputCallFormatter],
         outputFormatter: utils.toDecimal
@@ -5378,7 +5376,7 @@ var methods = function () {
 
     var evidences = new Method({
         name: 'evidences',
-        call: 'platon_evidences',
+        call: 'bub_evidences',
         params: 0
     });
 
@@ -5407,26 +5405,26 @@ var properties = function () {
     return [
         new Property({
             name: 'syncing',
-            getter: 'platon_syncing',
+            getter: 'bub_syncing',
             outputFormatter: formatters.outputSyncingFormatter
         }),
         new Property({
             name: 'gasPrice',
-            getter: 'platon_gasPrice',
+            getter: 'bub_gasPrice',
             outputFormatter: formatters.outputBigNumberFormatter
         }),
         new Property({
             name: 'accounts',
-            getter: 'platon_accounts'
+            getter: 'bub_accounts'
         }),
         new Property({
             name: 'blockNumber',
-            getter: 'platon_blockNumber',
+            getter: 'bub_blockNumber',
             outputFormatter: utils.toDecimal
         }),
         new Property({
             name: 'protocolVersion',
-            getter: 'platon_protocolVersion'
+            getter: 'bub_protocolVersion'
         })
     ];
 };
@@ -5651,13 +5649,13 @@ var eth = function () {
             case 'latest':
                 args.shift();
                 this.params = 0;
-                return 'platon_newBlockFilter';
+                return 'bub_newBlockFilter';
             case 'pending':
                 args.shift();
                 this.params = 0;
-                return 'platon_newPendingTransactionFilter';
+                return 'bub_newPendingTransactionFilter';
             default:
-                return 'platon_newFilter';
+                return 'bub_newFilter';
         }
     };
 
@@ -5669,19 +5667,19 @@ var eth = function () {
 
     var uninstallFilter = new Method({
         name: 'uninstallFilter',
-        call: 'platon_uninstallFilter',
+        call: 'bub_uninstallFilter',
         params: 1
     });
 
     var getLogs = new Method({
         name: 'getLogs',
-        call: 'platon_getFilterLogs',
+        call: 'bub_getFilterLogs',
         params: 1
     });
 
     var poll = new Method({
         name: 'poll',
-        call: 'platon_getFilterChanges',
+        call: 'bub_getFilterChanges',
         params: 1
     });
 
@@ -6244,7 +6242,7 @@ var pollSyncing = function(self) {
     };
 
     self.requestManager.startPolling({
-        method: 'platon_syncing',
+        method: 'bub_syncing',
         params: [],
     }, self.pollId, onMessage, self.stopWatching.bind(self));
 

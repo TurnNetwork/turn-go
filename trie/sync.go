@@ -20,11 +20,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/prque"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a

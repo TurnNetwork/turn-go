@@ -19,7 +19,7 @@ package console
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
+	"github.com/bubblenet/bubble/internal/jsre"
 	"github.com/dop251/goja"
 )
 

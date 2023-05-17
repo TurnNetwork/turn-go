@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -24,12 +24,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/rlp"
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
@@ -61,7 +60,7 @@ func getTxReceiptCmd(c *cli.Context) {
 
 func GetTxReceipt(txHash string) (Receipt, error) {
 	var receipt = Receipt{}
-	res, _ := Send([]string{txHash}, "platon_getTransactionReceipt")
+	res, _ := Send([]string{txHash}, "bub_getTransactionReceipt")
 	e := json.Unmarshal([]byte(res), &receipt)
 	if e != nil {
 		panic(fmt.Sprintf("parse get receipt result error ! \n %s", e.Error()))
@@ -130,7 +129,7 @@ func SendTransaction(from, to, value string) (string, error) {
 	params := make([]TxParams, 1)
 	params[0] = tx
 
-	res, _ := Send(params, "platon_sendTransaction")
+	res, _ := Send(params, "bub_sendTransaction")
 	response := parseResponse(res)
 
 	return response.Result, nil
@@ -171,7 +170,7 @@ func SendRawTransaction(from, to, value string, pkFilePath string) (string, erro
 	//unlock := JsonParam{
 	//	Jsonrpc: "2.0",
 	//	Method:  "personal_unlockAccount",
-	//	// {"method": "platon_getBalance", "params": [account, pwd, expire]}
+	//	// {"method": "bub_getBalance", "params": [account, pwd, expire]}
 	//	// {"jsonrpc":"2.0", "method":"eth_getBalance","params":["0xde1e758511a7c67e7db93d1c23c1060a21db4615","latest"],"id":67}
 	//	Params: []interface{}{from, "latest"},
 	//	Id:     1,
@@ -195,7 +194,7 @@ func SendRawTransaction(from, to, value string, pkFilePath string) (string, erro
 
 func sendRawTransaction(transaction *types.Transaction) (string, error) {
 	bytes, _ := rlp.EncodeToBytes(transaction)
-	res, err := Send([]string{hexutil.Encode(bytes)}, "platon_sendRawTransaction")
+	res, err := Send([]string{hexutil.Encode(bytes)}, "bub_sendRawTransaction")
 	if err != nil {
 		panic(err)
 	}
@@ -215,7 +214,7 @@ func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, 
 }
 
 func getNonce(addr string) uint64 {
-	res, _ := Send([]string{addr, "latest"}, "platon_getTransactionCount")
+	res, _ := Send([]string{addr, "latest"}, "bub_getTransactionCount")
 	response := parseResponse(res)
 	nonce, _ := hexutil.DecodeBig(response.Result)
 	fmt.Println(addr, nonce)

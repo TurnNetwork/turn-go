@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/metrics"
 )
 
 var (

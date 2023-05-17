@@ -1,6 +1,6 @@
 package test
 
-import "github.com/PlatONnetwork/PlatON-Go/rlp"
+import "github.com/bubblenet/bubble/rlp"
 import "io"
 
 func (obj *Test) EncodeRLP(_w io.Writer) error {

@@ -35,9 +35,9 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/ecies"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/golang/snappy"
 )
 

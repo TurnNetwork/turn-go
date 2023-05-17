@@ -24,7 +24,6 @@ devp2p subprotocols by abstracting away code standardly shared by protocols.
 * standardise error handling related to communication
 * standardised	handshake negotiation
 * TODO: automatic generation of wire protocol specification for peers
-
 */
 package protocols
 
@@ -37,12 +36,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	//	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
-	//	"github.com/PlatONnetwork/PlatON-Go/swarm/tracing"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rlp"
+	//	"github.com/bubblenet/bubble/swarm/spancontext"
+	//	"github.com/bubblenet/bubble/swarm/tracing"
 )
 
 // error codes used by this  protocol scheme
@@ -73,11 +72,11 @@ var errorToString = map[int]string{
 Error implements the standard go error interface.
 Use:
 
-  errorf(code, format, params ...interface{})
+	errorf(code, format, params ...interface{})
 
 Prints as:
 
- <description>: <details>
+	<description>: <details>
 
 where description is given by code in errorToString
 and details is fmt.Sprintf(format, params...)
@@ -311,9 +310,10 @@ func (p *Peer) handleIncoming(handle func(ctx context.Context, msg interface{}) 
 
 // Handshake negotiates a handshake on the peer connection
 // * arguments
-//   * context
-//   * the local handshake to be sent to the remote peer
-//   * funcion to be called on the remote handshake (can be nil)
+//   - context
+//   - the local handshake to be sent to the remote peer
+//   - funcion to be called on the remote handshake (can be nil)
+//
 // * expects a remote handshake back of the same type
 // * the dialing peer needs to send the handshake first and then waits for remote
 // * the listening peer waits for the remote handshake and then sends it

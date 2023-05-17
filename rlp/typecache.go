@@ -22,7 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp/internal/rlpstruct"
+	"github.com/bubblenet/bubble/rlp/internal/rlpstruct"
 )
 
 // typeinfo is an entry in the type cache.

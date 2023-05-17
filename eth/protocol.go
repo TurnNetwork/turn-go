@@ -21,11 +21,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // Constants to match up protocol versions and messages
@@ -36,7 +36,7 @@ const (
 )
 
 // protocolName is the official short name of the protocol used during capability negotiation.
-var protocolName = "platon"
+var protocolName = "bubble"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
 var ProtocolVersions = []uint{eth65, eth63, eth62}
@@ -67,11 +67,11 @@ const (
 	NodeDataMsg          = 0x0e
 	GetReceiptsMsg       = 0x0f
 	ReceiptsMsg          = 0x10
-	GetPPOSStorageMsg    = 0x11
-	PPOSStorageMsg       = 0x12
+	GetDPOSStorageMsg    = 0x11
+	DPOSStorageMsg       = 0x12
 	GetOriginAndPivotMsg = 0x13
 	OriginAndPivotMsg    = 0x14
-	PPOSInfoMsg          = 0x15
+	DPOSInfoMsg          = 0x15
 
 	// For transaction fetcher
 	NewPooledTransactionHashesMsg = 0x16

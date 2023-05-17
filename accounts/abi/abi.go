@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 // The ABI holds information about a contract's context and available

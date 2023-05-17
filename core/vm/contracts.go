@@ -21,23 +21,23 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
+	"github.com/bubblenet/bubble/crypto/bls12381"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/handler"
 
-	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	vrf2 "github.com/bubblenet/bubble/crypto/vrf"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
+	"github.com/bubblenet/bubble/crypto/blake2b"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/bubblenet/bubble/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/bn256"
+	"github.com/bubblenet/bubble/params"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
@@ -51,9 +51,9 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-type PlatONPrecompiledContract interface {
+type BubblePrecompiledContract interface {
 	PrecompiledContract
-	FnSigns() map[uint16]interface{} // Return PlatON PrecompiledContract methods signs
+	FnSigns() map[uint16]interface{} // Return Bubble PrecompiledContract methods signs
 	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
@@ -121,7 +121,7 @@ func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{}
 }
 
-var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
+var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},
@@ -132,7 +132,7 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 }
 
-var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
+var BubblePrecompiledContracts120 = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},
@@ -153,7 +153,7 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contr
 	return nil, ErrOutOfGas
 }
 
-func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
+func RunBubblePrecompiledContract(p BubblePrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
 		return p.Run(input)
@@ -174,13 +174,13 @@ func IsEVMPrecompiledContract(addr common.Address, gte140Version bool) bool {
 	return false
 }
 
-func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
+func IsBubblePrecompiledContract(addr common.Address, Gte120Version bool) bool {
 	if Gte120Version {
-		if _, ok := PlatONPrecompiledContracts120[addr]; ok {
+		if _, ok := BubblePrecompiledContracts120[addr]; ok {
 			return true
 		}
 	} else {
-		if _, ok := PlatONPrecompiledContracts[addr]; ok {
+		if _, ok := BubblePrecompiledContracts[addr]; ok {
 			return true
 		}
 	}
@@ -191,15 +191,15 @@ func IsPrecompiledContract(addr common.Address, gte120Version bool, gte140Versio
 	if IsEVMPrecompiledContract(addr, gte140Version) {
 		return true
 	} else {
-		return IsPlatONPrecompiledContract(addr, gte120Version)
+		return IsBubblePrecompiledContract(addr, gte120Version)
 	}
 }
 
 type PrecompiledContractCheck struct{}
 
-func (pcc *PrecompiledContractCheck) IsPlatONPrecompiledContract(address common.Address) bool {
+func (pcc *PrecompiledContractCheck) IsBubblePrecompiledContract(address common.Address) bool {
 	// 涉及到数据修改的合约才需要此接口
-	if _, ok := PlatONPrecompiledContracts[address]; ok {
+	if _, ok := BubblePrecompiledContracts[address]; ok {
 		return true
 	}
 	return false

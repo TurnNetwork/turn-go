@@ -25,22 +25,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	ethereum "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
+	"github.com/bubblenet/bubble/params"
 )
 
 const (
-	PPOSStorageKVSizeFetch = 100 // the kv size send to peer
+	DPOSStorageKVSizeFetch = 100 // the kv size send to peer
 	KeyFastSyncStatus      = "FastSyncStatus"
 	FastSyncBegin          = 0
 	FastSyncFail           = 1
@@ -142,9 +142,9 @@ type Downloader struct {
 	bodyWakeCh        chan bool            // [eth/62] Channel to signal the block body fetcher of new tasks
 	receiptWakeCh     chan bool            // [eth/63] Channel to signal the receipt fetcher of new tasks
 	headerProcCh      chan []*types.Header // [eth/62] Channel to feed the header processor new tasks
-	pposInfoCh        chan dataPack        // [eth/63] Channel receiving inbound ppos storage
-	pposStorageCh     chan dataPack        // [eth/63] Channel receiving inbound ppos storage
-	pposStorageDoneCh chan struct{}        // Channel to signal termination completion
+	dposInfoCh        chan dataPack        // [eth/63] Channel receiving inbound dpos storage
+	dposStorageCh     chan dataPack        // [eth/63] Channel receiving inbound dpos storage
+	dposStorageDoneCh chan struct{}        // Channel to signal termination completion
 	originAndPivotCh  chan dataPack        // [eth/63] Channel receiving origin and pivot block
 
 	// for stateFetcher
@@ -234,8 +234,8 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, stateBloom *trie.Sync
 		bodyWakeCh:       make(chan bool, 1),
 		receiptWakeCh:    make(chan bool, 1),
 		headerProcCh:     make(chan []*types.Header, 1),
-		pposStorageCh:    make(chan dataPack, 1),
-		pposInfoCh:       make(chan dataPack, 1),
+		dposStorageCh:    make(chan dataPack, 1),
+		dposInfoCh:       make(chan dataPack, 1),
 		originAndPivotCh: make(chan dataPack, 1),
 		quitCh:           make(chan struct{}),
 		stateCh:          make(chan dataPack),
@@ -394,7 +394,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 		default:
 		}
 	}
-	for _, ch := range []chan dataPack{d.headerCh, d.bodyCh, d.receiptCh, d.pposInfoCh, d.pposStorageCh, d.originAndPivotCh} {
+	for _, ch := range []chan dataPack{d.headerCh, d.bodyCh, d.receiptCh, d.dposInfoCh, d.dposStorageCh, d.originAndPivotCh} {
 		for empty := false; !empty; {
 			select {
 			case <-ch:
@@ -473,8 +473,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	d.committed = 1
 	if mode == FastSync {
 		if pivoth.Number.Uint64() > origin {
-			// fetch latest ppos storage cache from remote peer
-			latest, pivoth, err = d.fetchPPOSInfo(p)
+			// fetch latest dpos storage cache from remote peer
+			latest, pivoth, err = d.fetchDPOSInfo(p)
 			if err != nil {
 				return err
 			}
@@ -568,7 +568,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 			return errors.New("set current fail")
 		}
 		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivoth.Number.Uint64()) })
-		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p, pivoth) })
+		fetchers = append(fetchers, func() error { return d.fetchDPOSStorage(p, pivoth) })
 	} else if mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
@@ -634,7 +634,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 		case <-d.bodyCh:
 		case <-d.receiptCh:
 		case <-d.headerCh:
-		case <-d.pposStorageCh:
+		case <-d.dposStorageCh:
 			// Out of bounds delivery, ignore
 		}
 	}
@@ -642,8 +642,8 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 }
 
 // Latest is the  remote currentHeader, pivot is remote snapshotDB base num
-func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, pivot *types.Header, err error) {
-	p.log.Debug("Retrieving latest ppos info cache from remote peer")
+func (d *Downloader) fetchDPOSInfo(p *peerConnection) (latest *types.Header, pivot *types.Header, err error) {
+	p.log.Debug("Retrieving latest dpos info cache from remote peer")
 	var current *types.Block
 
 	current = d.blockchain.CurrentFastBlock()
@@ -651,7 +651,7 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	go p.peer.RequestPPOSStorage()
+	go p.peer.RequestDPOSStorage()
 
 	var ttl time.Duration
 	ttl = d.requestTTL()
@@ -661,42 +661,42 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 		case <-d.cancelCh:
 			return nil, nil, errCanceled
 		case <-timeout.C:
-			p.log.Error("Waiting for ppos storage timed out", "elapsed", ttl)
+			p.log.Error("Waiting for dpos storage timed out", "elapsed", ttl)
 			return nil, nil, errTimeout
-		case packet := <-d.pposInfoCh:
+		case packet := <-d.dposInfoCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
-				p.log.Error("Received ppos storage from incorrect peer", "peer", packet.PeerId())
-				return nil, nil, errors.New("received ppos storage from incorrect peer")
+				p.log.Error("Received dpos storage from incorrect peer", "peer", packet.PeerId())
+				return nil, nil, errors.New("received dpos storage from incorrect peer")
 			}
-			pposDada := packet.(*pposInfoPack)
-			if pposDada.pivot == nil {
+			dposDada := packet.(*dposInfoPack)
+			if dposDada.pivot == nil {
 				p.log.Error("pivot should not be nil")
 				return nil, nil, errors.New("pivot should not be nil")
 			}
-			pivotNumber := pposDada.pivot.Number
-			if pivotNumber.Cmp(pposDada.latest.Number) > 0 {
-				p.log.Error("pivotNumber is larger than latestNumber", "pivotNumber", pivotNumber.Uint64(), "latestNumber", pposDada.latest.Number.Uint64())
+			pivotNumber := dposDada.pivot.Number
+			if pivotNumber.Cmp(dposDada.latest.Number) > 0 {
+				p.log.Error("pivotNumber is larger than latestNumber", "pivotNumber", pivotNumber.Uint64(), "latestNumber", dposDada.latest.Number.Uint64())
 				return nil, nil, errors.New("pivotNumber is larger than latestNumber")
 			}
 
-			if current.NumberU64() >= pposDada.pivot.Number.Uint64() {
-				p.log.Error("current is larger than pposDada.pivot", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
+			if current.NumberU64() >= dposDada.pivot.Number.Uint64() {
+				p.log.Error("current is larger than dposDada.pivot", "current", current.NumberU64(), "dposDada.pivot", dposDada.pivot)
 				return nil, nil, errors.New("pivotNumber is larger than latestNumber")
 			}
-			latest = pposDada.latest
-			return latest, pposDada.pivot, nil
+			latest = dposDada.latest
+			return latest, dposDada.pivot, nil
 		case <-d.bodyCh:
 		case <-d.receiptCh:
 		// Out of bounds delivery, ignore
 		case <-d.originAndPivotCh:
-		case <-d.pposStorageCh:
+		case <-d.dposStorageCh:
 		}
 	}
 }
 
 // setFastSyncStatus set status to snapshot db when fast sync begin
-// if  the user close platon when sync not finish,set status fail
+// if  the user close bubble when sync not finish,set status fail
 // if the sync is complete,will del the key
 func (d *Downloader) setFastSyncStatus(status uint16) error {
 	key := []byte(KeyFastSyncStatus)
@@ -722,8 +722,8 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 	return nil
 }
 
-func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (err error) {
-	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", pivot.Number)
+func (d *Downloader) fetchDPOSStorage(p *peerConnection, pivot *types.Header) (err error) {
+	log.Debug("Retrieving latest dpos storage cache from remote peer", "pivot number", pivot.Number)
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
@@ -731,9 +731,9 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 	ttl = d.requestTTL()
 	timeout.Reset(ttl)
 	defer func() {
-		close(d.pposStorageDoneCh)
+		close(d.dposStorageDoneCh)
 	}()
-	d.pposStorageDoneCh = make(chan struct{})
+	d.dposStorageDoneCh = make(chan struct{})
 
 	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
 		return err
@@ -745,28 +745,28 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		case <-d.cancelCh:
 			return errCanceled
 		case <-timeout.C:
-			log.Error("Waiting for ppos storage timed out", "elapsed", ttl)
+			log.Error("Waiting for dpos storage timed out", "elapsed", ttl)
 			return errTimeout
-		case packet := <-d.pposStorageCh:
+		case packet := <-d.dposStorageCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
-				log.Error("Received ppos storage from incorrect peer", "peer", packet.PeerId())
-				return errors.New("received ppos storage from incorrect peer")
+				log.Error("Received dpos storage from incorrect peer", "peer", packet.PeerId())
+				return errors.New("received dpos storage from incorrect peer")
 			}
-			pposDada := packet.(*pposStoragePack)
+			dposDada := packet.(*dposStoragePack)
 
-			count += int64(len(pposDada.kvs))
-			if uint64(count) != pposDada.kvNum {
-				p.log.Error("received ppos storage from incorrect kvNum", "kvNum", pposDada.kvNum, "count", count)
-				return errors.New("received ppos storage from incorrect kvNum")
+			count += int64(len(dposDada.kvs))
+			if uint64(count) != dposDada.kvNum {
+				p.log.Error("received dpos storage from incorrect kvNum", "kvNum", dposDada.kvNum, "count", count)
+				return errors.New("received dpos storage from incorrect kvNum")
 			}
 
-			if err := d.snapshotDB.WriteBaseDB(pposDada.KVs()); err != nil {
+			if err := d.snapshotDB.WriteBaseDB(dposDada.KVs()); err != nil {
 				p.log.Error("write to base db fail", "err", err)
 				return errors.New("write to base db fail")
 			}
-			if pposDada.last {
-				log.Info("fetchPPOSStorage has finish")
+			if dposDada.last {
+				log.Info("fetchDPOSStorage has finish")
 				return nil
 			}
 			ttl = d.requestTTL()
@@ -775,7 +775,7 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		//case <-d.receiptCh:
 		// Out of bounds delivery, ignore
 		case <-d.originAndPivotCh:
-		case <-d.pposInfoCh:
+		case <-d.dposInfoCh:
 
 		}
 	}
@@ -1612,10 +1612,10 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 				oldPivot = P
 			}
 			// Wait for completion, occasionally checking for pivot staleness
-			log.Debug("wait for pposStorageDoneCh")
+			log.Debug("wait for dposStorageDoneCh")
 			select {
-			case <-d.pposStorageDoneCh:
-				log.Debug("finish pposStorageDoneCh")
+			case <-d.dposStorageDoneCh:
+				log.Debug("finish dposStorageDoneCh")
 			case <-time.After(time.Second):
 				oldTail = afterP
 				continue
@@ -1714,14 +1714,14 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 	return nil
 }
 
-// DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, kvs []PPOSStorageKV, last bool, kvNum uint64) (err error) {
-	return d.deliver(id, d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum}, pposStorageInMeter, pposStorageDropMeter)
+// DeliverDposStorage injects a new batch of dpos storage received from a remote node.
+func (d *Downloader) DeliverDposStorage(id string, kvs []DPOSStorageKV, last bool, kvNum uint64) (err error) {
+	return d.deliver(id, d.dposStorageCh, &dposStoragePack{id, kvs, last, kvNum}, dposStorageInMeter, dposStorageDropMeter)
 }
 
-// DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposInfo(id string, latest, pivot *types.Header) (err error) {
-	return d.deliver(id, d.pposInfoCh, &pposInfoPack{id, latest, pivot}, pposStorageInMeter, pposStorageDropMeter)
+// DeliverDposStorage injects a new batch of dpos storage received from a remote node.
+func (d *Downloader) DeliverDposInfo(id string, latest, pivot *types.Header) (err error) {
+	return d.deliver(id, d.dposInfoCh, &dposInfoPack{id, latest, pivot}, dposStorageInMeter, dposStorageDropMeter)
 }
 
 func (d *Downloader) DeliverOriginAndPivot(id string, headers []*types.Header) (err error) {

@@ -1,22 +1,22 @@
-## Contributing to PlatON
+## Contributing to Bubble
 
 Interested in contributing? That's awesome! Here are some guidelines to get started quickly and easily:
 - [Reporting An Issue](#reporting-an-issue)
     - [Bug Reports](#bug-reports)
     - [Feature Requests](#feature-requests)
     - [Change Requests](#change-requests)
-- [Working on PlatON](#working-on-PlatON)
+- [Working on Bubble](#working-on-Bubble)
     - [Feature Branches](#feature-branches)
     - [Submitting Pull Requests](#submitting-pull-requests)
     - [Testing and Quality Assurance](#testing-and-quality-assurance)
 - [Conduct](#conduct)
 - [Contributor License & Acknowledgments](#contributor-license--acknowledgments)
 - [References](#references)
-- [Developers' Guide](https://devdocs.platon.network/docs/en/)
+- [Developers' Guide](https://devdocs.bubble.network/docs/en/)
 
 ## Reporting An Issue
 
-If you're about to raise an issue because you think you've found a problem with PlatON, or you'd like to make a request for a new feature in the codebase, or any other reason… please read this first.
+If you're about to raise an issue because you think you've found a problem with Bubble, or you'd like to make a request for a new feature in the codebase, or any other reason… please read this first.
 
 The GitHub issue tracker is the preferred channel for [bug reports](#bug-reports), [feature requests](#feature-requests), and [submitting pull requests](#submitting-pull-requests), but please respect the following restrictions:
 
@@ -34,12 +34,12 @@ Guidelines for bug reports:
    reported.
 
 1. **Check if the issue has been fixed** &mdash; look for [closed issues in the
-   current milestone](https://github.com/PlatONnetwork/PlatON-Go/issues?q=is%3Aissue+is%3Aclosed) or try to reproduce it
+   current milestone](https://github.com/bubblenet/bubble/issues?q=is%3Aissue+is%3Aclosed) or try to reproduce it
    using the latest `develop` branch.
 
 A good bug report shouldn't leave others needing to chase you up for more information. Be sure to include the details of your environment and relevant tests that demonstrate the failure.
 
-[Report a bug](https://github.com/PlatONnetwork/PlatON-Go/issues/new?assignees=&labels=bug&template=bug.md&title=)
+[Report a bug](https://github.com/bubblenet/bubble/issues/new?assignees=&labels=bug&template=bug.md&title=)
 
 ### Feature Requests
 
@@ -51,15 +51,15 @@ Feature requests are welcome. Before you submit one be sure to have:
 
 ### Change Requests
 
-Change requests cover both architectural and functional changes to how PlatON works. If you have an idea for a new or different dependency, a refactor, or an improvement to a feature, etc - please be sure to:
+Change requests cover both architectural and functional changes to how Bubble works. If you have an idea for a new or different dependency, a refactor, or an improvement to a feature, etc - please be sure to:
 
 1. **Use the GitHub search** and check someone else didn't get there first
 1. Take a moment to think about the best way to make a case for, and explain what you're thinking. Are you sure this shouldn't really be
    a [bug report](#bug-reports) or a [feature request](#feature-requests)?  Is it really one idea or is it many? What's the context? What problem are you solving? Why is what you are suggesting better than what's already there?
 
-## Working on PlatON
+## Working on Bubble
 
-Code contributions are welcome and encouraged! If you are looking for a good place to start, check out the [good first issue](https://github.com/PlatONnetwork/PlatON-Go/labels/good%20first%20issue) label in GitHub issues.
+Code contributions are welcome and encouraged! If you are looking for a good place to start, check out the [good first issue](https://github.com/bubblenet/bubble/labels/good%20first%20issue) label in GitHub issues.
 
 Also, please follow these guidelines when submitting code:
 
@@ -67,9 +67,9 @@ Also, please follow these guidelines when submitting code:
 
 To get it out of the way:
 
-- **[feature/xxx](https://github.com/PlatONnetwork/PlatON-Go/tree/feature/bump-version-to-1.1.0)** is the development for new version feature branch. All work on the next version release happens here so you should generally branch off `feature/xxx`. Do **NOT** use this branch for a production site.
-- **[develop](https://github.com/PlatONnetwork/PlatON-Go/tree/develop)** is the development branch. Bug fixes of the current version can be submitted to this branch . Do **NOT** use this branch for a production site.
-- **[master](https://github.com/PlatONnetwork/PlatON-Go/tree/master)** contains the latest release of PlatON. This branch may be used in production. Do **NOT** use this branch to work on PlatON's source.
+- **[feature/xxx](https://github.com/bubblenet/bubble/tree/feature/bump-version-to-1.1.0)** is the development for new version feature branch. All work on the next version release happens here so you should generally branch off `feature/xxx`. Do **NOT** use this branch for a production site.
+- **[develop](https://github.com/bubblenet/bubble/tree/develop)** is the development branch. Bug fixes of the current version can be submitted to this branch . Do **NOT** use this branch for a production site.
+- **[master](https://github.com/bubblenet/bubble/tree/master)** contains the latest release of Bubble. This branch may be used in production. Do **NOT** use this branch to work on Bubble's source.
 
 ### Submitting Pull Requests
 
@@ -79,7 +79,7 @@ Pull requests are awesome. If you're looking to raise a PR for something which d
 
 Never underestimate just how useful quality assurance is. If you're looking to get involved with the code base and don't know where to start, checking out and testing a pull request is one of the most useful things you could do.
 
-Essentially, [check out the latest develop branch](#working-on-PlatON), take it for a spin, and if you find anything odd, please follow the [bug report guidelines](#bug-reports) and let us know!
+Essentially, [check out the latest develop branch](#working-on-Bubble), take it for a spin, and if you find anything odd, please follow the [bug report guidelines](#bug-reports) and let us know!
 
 ## Conduct
 

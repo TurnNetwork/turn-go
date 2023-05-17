@@ -27,11 +27,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/nat"
+	"github.com/bubblenet/bubble/p2p/netutil"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // Errors

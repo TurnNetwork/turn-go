@@ -18,13 +18,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var (
@@ -49,7 +48,7 @@ Note that exporting your key in unencrypted format is NOT supported.
 
 Keys are stored under <DATADIR>/keystore.
 It is safe to transfer the entire directory or the individual keys therein
-between PlatON nodes by simply copying.
+between Bubble nodes by simply copying.
 
 Make sure you backup your keys regularly.`,
 		Subcommands: []cli.Command{
@@ -75,7 +74,7 @@ Print a short summary of all accounts`,
 					utils.LightKDFFlag,
 				},
 				Description: `
-    platon account new
+    bubble account new
 
 Creates a new account and prints the address.
 
@@ -100,7 +99,7 @@ password to file or expose in any other way.
 					utils.LightKDFFlag,
 				},
 				Description: `
-    platon account update <address>
+    bubble account update <address>
 
 Update an existing account.
 
@@ -112,7 +111,7 @@ format to the newest format or change the password for an account.
 
 For non-interactive use the password can be specified with the --password flag:
 
-    platon account update [options] <address>
+    bubble account update [options] <address>
 
 Since only one password can be given, only format update can be performed,
 changing your password is only possible interactively.
@@ -130,7 +129,7 @@ changing your password is only possible interactively.
 				},
 				ArgsUsage: "<keyFile>",
 				Description: `
-    platon account import <keyfile>
+    bubble account import <keyfile>
 
 Imports an unencrypted private key from <keyfile> and creates a new account.
 Prints the address.
@@ -143,10 +142,10 @@ You must remember this password to unlock your account in the future.
 
 For non-interactive use the password can be specified with the -password flag:
 
-    platon account import [options] <keyfile>
+    bubble account import [options] <keyfile>
 
 Note:
-As you can directly copy your encrypted accounts to another PlatON instance,
+As you can directly copy your encrypted accounts to another Bubble instance,
 this import mechanism is not needed when you transfer an account between
 nodes.
 `,
@@ -224,7 +223,7 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(ctx *cli.Context) error {
-	cfg := platonConfig{Node: defaultNodeConfig()}
+	cfg := bubbleConfig{Node: defaultNodeConfig()}
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
 		if err := loadConfig(file, &cfg); err != nil {

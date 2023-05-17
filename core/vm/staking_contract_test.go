@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
@@ -25,28 +25,28 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/node"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/bubblenet/bubble/common/mock"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/bubblenet/bubble/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/plugin"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 func runContractSendTransaction(contract *StakingContract, params [][]byte, title string, t *testing.T) {
@@ -1366,16 +1366,16 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 	var proofHex bls.SchnorrProofHex
 	proofHex.UnmarshalText(proofByte)
 
-	stakingAmount := new(big.Int).SetUint64(params.LAT)
+	stakingAmount := new(big.Int).SetUint64(params.BUB)
 	stakingAmount.Mul(stakingAmount, new(big.Int).SetUint64(1000000))
 	chain.StateDB.AddBalance(stakingAdd, stakingAmount)
-	chain.StateDB.AddBalance(stakingAdd, new(big.Int).SetUint64(params.LAT))
+	chain.StateDB.AddBalance(stakingAdd, new(big.Int).SetUint64(params.BUB))
 
-	delAmount := new(big.Int).SetUint64(params.LAT)
+	delAmount := new(big.Int).SetUint64(params.BUB)
 	delAmount.Mul(delAmount, new(big.Int).SetUint64(100))
 	chain.StateDB.AddBalance(delAdd, delAmount)
 	chain.StateDB.AddBalance(delAdd, delAmount)
-	chain.StateDB.AddBalance(delAdd, new(big.Int).SetUint64(params.LAT))
+	chain.StateDB.AddBalance(delAdd, new(big.Int).SetUint64(params.BUB))
 
 	createStaking := func(hash common.Hash, header *types.Header, statedb *mock.MockStateDB, sdb snapshotdb.DB) error {
 		toStaking := newStakingContact(stakingAdd, hash, header.Number, statedb, sdb, initGas)
@@ -1401,7 +1401,7 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 	}
 	execFunc := []mock.Transaction{createStaking, delegateFunc, withDrewStaking, createStaking, delegateFunc}
 
-	delLastAmount := new(big.Int).SetUint64(params.LAT)
+	delLastAmount := new(big.Int).SetUint64(params.BUB)
 	delLastAmount.Mul(delLastAmount, new(big.Int).SetUint64(200))
 
 	afterTxHook := func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {

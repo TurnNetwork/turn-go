@@ -1,18 +1,18 @@
-// Copyright 2015 The go-platon Authors
-// This file is part of the go-platon library.
+// Copyright 2015 The go-bubble Authors
+// This file is part of the go-bubble library.
 //
-// The go-platon library is free software: you can redistribute it and/or modify
+// The go-bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-platon library is distributed in the hope that it will be useful,
+// The go-bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-platon library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package bind
 
@@ -24,13 +24,13 @@ import (
 	"strings"
 	"sync"
 
-	platon "github.com/PlatONnetwork/PlatON-Go"
+	bubble "github.com/bubblenet/bubble"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/bubblenet/bubble/accounts/abi"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/event"
 )
 
 // SignerFn is a signer function callback when a contract requires a method to
@@ -46,9 +46,9 @@ type CallOpts struct {
 }
 
 // TransactOpts is the collection of authorization data required to create a
-// valid platon transaction.
+// valid bubble transaction.
 type TransactOpts struct {
-	From   common.Address // platon account to send the transaction from
+	From   common.Address // bubble account to send the transaction from
 	Nonce  *big.Int       // Nonce to use for the transaction execution (nil = use pending state)
 	Signer SignerFn       // Method to use for signing the transaction (mandatory)
 
@@ -101,11 +101,11 @@ func (m *MetaData) GetAbi() (*abi.ABI, error) {
 }
 
 // BoundContract is the base wrapper object that reflects a contract on the
-// platon network. It contains a collection of methods that are used by the
+// bubble network. It contains a collection of methods that are used by the
 // higher level contract bindings to operate.
 type BoundContract struct {
-	address    common.Address     // Deployment address of the contract on the platon blockchain
-	abi        abi.ABI            // Reflect based ABI to access the correct platon methods
+	address    common.Address     // Deployment address of the contract on the bubble blockchain
+	abi        abi.ABI            // Reflect based ABI to access the correct bubble methods
 	caller     ContractCaller     // Read interface to interact with the blockchain
 	transactor ContractTransactor // Write interface to interact with the blockchain
 	filterer   ContractFilterer   // Event filtering to interact with the blockchain
@@ -123,7 +123,7 @@ func NewBoundContract(address common.Address, abi abi.ABI, caller ContractCaller
 	}
 }
 
-// DeployContract deploys a contract onto the platon blockchain and binds the
+// DeployContract deploys a contract onto the bubble blockchain and binds the
 // deployment address with a Go wrapper.
 func DeployContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
 	// Otherwise try to deploy the contract
@@ -159,7 +159,7 @@ func (c *BoundContract) Call(opts *CallOpts, results *[]interface{}, method stri
 		return err
 	}
 	var (
-		msg    = platon.CallMsg{From: opts.From, To: &c.address, Data: input}
+		msg    = bubble.CallMsg{From: opts.From, To: &c.address, Data: input}
 		ctx    = ensureContext(opts.Context)
 		code   []byte
 		output []byte
@@ -268,7 +268,7 @@ func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, i
 			}
 		}
 		// If the contract surely has code (or code is not needed), estimate the transaction
-		msg := platon.CallMsg{From: opts.From, To: contract, GasPrice: gasPrice, Value: value, Data: input}
+		msg := bubble.CallMsg{From: opts.From, To: contract, GasPrice: gasPrice, Value: value, Data: input}
 		gasLimit, err = c.transactor.EstimateGas(ensureContext(opts.Context), msg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to estimate gas needed: %v", err)
@@ -314,7 +314,7 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]int
 	// Start the background filtering
 	logs := make(chan types.Log, 128)
 
-	config := platon.FilterQuery{
+	config := bubble.FilterQuery{
 		Addresses: []common.Address{c.address},
 		Topics:    topics,
 		FromBlock: new(big.Int).SetUint64(opts.Start),
@@ -363,7 +363,7 @@ func (c *BoundContract) WatchLogs(opts *WatchOpts, name string, query ...[]inter
 	// Start the background filtering
 	logs := make(chan types.Log, 128)
 
-	config := platon.FilterQuery{
+	config := bubble.FilterQuery{
 		Addresses: []common.Address{c.address},
 		Topics:    topics,
 	}

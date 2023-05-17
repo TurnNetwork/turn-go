@@ -30,7 +30,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 )
 
 // Command line flags to configure the interpreters.

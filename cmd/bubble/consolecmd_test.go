@@ -27,12 +27,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 )
 
 const (
-	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0"
-	httpAPIs = "net:1.0 platon:1.0 rpc:1.0 web3:1.0"
+	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 bub:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0"
+	httpAPIs = "net:1.0 bub:1.0 rpc:1.0 web3:1.0"
 )
 
 // Tests that a node embedded within a console can be started up properly and
@@ -40,25 +40,25 @@ const (
 func TestConsoleWelcome(t *testing.T) {
 	datadir := tmpdir(t)
 	defer os.RemoveAll(datadir)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "console")
 
 	// Gather all the infos the welcome message needs to contain
-	platon.SetTemplateFunc("goos", func() string { return runtime.GOOS })
-	platon.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
-	platon.SetTemplateFunc("gover", runtime.Version)
-	platon.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
-	//platon.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
-	platon.SetTemplateFunc("niltime", func() string {
+	bubble.SetTemplateFunc("goos", func() string { return runtime.GOOS })
+	bubble.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
+	bubble.SetTemplateFunc("gover", runtime.Version)
+	bubble.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
+	//bubble.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
+	bubble.SetTemplateFunc("niltime", func() string {
 		return time.Unix(0, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
-	platon.SetTemplateFunc("apis", func() string { return ipcAPIs })
+	bubble.SetTemplateFunc("apis", func() string { return ipcAPIs })
 
 	// Verify the actual welcome message to the required template
-	platon.Expect(`
-Welcome to the PlatON JavaScript console!
+	bubble.Expect(`
+Welcome to the Bubble JavaScript console!
 
-instance: PlatONnetwork/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
+instance: bubblenet/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 at block: 0 ({{niltime}})
  datadir: {{.Datadir}}
  modules: {{apis}}
@@ -66,7 +66,7 @@ at block: 0 ({{niltime}})
 To exit, press ctrl-d
 > {{.InputLine "exit"}}
 `)
-	platon.ExpectExit()
+	bubble.ExpectExit()
 }
 
 // Tests that a console can be attached to a running node via various means.
@@ -74,63 +74,63 @@ func TestIPCAttachWelcome(t *testing.T) {
 	// Configure the instance for IPC attachement
 	var ipc string
 	if runtime.GOOS == "windows" {
-		ipc = `\\.\pipe\platon` + strconv.Itoa(trulyRandInt(100000, 999999))
+		ipc = `\\.\pipe\bubble` + strconv.Itoa(trulyRandInt(100000, 999999))
 	} else {
 		ws := tmpdir(t)
 		defer os.RemoveAll(ws)
-		ipc = filepath.Join(ws, "platon.ipc")
+		ipc = filepath.Join(ws, "bubble.ipc")
 	}
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--port", "0", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
 
 	defer func() {
-		platon.Interrupt()
-		platon.ExpectExit()
+		bubble.Interrupt()
+		bubble.ExpectExit()
 	}()
 
 	waitForEndpoint(t, ipc, 3*time.Second) // Simple way to wait for the RPC endpoint to open
-	testAttachWelcome(t, platon, "ipc:"+ipc, ipcAPIs)
+	testAttachWelcome(t, bubble, "ipc:"+ipc, ipcAPIs)
 
 }
 
 func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--http", "--http.port", port)
 
 	defer func() {
-		platon.Interrupt()
-		platon.ExpectExit()
+		bubble.Interrupt()
+		bubble.ExpectExit()
 	}()
 
 	endpoint := "http://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
-	testAttachWelcome(t, platon, endpoint, httpAPIs)
+	testAttachWelcome(t, bubble, endpoint, httpAPIs)
 
 }
 
 func TestWSAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--ws", "--ws.port", port /*, "--testnet"*/)
 
 	defer func() {
-		platon.Interrupt()
-		platon.ExpectExit()
+		bubble.Interrupt()
+		bubble.ExpectExit()
 	}()
 
 	endpoint := "ws://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
-	testAttachWelcome(t, platon, endpoint, httpAPIs)
+	testAttachWelcome(t, bubble, endpoint, httpAPIs)
 
 }
 
-func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) {
-	// Attach to a running platon note and terminate immediately
-	attach := runPlatON(t, "attach", endpoint)
+func testAttachWelcome(t *testing.T, bubble *testbubble, endpoint, apis string) {
+	// Attach to a running bubble note and terminate immediately
+	attach := runBubble(t, "attach", endpoint)
 	defer attach.ExpectExit()
 	attach.CloseStdin()
 
@@ -144,14 +144,14 @@ func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) 
 		return time.Unix(0, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
-	attach.SetTemplateFunc("datadir", func() string { return platon.Datadir })
+	attach.SetTemplateFunc("datadir", func() string { return bubble.Datadir })
 	attach.SetTemplateFunc("apis", func() string { return apis })
 
 	// Verify the actual welcome message to the required template
 	attach.Expect(`
-Welcome to the PlatON JavaScript console!
+Welcome to the Bubble JavaScript console!
 
-instance: PlatONnetwork/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
+instance: bubblenet/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 at block: 0 ({{niltime}}){{if ipc}}
  datadir: {{datadir}}{{end}}
  modules: {{apis}}

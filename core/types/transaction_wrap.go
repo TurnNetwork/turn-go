@@ -1,22 +1,22 @@
 package types
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"io"
 )
 
 type TransactionWrap struct {
 	*Transaction
-	Bn 			uint64
-	FuncName 	string
-	TaskId		string
+	Bn       uint64
+	FuncName string
+	TaskId   string
 }
 
 type extwrapper struct {
 	Transaction *Transaction
-	Bn 			uint64
-	FuncName 	string
-	TaskId		string
+	Bn          uint64
+	FuncName    string
+	TaskId      string
 }
 
 func (t *TransactionWrap) GetBlockNumber() uint64 {
@@ -37,9 +37,9 @@ func (b *TransactionWrap) EncodeRLP(w io.Writer) error {
 	//fmt.Println("EncodeRlp, bn:", b.Bn)
 	return rlp.Encode(w, extwrapper{
 		Transaction: b.Transaction,
-		Bn: b.Bn,
-		FuncName: b.FuncName,
-		TaskId: b.TaskId,
+		Bn:          b.Bn,
+		FuncName:    b.FuncName,
+		TaskId:      b.TaskId,
 	})
 }
 

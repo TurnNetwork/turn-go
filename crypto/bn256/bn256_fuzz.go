@@ -11,8 +11,8 @@ import (
 	"bytes"
 	"math/big"
 
-	cloudflare "github.com/PlatONnetwork/PlatON-Go/crypto/bn256/cloudflare"
-	google "github.com/PlatONnetwork/PlatON-Go/crypto/bn256/google"
+	cloudflare "github.com/bubblenet/bubble/crypto/bn256/cloudflare"
+	google "github.com/bubblenet/bubble/crypto/bn256/google"
 )
 
 func getG1Points(input io.Reader) (*cloudflare.G1, *google.G1) {

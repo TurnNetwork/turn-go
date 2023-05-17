@@ -96,7 +96,7 @@ var graphiql = []byte(`
 		<div id="graphiql" style="height: 100vh;">Loading...</div>
 		<script>
 			function fetchGQL(params) {
-                post = "/platon/graphql"
+                post = "/bubble/graphql"
                 if (window.location.pathname == "/graphql/ui"){
 					post = "/graphql"
 				}

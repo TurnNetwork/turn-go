@@ -28,7 +28,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 const (
 	// Timeouts
 	defaultDialTimeout = 10 * time.Second // used if context has no deadline
-	subscribeTimeout   = 5 * time.Second  // overall timeout platon_subscribe, rpc_modules calls
+	subscribeTimeout   = 5 * time.Second  // overall timeout bub_subscribe, rpc_modules calls
 )
 
 const (
@@ -410,7 +410,7 @@ func (c *Client) Notify(ctx context.Context, method string, args ...interface{})
 
 // EthSubscribe registers a subscripion under the "eth" namespace.
 func (c *Client) EthSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
-	return c.Subscribe(ctx, "platon", channel, args...)
+	return c.Subscribe(ctx, "bub", channel, args...)
 }
 
 // ShhSubscribe registers a subscripion under the "shh" namespace.

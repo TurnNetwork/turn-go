@@ -26,19 +26,19 @@ import (
 
 	"github.com/docker/docker/pkg/reexec"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/internal/cmdtest"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "platon-test")
+	dir, err := ioutil.TempDir("", "bubble-test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-type testplaton struct {
+type testbubble struct {
 	*cmdtest.TestCmd
 
 	// template variables for expect
@@ -46,8 +46,8 @@ type testplaton struct {
 }
 
 func init() {
-	// Run the app if we've been exec'd as "platon-test" in runPlatON.
-	reexec.Register("platon-test", func() {
+	// Run the app if we've been exec'd as "bubble-test" in runBubble.
+	reexec.Register("bubble-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -64,10 +64,10 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// spawns platon with the given command line args. If the args don't set --datadir, the
+// spawns bubble with the given command line args. If the args don't set --datadir, the
 // child g gets a temporary data directory.
-func runPlatON(t *testing.T, args ...string) *testplaton {
-	tt := &testplaton{}
+func runBubble(t *testing.T, args ...string) *testbubble {
+	tt := &testbubble{}
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {
 		switch {
@@ -89,9 +89,9 @@ func runPlatON(t *testing.T, args ...string) *testplaton {
 		}()
 	}
 
-	// Boot "platon". This actually runs the test binary but the TestMain
+	// Boot "bubble". This actually runs the test binary but the TestMain
 	// function will prevent any tests from running.
-	tt.Run("platon-test", args...)
+	tt.Run("bubble-test", args...)
 
 	return tt
 }

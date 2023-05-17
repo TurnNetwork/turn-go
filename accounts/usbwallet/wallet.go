@@ -20,7 +20,7 @@ package usbwallet
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 	"io"
 	"math/big"
 	"sync"
@@ -28,11 +28,11 @@ import (
 
 	"github.com/karalabe/hid"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	ethereum "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
 )
 
 // Maximum time between wallet health checks to detect USB unplugs.

@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package reward
 
@@ -22,9 +21,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 func TestDecreaseDelegateReward(t *testing.T) {
@@ -63,7 +62,7 @@ func TestDecreaseDelegateReward(t *testing.T) {
 }
 
 func TestSize(t *testing.T) {
-	delegate := new(big.Int).Mul(new(big.Int).SetInt64(10000000), big.NewInt(params.LAT))
+	delegate := new(big.Int).Mul(new(big.Int).SetInt64(10000000), big.NewInt(params.BUB))
 	reward, _ := new(big.Int).SetString("135840374364973262032076", 10)
 	per := new(big.Int).Div(reward, delegate)
 	key := DelegateRewardPerKey(discover.MustHexID("0aa9805681d8f77c05f317efc141c97d5adb511ffb51f5a251d2d7a4a3a96d9a12adf39f06b702f0ccdff9eddc1790eb272dca31b0c47751d49b5931c58701e7"), 100, 10)

@@ -28,15 +28,15 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
+	"github.com/bubblenet/bubble/console/prompt"
+	"github.com/bubblenet/bubble/internal/jsre/deps"
 
 	"github.com/dop251/goja"
-
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
-	"github.com/PlatONnetwork/PlatON-Go/internal/web3ext"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/mattn/go-colorable"
+
+	"github.com/bubblenet/bubble/internal/jsre"
+	"github.com/bubblenet/bubble/internal/web3ext"
+	"github.com/bubblenet/bubble/rpc"
 	"github.com/peterh/liner"
 )
 
@@ -193,7 +193,7 @@ func (c *Console) initExtensions() error {
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	aliases := map[string]struct{}{"platon": {}, "personal": {}}
+	aliases := map[string]struct{}{"bub": {}, "personal": {}}
 	for api := range apis {
 		if api == "web3" {
 			continue
@@ -239,7 +239,7 @@ func (c *Console) initPersonal(vm *goja.Runtime, bridge *bridge) {
 		return
 	}
 	jeth := vm.NewObject()
-	vm.Set("jplaton", jeth)
+	vm.Set("jbubble", jeth)
 	jeth.Set("openWallet", personal.Get("openWallet"))
 	jeth.Set("unlockAccount", personal.Get("unlockAccount"))
 	jeth.Set("newAccount", personal.Get("newAccount"))
@@ -279,7 +279,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines platon.getBalance(platon.coinb<tab><tab>
+	// E.g. in case of nested lines bubble.getBalance(bubble.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
@@ -298,15 +298,15 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	return line[:start], c.jsre.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
-// Welcome show summary of current PlatON instance and some metadata about the
+// Welcome show summary of current Bubble instance and some metadata about the
 // console's available modules.
 func (c *Console) Welcome() {
-	message := "Welcome to the PlatON JavaScript console!\n\n"
+	message := "Welcome to the Bubble JavaScript console!\n\n"
 
-	// Print some generic PlatON metadata
+	// Print some generic Bubble metadata
 	if res, err := c.jsre.Run(`
 		var message = "instance: " + web3.version.node + "\n";
-		message += "at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")\n";
+		message += "at block: " + bubble.blockNumber + " (" + new Date(1000 * bubble.getBlock(bubble.blockNumber).timestamp) + ")\n";
 		try {
 			message += " datadir: " + admin.datadir + "\n";
 		} catch (err) {}

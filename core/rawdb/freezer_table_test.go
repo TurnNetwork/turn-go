@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/metrics"
 )
 
 func init() {

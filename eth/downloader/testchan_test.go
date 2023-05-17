@@ -5,15 +5,15 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
 )
 
 // Test chain parameters.
@@ -61,7 +61,7 @@ type testChain struct {
 	headerm  map[common.Hash]*types.Header
 	blockm   map[common.Hash]*types.Block
 	receiptm map[common.Hash][]*types.Receipt
-	pposData [][2][]byte
+	dposData [][2][]byte
 	baseNum  int
 }
 
@@ -98,7 +98,7 @@ func (tc *testChain) copy(newlen int) *testChain {
 		headerm:  make(map[common.Hash]*types.Header, newlen),
 		blockm:   make(map[common.Hash]*types.Block, newlen),
 		receiptm: make(map[common.Hash][]*types.Receipt, newlen),
-		pposData: make([][2][]byte, 0),
+		dposData: make([][2][]byte, 0),
 	}
 	for i := 0; i < len(tc.chain) && i < newlen; i++ {
 		hash := tc.chain[i]
@@ -107,8 +107,8 @@ func (tc *testChain) copy(newlen int) *testChain {
 		cpy.headerm[hash] = tc.headerm[hash]
 		cpy.receiptm[hash] = tc.receiptm[hash]
 	}
-	if len(tc.pposData) > 0 {
-		cpy.pposData = tc.pposData[0:newlen]
+	if len(tc.dposData) > 0 {
+		cpy.dposData = tc.dposData[0:newlen]
 	}
 	if newlen < tc.baseNum {
 		cpy.baseNum = newlen - 1
@@ -151,7 +151,7 @@ func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool)
 		tc.blockm[hash] = b
 		tc.headerm[hash] = b.Header()
 		tc.receiptm[hash] = receipts[i]
-		tc.pposData = append(tc.pposData, [2][]byte{common.Int64ToBytes(rand.Int63()), common.Int64ToBytes(rand.Int63())})
+		tc.dposData = append(tc.dposData, [2][]byte{common.Int64ToBytes(rand.Int63()), common.Int64ToBytes(rand.Int63())})
 	}
 	tc.baseNum = snapshotDBBaseNum
 }

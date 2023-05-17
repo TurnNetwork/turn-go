@@ -35,10 +35,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
 )
 
 const (

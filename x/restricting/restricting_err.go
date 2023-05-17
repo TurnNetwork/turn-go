@@ -1,26 +1,25 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package restricting
 
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 const (
@@ -30,7 +29,7 @@ const (
 var (
 	ErrParamEpochInvalid                    = common.NewBizError(304001, "The initial epoch for staking cannot be zero")
 	ErrCountRestrictPlansInvalid            = common.NewBizError(304002, fmt.Sprintf("The number of the restricting plan cannot be (0, %d]", RestrictTxPlanSize))
-	ErrLockedAmountTooLess                  = common.NewBizError(304003, "Total staking amount shall be more than 1 LAT")
+	ErrLockedAmountTooLess                  = common.NewBizError(304003, "Total staking amount shall be more than 1 BUB")
 	ErrBalanceNotEnough                     = common.NewBizError(304004, "Create plan,the sender balance is not enough in restrict")
 	ErrAccountNotFound                      = common.NewBizError(304005, "Account is not found on restricting contract")
 	ErrSlashingTooMuch                      = common.NewBizError(304006, "Slashing amount is larger than staking amount")

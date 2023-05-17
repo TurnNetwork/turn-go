@@ -19,10 +19,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
-	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
-	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/signer/core"
+	"github.com/bubblenet/bubble/signer/fourbyte"
+	"github.com/bubblenet/bubble/signer/storage"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -30,12 +30,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // Used for testing

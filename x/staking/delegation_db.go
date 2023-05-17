@@ -1,9 +1,9 @@
 package staking
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 

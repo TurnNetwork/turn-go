@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 )
 
 // Forks table defines supported forks and their chain config.
@@ -29,8 +29,8 @@ var Forks = map[string]*params.ChainConfig{
 		ChainID: big.NewInt(1),
 	},
 	"EIP155": {
-		ChainID:        big.NewInt(1),
-		EIP155Block:    big.NewInt(0),
+		ChainID:     big.NewInt(1),
+		EIP155Block: big.NewInt(0),
 	},
 }
 

@@ -18,10 +18,10 @@ package rpc
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 )
 
 func TestBlockNumberJSONUnmarshal(t *testing.T) {

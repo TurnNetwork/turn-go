@@ -1,6 +1,6 @@
-#include <platon/platon.hpp>
+#include <bubble/bubble.hpp>
 #include <string>
-using namespace platon;
+using namespace bubble;
 
 
 class message {
@@ -9,7 +9,7 @@ class message {
       message(const std::string &p_head):head(p_head){}
    private:
       std::string head;
-      PLATON_SERIALIZE(message, (head))
+      BUBBLE_SERIALIZE(message, (head))
 };
 
 class my_message : public message {
@@ -19,10 +19,10 @@ class my_message : public message {
    private:
       std::string body;
       std::string end;
-      PLATON_SERIALIZE_DERIVED(my_message, message, (body)(end))
+      BUBBLE_SERIALIZE_DERIVED(my_message, message, (body)(end))
 };
 
-CONTRACT hello : public platon::Contract{
+CONTRACT hello : public bubble::Contract{
    public:
      
 
@@ -43,7 +43,7 @@ CONTRACT hello : public platon::Contract{
 
 
    private:
-      platon::StorageType<"arr"_n, std::vector<my_message>> arr;
+      bubble::StorageType<"arr"_n, std::vector<my_message>> arr;
 };
 
-PLATON_DISPATCH(hello, (init)(add_message)(get_message)(get_vector_size))
+BUBBLE_DISPATCH(hello, (init)(add_message)(get_message)(get_vector_size))

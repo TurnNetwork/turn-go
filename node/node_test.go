@@ -28,10 +28,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rpc"
 	"gotest.tools/assert"
 )
 

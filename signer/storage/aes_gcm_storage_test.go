@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
-//
 package storage
 
 import (
@@ -23,9 +22,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/mattn/go-colorable"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
 )
 
 func TestEncryption(t *testing.T) {

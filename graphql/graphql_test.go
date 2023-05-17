@@ -24,14 +24,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/bubblenet/bubble/core"
 
-	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/bubblenet/bubble/miner"
 
 	"gotest.tools/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/node"
 )
 
 func TestBuildSchema(t *testing.T) {

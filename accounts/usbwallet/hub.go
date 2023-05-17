@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
 	"github.com/karalabe/hid"
 )
 

@@ -19,16 +19,15 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/crypto"
 	"github.com/pborman/uuid"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 type outputGenerate struct {

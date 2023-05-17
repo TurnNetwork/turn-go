@@ -43,10 +43,10 @@ import (
 
 	pcsc "github.com/gballet/go-libpcsclite"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
 )
 
 // Scheme is the URI prefix for smartcard wallets.

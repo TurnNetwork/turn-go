@@ -15,7 +15,7 @@
 package secp256k1
 
 import (
-	_ "github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1/libsecp256k1/include"
-	_ "github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1/libsecp256k1/src"
-	_ "github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1/libsecp256k1/src/modules/recovery"
+	_ "github.com/bubblenet/bubble/crypto/secp256k1/libsecp256k1/include"
+	_ "github.com/bubblenet/bubble/crypto/secp256k1/libsecp256k1/src"
+	_ "github.com/bubblenet/bubble/crypto/secp256k1/libsecp256k1/src/modules/recovery"
 )

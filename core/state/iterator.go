@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/trie"
 )
 
 // NodeIterator is an iterator to traverse the entire state trie post-order,

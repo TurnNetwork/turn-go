@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package snapshotdb
 
@@ -24,12 +24,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/bubblenet/bubble/metrics"
 
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/core/types"
 
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -38,8 +38,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
 )
 
 const (
@@ -51,22 +51,23 @@ const (
 	MaxBlockTriggerCompaction = 200
 )
 
-//DB the main snapshotdb interface
-//  example
-//  new a recognized blockData(sync from other peer)
-//  dbInstance.NewBlock(blockNumber, parentHash, hash)
-//  dbInstance.Put(hash, kv.key, kv.value)
-//  dbInstance.Commit(hash)
+// DB the main snapshotdb interface
 //
-//  new a unrecognized blockData(a block produce by self)
-//  dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
-//  dbInstance.Put(hash, kv.key, kv.value)
-//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
-//  dbInstance.Commit(hash)
-//  get a  blockData with hash
-//  dbInstance.Get(hash, key)
-//  get a  blockData without hash
-//  dbInstance.Get(common.zerohash, key)
+//	example
+//	new a recognized blockData(sync from other peer)
+//	dbInstance.NewBlock(blockNumber, parentHash, hash)
+//	dbInstance.Put(hash, kv.key, kv.value)
+//	dbInstance.Commit(hash)
+//
+//	new a unrecognized blockData(a block produce by self)
+//	dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
+//	dbInstance.Put(hash, kv.key, kv.value)
+//	dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
+//	dbInstance.Commit(hash)
+//	get a  blockData with hash
+//	dbInstance.Get(hash, key)
+//	get a  blockData without hash
+//	dbInstance.Get(common.zerohash, key)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
@@ -184,7 +185,7 @@ func SetDBOptions(cache int, handles int) {
 	baseDBhandles = handles
 }
 
-//Instance return the Instance of the db
+// Instance return the Instance of the db
 func Instance() DB {
 	instance.Lock()
 	defer instance.Unlock()
@@ -539,10 +540,10 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 	return nil
 }
 
-//NewBlock call when you need a new unRecognized or recognized  block data
-//it will set JournalHeader for the block
-//if hash nil ,new unRecognized data
-//if hash not nul,new Recognized data
+// NewBlock call when you need a new unRecognized or recognized  block data
+// it will set JournalHeader for the block
+// if hash nil ,new unRecognized data
+// if hash not nul,new Recognized data
 func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error {
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
@@ -670,8 +671,8 @@ func (s *snapshotDB) GetBaseDB(key []byte) ([]byte, error) {
 	}
 }
 
-//Has check the key is exist in chain
-//same logic with get
+// Has check the key is exist in chain
+// same logic with get
 func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 	_, err := s.Get(hash, key)
 	if err == nil {

@@ -21,13 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/bubblenet/bubble/core/state"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/bubblenet/bubble/accounts/abi"
 
 	"strings"
 
@@ -35,21 +35,21 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.
@@ -1558,10 +1558,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	// If the transaction fee cap is already specified, ensure the
 	// fee of the given transaction is _reasonable_.
-	feeLat := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.LAT)))
+	feeLat := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.BUB)))
 	feeFloat, _ := feeLat.Float64()
 	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
-		return common.Hash{}, fmt.Errorf("tx fee (%.2f lat) exceeds the configured cap (%.2f lat)", feeFloat, b.RPCTxFeeCap())
+		return common.Hash{}, fmt.Errorf("tx fee (%.2f bub) exceeds the configured cap (%.2f bub)", feeFloat, b.RPCTxFeeCap())
 	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err

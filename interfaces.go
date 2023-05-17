@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package platon defines interfaces for interacting with platon.
-package platon
+// Package bubble defines interfaces for interacting with bubble.
+package bubble
 
 import (
 	"context"
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.

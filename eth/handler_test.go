@@ -23,17 +23,17 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/params"
 )
 
 // Tests that protocol versions and modes of operations are matched up properly.
@@ -349,7 +349,7 @@ func TestGetOriginAndPivotMsg(t *testing.T) {
 	}
 }
 
-func TestGetPPOSStorageMsg(t *testing.T) {
+func TestGetDPOSStorageMsg(t *testing.T) {
 
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)
@@ -362,11 +362,11 @@ func TestGetPPOSStorageMsg(t *testing.T) {
 		peer.close()
 		db.Clear()
 	}()
-	if err := p2p.Send(peer.app, GetPPOSStorageMsg, []interface{}{}); err != nil {
+	if err := p2p.Send(peer.app, GetDPOSStorageMsg, []interface{}{}); err != nil {
 		t.Error(err)
 		return
 	}
-	var data PPOSInfo
+	var data DPOSInfo
 	msg, err := peer.app.ReadMsg()
 	if err != nil {
 		t.Error(err)
@@ -382,7 +382,7 @@ func TestGetPPOSStorageMsg(t *testing.T) {
 	if data.Latest.Number.Int64() != int64(downloader.MaxBlockFetch+15) {
 		t.Error("latest num is wrong")
 	}
-	var data2 PPOSStorage
+	var data2 DPOSStorage
 
 	for {
 		msg, err := peer.app.ReadMsg()
