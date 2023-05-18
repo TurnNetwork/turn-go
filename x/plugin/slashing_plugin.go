@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
@@ -23,29 +22,28 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
+	"github.com/bubblenet/bubble/x/slashing"
 
 	"github.com/pkg/errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/consensus"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 const (
@@ -144,70 +142,21 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
 			}
-			if currentVersion >= params.FORKVERSION_0_11_0 {
-				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
-				validatorMap := make(map[discover.NodeID]bool)
-				for _, validator := range preRoundVal.Arr {
-					nodeId := validator.NodeId
-					count := result[nodeId]
-					if count > 0 {
-						validatorMap[nodeId] = true
-					} else {
-						validatorMap[nodeId] = false
-					}
+			// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
+			validatorMap := make(map[discover.NodeID]bool)
+			for _, validator := range preRoundVal.Arr {
+				nodeId := validator.NodeId
+				count := result[nodeId]
+				if count > 0 {
+					validatorMap[nodeId] = true
+				} else {
+					validatorMap[nodeId] = false
 				}
+			}
 
-				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
-					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-			} else {
-				blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
-				if nil != err {
-					log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-
-				for _, validator := range preRoundVal.Arr {
-					nodeId := validator.NodeId
-					count := result[nodeId]
-					if count > 0 {
-						continue
-					}
-					slashType := staking.LowRatioDel
-					slashAmount := common.Big0
-
-					canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
-					if nil != err {
-						log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-						if err == snapshotdb.ErrNotFound {
-							continue
-						}
-						return err
-					}
-					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
-					if blockReward > 0 {
-						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
-						if nil != err {
-							log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-						}
-						if slashAmount.Cmp(totalBalance) > 0 {
-							slashAmount = totalBalance
-						}
-					}
-					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-						"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blockReward)
-
-					slashItem := &staking.SlashNodeItem{
-						NodeId:      nodeId,
-						Amount:      slashAmount,
-						SlashType:   slashType,
-						BenefitAddr: vm.RewardManagerPoolAddr,
-					}
-
-					slashQueue = append(slashQueue, slashItem)
-
-				}
+			if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
+				log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+				return err
 			}
 
 			// Real to slash the node
@@ -216,14 +165,14 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// then the penalty is directly
 			if len(slashQueue) != 0 {
 				var slashNodeQueue staking.SlashNodeQueue
-				for _, slashItem := range slashQueue  {
+				for _, slashItem := range slashQueue {
 					snData := &staking.SlashNodeData{
-						NodeId          : slashItem.NodeId,
-						Amount : slashItem.Amount,
+						NodeId: slashItem.NodeId,
+						Amount: slashItem.Amount,
 					}
 					slashNodeQueue = append(slashNodeQueue, snData)
 				}
-				sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
+				sp.setSlashData(header.Number.Uint64(), slashNodeQueue)
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
@@ -796,9 +745,9 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
 }
 
-func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
-	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
-	if snQueue == nil || len(snQueue) == 0{
+func (sp *SlashingPlugin) setSlashData(num uint64, snQueue staking.SlashNodeQueue) {
+	log.Debug("setSlashData", "num", num, "len(snQueue)", len(snQueue))
+	if snQueue == nil || len(snQueue) == 0 {
 		return
 	}
 	log.Debug("setSlashData,su", snQueue)

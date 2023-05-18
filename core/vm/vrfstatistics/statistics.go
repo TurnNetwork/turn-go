@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
 var (

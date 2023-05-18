@@ -1,10 +1,10 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	dag3 "github.com/bubblenet/bubble/core/dag"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
 )
 
 type TxDag struct {

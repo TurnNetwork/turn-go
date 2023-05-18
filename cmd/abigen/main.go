@@ -19,22 +19,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/bubblenet/bubble/accounts/abi"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/common/compiler"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts/abi/bind"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/common/compiler"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/internal/flags"
+	"github.com/bubblenet/bubble/log"
 )
 
 var (
@@ -103,7 +102,7 @@ var (
 )
 
 func init() {
-	app = flags.NewApp(gitCommit, gitDate, "platon abi helper tool")
+	app = flags.NewApp(gitCommit, gitDate, "bubble abi helper tool")
 	app.Flags = []cli.Flag{
 		abiFlag,
 		binFlag,

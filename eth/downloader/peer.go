@@ -29,9 +29,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
 )
 
 const (
@@ -89,7 +89,7 @@ type Peer interface {
 	RequestBodies([]common.Hash) error
 	RequestReceipts([]common.Hash) error
 	RequestNodeData([]common.Hash) error
-	RequestPPOSStorage() error
+	RequestDPOSStorage() error
 	RequestOriginAndPivotByCurrent(uint64) error
 }
 
@@ -115,8 +115,8 @@ func (w *lightPeerWrapper) RequestNodeData([]common.Hash) error {
 	panic("RequestNodeData not supported in light client mode sync")
 }
 
-func (w *lightPeerWrapper) RequestPPOSStorage() error {
-	panic("RequestPPOSStorage not supported in light client mode sync")
+func (w *lightPeerWrapper) RequestDPOSStorage() error {
+	panic("RequestDPOSStorage not supported in light client mode sync")
 }
 
 func (w *lightPeerWrapper) RequestOriginAndPivotByCurrent(uint64) error {

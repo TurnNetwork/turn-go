@@ -24,7 +24,7 @@ import (
 )
 
 func TestMessageSignVerify(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "platonkey-test")
+	tmpdir, err := ioutil.TempDir("", "bubblekey-test")
 	if err != nil {
 		t.Fatal("Can't create temporary directory:", err)
 	}
@@ -40,7 +40,7 @@ func TestMessageSignVerify(t *testing.T) {
 Password: {{.InputLine "foobar"}}
 Repeat password: {{.InputLine "foobar"}}
 `)
-	_, matches := generate.ExpectRegexp(`Address: (lat1[0-9a-z]{38})\n`)
+	_, matches := generate.ExpectRegexp(`Address: (0x[0-9a-fA-F]{40})\n`)
 
 	address := matches[1]
 	generate.ExpectExit()
@@ -59,7 +59,7 @@ Password: {{.InputLine "foobar"}}
 	_, matches = verify.ExpectRegexp(`
 Signature verification successful!
 Recovered public key: [0-9a-f]+
-Recovered address: (lat1[0-9a-z]{38})
+Recovered address: (0x[0-9a-fA-F]{40})
 `)
 	recovered := matches[1]
 	verify.ExpectExit()

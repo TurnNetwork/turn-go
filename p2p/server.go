@@ -21,7 +21,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/rlpx"
+	"github.com/bubblenet/bubble/p2p/rlpx"
 	"math/big"
 	"math/rand"
 	"net"
@@ -29,16 +29,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mclock"
+	"github.com/bubblenet/bubble/core/cbfttypes"
+	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discv5"
+	"github.com/bubblenet/bubble/p2p/nat"
+	"github.com/bubblenet/bubble/p2p/netutil"
 )
 
 const (
@@ -68,8 +68,7 @@ type Config struct {
 	BlsPublicKey bls.PublicKey `toml:"-"`
 
 	// chainId identifies the current chain and is used for replay protection
-	ChainID     *big.Int `toml:"-"`
-	PIP7ChainID *big.Int `toml:"-"`
+	ChainID *big.Int `toml:"-"`
 
 	// MaxPeers is the maximum number of peers that can be
 	// connected. It must be greater than zero.
@@ -535,7 +534,6 @@ func (srv *Server) Start() (err error) {
 		cfg := discover.Config{
 			PrivateKey:   srv.PrivateKey,
 			ChainID:      srv.ChainID,
-			PIP7ChainID:  srv.PIP7ChainID,
 			AnnounceAddr: realaddr,
 			NodeDBPath:   srv.NodeDatabase,
 			NetRestrict:  srv.NetRestrict,

@@ -19,18 +19,17 @@ package eth
 import (
 	"errors"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/bubblenet/bubble/eth/downloader"
 
-	"github.com/deckarep/golang-set"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 var (
@@ -335,23 +334,23 @@ func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 	}
 }
 
-type PPOSStorage struct {
-	KVs   []downloader.PPOSStorageKV
+type DPOSStorage struct {
+	KVs   []downloader.DPOSStorageKV
 	KVNum uint64
 	Last  bool
 }
 
-type PPOSInfo struct {
+type DPOSInfo struct {
 	Latest *types.Header
 	Pivot  *types.Header
 }
 
-func (p *peer) SendPPOSStorage(data PPOSStorage) error {
-	return p2p.Send(p.rw, PPOSStorageMsg, data)
+func (p *peer) SendDPOSStorage(data DPOSStorage) error {
+	return p2p.Send(p.rw, DPOSStorageMsg, data)
 }
 
-func (p *peer) SendPPOSInfo(data PPOSInfo) error {
-	return p2p.Send(p.rw, PPOSInfoMsg, data)
+func (p *peer) SendDPOSInfo(data DPOSInfo) error {
+	return p2p.Send(p.rw, DPOSInfoMsg, data)
 }
 
 func (p *peer) SendOriginAndPivot(data []*types.Header) error {
@@ -452,10 +451,10 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
 
-func (p *peer) RequestPPOSStorage() error {
-	p.Log().Debug("Fetching latest ppos storage")
-	if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{}); err != nil {
-		p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
+func (p *peer) RequestDPOSStorage() error {
+	p.Log().Debug("Fetching latest dpos storage")
+	if err := p2p.Send(p.rw, GetDPOSStorageMsg, []interface{}{}); err != nil {
+		p.Log().Error("Fetching latest dpos storage error", "err", err.Error())
 		return err
 	}
 	return nil

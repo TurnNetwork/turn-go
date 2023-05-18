@@ -24,13 +24,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	json2 "github.com/bubblenet/bubble/common/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -144,24 +144,9 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	}
 }
 
-// ChainId returns the EIP155 chain ID of the transaction. The return value will always be
-// non-nil. For transactions which are not replay-protected, the return value is zero.
+// ChainId returns which chain id this transaction was signed for (if at all)
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
-}
-
-func isProtectedV(V *big.Int) bool {
-	if V.BitLen() <= 8 {
-		v := V.Uint64()
-		return v != 27 && v != 28 && v != 1 && v != 0
-	}
-	// anything not 27 or 28 is considered protected
-	return true
-}
-
-// Protected says whether the transaction is replay-protected.
-func (tx *Transaction) Protected() bool {
-	return tx.data.V != nil && isProtectedV(tx.data.V)
 }
 
 // EncodeRLP implements rlp.Encoder

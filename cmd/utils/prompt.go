@@ -20,7 +20,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/bubblenet/bubble/console/prompt"
 )
 
 // GetPassPhrase displays the given text(prompt) to the user and requests some textual

@@ -19,12 +19,12 @@ package core
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/x/xutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the

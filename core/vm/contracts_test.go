@@ -24,11 +24,11 @@ import (
 	"testing"
 
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/common/mock"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.
@@ -409,7 +409,7 @@ var blake2FTests = []precompiledTest{
 }
 
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
-	p := PrecompiledContractsBerlin[common.HexToAddress(addr)]
+	p := PrecompiledContracts[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	contract := NewContract(AccountRef(common.HexToAddress("1337")),
 		nil, new(big.Int), p.RequiredGas(in))
@@ -424,7 +424,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 }
 
 func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing.T) {
-	p := PrecompiledContractsBerlin[common.HexToAddress(addr)]
+	p := PrecompiledContracts[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	contract := NewContract(AccountRef(common.HexToAddress("31337")),
 		nil, new(big.Int), p.RequiredGas(in))
@@ -437,7 +437,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	})
 }
 
-func TestRunPlatONPrecompiledContract(t *testing.T) {
+func TestRunBubblePrecompiledContract(t *testing.T) {
 	restricting := &RestrictingContract{
 		Plugin: plugin.RestrictingInstance(),
 		Evm: &EVM{
@@ -453,7 +453,7 @@ func TestRunPlatONPrecompiledContract(t *testing.T) {
 	contract := NewContract(AccountRef(common.HexToAddress("1337")),
 		nil, new(big.Int), gas)
 	restricting.Contract = contract
-	_, err := RunPlatONPrecompiledContract(restricting, in, contract)
+	_, err := RunBubblePrecompiledContract(restricting, in, contract)
 	if err == nil {
 		t.Errorf("Expect non-il, got nil")
 	}
@@ -463,7 +463,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 	if test.NoBenchmark {
 		return
 	}
-	p := PrecompiledContractsBerlin[common.HexToAddress(addr)]
+	p := PrecompiledContracts[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	reqGas := p.RequiredGas(in)
 	contract := NewContract(AccountRef(common.HexToAddress("1337")),

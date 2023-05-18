@@ -31,19 +31,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mclock"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/miner"
+	"github.com/bubblenet/bubble/node"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rpc"
 	"github.com/gorilla/websocket"
 )
 
@@ -98,13 +98,14 @@ type Service struct {
 // websocket.
 //
 // From Gorilla websocket docs:
-//   Connections support one concurrent reader and one concurrent writer.
-//   Applications are responsible for ensuring that no more than one goroutine calls the write methods
-//     - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
-//   concurrently and that no more than one goroutine calls the read methods
-//     - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
-//   concurrently.
-//   The Close and WriteControl methods can be called concurrently with all other methods.
+//
+//	Connections support one concurrent reader and one concurrent writer.
+//	Applications are responsible for ensuring that no more than one goroutine calls the write methods
+//	  - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
+//	concurrently and that no more than one goroutine calls the read methods
+//	  - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
+//	concurrently.
+//	The Close and WriteControl methods can be called concurrently with all other methods.
 type connWrapper struct {
 	conn *websocket.Conn
 
@@ -441,9 +442,9 @@ func (s *Service) login(conn *connWrapper) error {
 	infos := s.server.NodeInfo()
 
 	var network, protocol string
-	if info := infos.Protocols["platon"]; info != nil {
+	if info := infos.Protocols["bubble"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*eth.NodeInfo).Network)
-		protocol = fmt.Sprintf("platon/%d", eth.ProtocolVersions[0])
+		protocol = fmt.Sprintf("bubble/%d", eth.ProtocolVersions[0])
 	} else {
 		return errors.New("not les")
 	}

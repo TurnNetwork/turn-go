@@ -25,19 +25,19 @@ import (
 	"testing"
 	"time"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	ethereum "github.com/bubblenet/bubble"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/bloombits"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rpc"
+	_ "github.com/bubblenet/bubble/x/xcom"
 )
 
 type testBackend struct {
@@ -223,11 +223,11 @@ func TestPendingTxFilter(t *testing.T) {
 		api     = NewPublicFilterAPI(backend, false)
 
 		transactions = []*types.Transaction{
-			types.NewTransaction(0, common.MustBech32ToAddress("lax1k720t6st5w2ffn5r5gfll7a8gfu40yngyvr9yv"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(1, common.MustBech32ToAddress("lax1k720t6st5w2ffn5r5gfll7a8gfu40yngyvr9yv"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(2, common.MustBech32ToAddress("lax1k720t6st5w2ffn5r5gfll7a8gfu40yngyvr9yv"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(3, common.MustBech32ToAddress("lax1k720t6st5w2ffn5r5gfll7a8gfu40yngyvr9yv"), new(big.Int), 0, new(big.Int), nil),
-			types.NewTransaction(4, common.MustBech32ToAddress("lax1k720t6st5w2ffn5r5gfll7a8gfu40yngyvr9yv"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(0, common.HexToAddress("0xB794F5EA0ba39494Ce83A213fffBa74279579268"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(1, common.HexToAddress("0xB794F5EA0ba39494Ce83A213fffBa74279579268"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(2, common.HexToAddress("0xB794F5EA0ba39494Ce83A213fffBa74279579268"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(3, common.HexToAddress("0xB794F5EA0ba39494Ce83A213fffBa74279579268"), new(big.Int), 0, new(big.Int), nil),
+			types.NewTransaction(4, common.HexToAddress("0xB794F5EA0ba39494Ce83A213fffBa74279579268"), new(big.Int), 0, new(big.Int), nil),
 		}
 
 		hashes []common.Hash
@@ -368,10 +368,10 @@ func TestLogFilter(t *testing.T) {
 		backend = &testBackend{db: db}
 		api     = NewPublicFilterAPI(backend, false)
 
-		firstAddr      = common.MustBech32ToAddress("lax1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3fw0wpq")
-		secondAddr     = common.MustBech32ToAddress("lax1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zxn2gfh")
-		thirdAddress   = common.MustBech32ToAddress("lax1xvenxvenxvenxvenxvenxvenxvenxven5da4u9")
-		notUsedAddress = common.MustBech32ToAddress("lax1nxvenxvenxvenxvenxvenxvenxvenxve6sx7qy")
+		firstAddr      = common.HexToAddress("0x1111111111111111111111111111111111111111")
+		secondAddr     = common.HexToAddress("0x2222222222222222222222222222222222222222")
+		thirdAddress   = common.HexToAddress("0x3333333333333333333333333333333333333333")
+		notUsedAddress = common.HexToAddress("0x9999999999999999999999999999999999999999")
 		firstTopic     = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
 		secondTopic    = common.HexToHash("0x2222222222222222222222222222222222222222222222222222222222222222")
 		notUsedTopic   = common.HexToHash("0x9999999999999999999999999999999999999999999999999999999999999999")
@@ -482,10 +482,10 @@ func TestPendingLogsSubscription(t *testing.T) {
 		backend = &testBackend{db: db}
 		api     = NewPublicFilterAPI(backend, false)
 
-		firstAddr      = common.MustBech32ToAddress("lax1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3fw0wpq")
-		secondAddr     = common.MustBech32ToAddress("lax1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zxn2gfh")
-		thirdAddress   = common.MustBech32ToAddress("lax1xvenxvenxvenxvenxvenxvenxvenxven5da4u9")
-		notUsedAddress = common.MustBech32ToAddress("lax1nxvenxvenxvenxvenxvenxvenxvenxve6sx7qy")
+		firstAddr      = common.HexToAddress("0x1111111111111111111111111111111111111111")
+		secondAddr     = common.HexToAddress("0x2222222222222222222222222222222222222222")
+		thirdAddress   = common.HexToAddress("0x3333333333333333333333333333333333333333")
+		notUsedAddress = common.HexToAddress("0x9999999999999999999999999999999999999999")
 		firstTopic     = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
 		secondTopic    = common.HexToHash("0x2222222222222222222222222222222222222222222222222222222222222222")
 		thirdTopic     = common.HexToHash("0x3333333333333333333333333333333333333333333333333333333333333333")

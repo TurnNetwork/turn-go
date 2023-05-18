@@ -59,7 +59,7 @@ type TestCmd struct {
 var id int32
 
 // Run exec's the current binary using name as argv[0] which will trigger the
-// reexec init function for that name (e.g. "platon-test" in cmd/platon/run_test.go)
+// reexec init function for that name (e.g. "bubble-test" in cmd/bubble/run_test.go)
 func (tt *TestCmd) Run(name string, args ...string) {
 	id := atomic.AddInt32(&id, 1)
 	tt.stderr = &testlogger{t: tt.T, name: fmt.Sprintf("%d", id)}
@@ -84,7 +84,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 // InputLine writes the given text to the child's stdin.
 // This method can also be called from an expect template, e.g.:
 //
-//     platon.expect(`Passphrase: {{.InputLine "password"}}`)
+//	bubble.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
 	return ""

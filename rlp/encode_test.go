@@ -27,7 +27,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 )
 
 type testEncoder struct {

@@ -24,14 +24,14 @@ import (
 	"math/big"
 	"unsafe"
 
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	json2 "github.com/bubblenet/bubble/common/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
@@ -101,7 +101,7 @@ func (r Receipt) MarshalJSON2() ([]byte, error) {
 }
 
 type ReceiptBlock struct {
-	Logs              []*LogBlock `json:"logs"              gencodec:"required"`
+	Logs []*LogBlock `json:"logs"              gencodec:"required"`
 }
 
 type receiptMarshaling struct {
@@ -265,7 +265,7 @@ func (r Receipts) GetRlp(i int) []byte {
 // DeriveFields fills the receipts with their computed fields based on consensus
 // data and contextual infos like containing block and transactions.
 func (r Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, txs Transactions) error {
-	signer := NewPIP11Signer(config.ChainID, config.PIP7ChainID)
+	signer := NewEIP155Signer(config.ChainID)
 
 	logIndex := uint(0)
 	if len(txs) != len(r) {

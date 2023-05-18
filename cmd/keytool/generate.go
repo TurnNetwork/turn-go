@@ -19,18 +19,15 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/crypto"
 	"github.com/pborman/uuid"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 type outputGenerate struct {
@@ -55,18 +52,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 			Name:  "privatekey",
 			Usage: "file containing a raw private key to encrypt",
 		},
-		utils.AddressHRPFlag,
 		cli.BoolFlag{
 			Name:  "lightkdf",
 			Usage: "use less secure scrypt parameters",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		hrp := ctx.String(utils.AddressHRPFlag.Name)
-		if err := common.SetAddressHRP(hrp); err != nil {
-			return err
-		}
-
 		// Check if keyfile path given and make sure it doesn't already exist.
 		keyfilepath := ctx.Args().First()
 		if keyfilepath == "" {

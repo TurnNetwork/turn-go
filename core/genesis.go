@@ -27,23 +27,23 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/trie"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
@@ -159,10 +159,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID, "addressHRP", genesis.Config.AddressHRP)
-		}
-		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
-			return nil, common.Hash{}, err
+			log.Info("Writing custom genesis block", "chainID", genesis.Config.ChainID)
 		}
 
 		// check EconomicModel configuration
@@ -185,9 +182,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil)); err != nil {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
-		}
-		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
-			return nil, common.Hash{}, err
 		}
 
 		// check EconomicModel configuration
@@ -223,23 +217,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 
-		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
-	}
-	if genesis == nil {
-		if storedcfg.PIP7ChainID == nil {
-			storedcfg.PIP7ChainID = params.PrivatePIP7ChainID
-		}
-		if err := common.SetAddressHRP(storedcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
-	} else {
-		if err := common.SetAddressHRP(newcfg.AddressHRP); err != nil {
-			return newcfg, stored, err
-		}
 	}
 
 	// Get the existing EconomicModel configuration.
@@ -282,18 +261,6 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	return newcfg, stored, nil
 }
 
-func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
-	var genesisAddressHRP struct {
-		Config *struct {
-			AddressHRP string `json:"addressHRP"`
-		} `json:"config"`
-	}
-	if err := json.NewDecoder(r).Decode(&genesisAddressHRP); err != nil {
-		return "", fmt.Errorf("invalid genesis file address hrp: %v", err)
-	}
-	return genesisAddressHRP.Config.AddressHRP, nil
-}
-
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
 	var genesisEcConfig struct {
 		EconomicModel *xcom.EconomicModelExtend `json:"economicModel"`
@@ -313,15 +280,6 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return fmt.Errorf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
-	hrp, err := g.UnmarshalAddressHRP(file)
-	if err != nil {
-		return err
-	}
-
-	if err := common.SetAddressHRP(hrp); err != nil {
-		return err
-	}
-
 	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
 
 	file.Seek(0, io.SeekStart)
@@ -350,14 +308,9 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if g.Config.ChainID == nil {
 		return errors.New("chainId configuration is missed")
 	}
-	if g.Config.PIP7ChainID == nil {
-		g.Config.PIP7ChainID = params.PrivatePIP7ChainID
-	}
-	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
-		file.Seek(0, io.SeekStart)
-		if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
-			return err
-		}
+	file.Seek(0, io.SeekStart)
+	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
+		return err
 	}
 
 	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
@@ -399,11 +352,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	genesisIssuance := new(big.Int)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
-	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
+	// First, Store the BubbleFoundation and CommunityDeveloperFoundation
+	statedb.AddBalance(xcom.BubbleFundAccount(), xcom.BubbleFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
 
-	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.BubbleFundBalance())
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
 
 	for addr, account := range g.Alloc {
@@ -456,19 +409,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
-	// 1.3.0
-	if gov.Gte130Version(genesisVersion) {
-		if err := gov.WriteEcHash130(statedb); nil != err {
-			panic("Failed Store EcHash130: " + err.Error())
-		}
-	}
-
-	if g.Config != nil {
-		if g.Config.AddressHRP != "" {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)
-		} else {
-			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, common.DefaultAddressHRP)
-		}
+	if err := gov.WriteEcExtendHash(statedb); nil != err {
+		panic("Failed Store EcExtendHash: " + err.Error())
 	}
 
 	root := statedb.IntermediateRoot(false)
@@ -544,9 +486,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
-	if config.GenesisVersion >= params.FORKVERSION_1_3_0 {
-		rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
-	}
+	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 
 	return block, nil
 }
@@ -567,22 +507,20 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the PlatON main net genesis block.
+// DefaultGenesisBlock returns the Bubble main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("lat1sy6kxgpfgx7axrl86a368mj6r6fnagctqem69g")
+	generalAddr := common.HexToAddress("0x51625d7FFda8B38a6987EAa99aeA3269923237a3")
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
-	manifesto := `"τῆς ἄνω ὁδοῦ ἀεὶ ἑξόμεθα καὶ δικαιοσύνην μετὰ φρονήσεως παντὶ τρόπῳ ἐπιτηδεύσομεν."
-"We shall always keep to the upper road and practice justice with prudence in every way."
-"让我们永远坚持走向上的路，全力以审慎践行正义。"`
+	manifesto := ``
 
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 1619324940000,
+		Timestamp: 1682870400000,
 		ExtraData: []byte(manifesto),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
@@ -596,7 +534,7 @@ func DefaultGenesisBlock() *Genesis {
 	return &genesis
 }
 
-// DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
+// DefaultTestnetGenesisBlock returns the Bubble test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	// TODO this should change

@@ -21,25 +21,24 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
+	"github.com/bubblenet/bubble/crypto/bls12381"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+	"github.com/bubblenet/bubble/core/vm/vrfstatistics"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/handler"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	vrf2 "github.com/bubblenet/bubble/crypto/vrf"
 
-	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/bubblenet/bubble/crypto/blake2b"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
+	"github.com/bubblenet/bubble/common/vm"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/bn256"
+	"github.com/bubblenet/bubble/params"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
@@ -53,38 +52,15 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-type PlatONPrecompiledContract interface {
+type BubblePrecompiledContract interface {
 	PrecompiledContract
-	FnSigns() map[uint16]interface{} // Return PlatON PrecompiledContract methods signs
+	FnSigns() map[uint16]interface{} // Return Bubble PrecompiledContract methods signs
 	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
-// PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
-// contracts used in the Frontier and Homestead releases.
-var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-}
-
-// PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
-// contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-	common.BytesToAddress([]byte{5}): &bigModExp{},
-	common.BytesToAddress([]byte{6}): &bn256Add{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common.BytesToAddress([]byte{8}): &bn256Pairing{},
-	common.BytesToAddress([]byte{9}): &blake2F{},
-}
-
-// PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
+// PrecompiledContracts contains the default set of pre-compiled Ethereum
 // contracts used in the Berlin release.
-var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+var PrecompiledContracts = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}):  &ecrecover{},
 	common.BytesToAddress([]byte{2}):  &sha256hash{},
 	common.BytesToAddress([]byte{3}):  &ripemd160hash{},
@@ -123,18 +99,7 @@ func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{}
 }
 
-var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
-	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
-	// add by economic model
-	vm.StakingContractAddr:     &StakingContract{},
-	vm.RestrictingContractAddr: &RestrictingContract{},
-	vm.SlashingContractAddr:    &SlashingContract{},
-	vm.GovContractAddr:         &GovContract{},
-	vm.RewardManagerPoolAddr:   &rewardEmpty{},
-	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
-}
-
-var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
+var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},
@@ -155,7 +120,7 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contr
 	return nil, ErrOutOfGas
 }
 
-func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
+func RunBubblePrecompiledContract(p BubblePrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
 		return p.Run(input)
@@ -163,45 +128,33 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 	return nil, ErrOutOfGas
 }
 
-func IsEVMPrecompiledContract(addr common.Address, gte140Version bool) bool {
-	if gte140Version {
-		if _, ok := PrecompiledContractsBerlin[addr]; ok {
-			return true
-		}
-	} else {
-		if _, ok := PrecompiledContractsByzantium[addr]; ok {
-			return true
-		}
+func IsEVMPrecompiledContract(addr common.Address) bool {
+	if _, ok := PrecompiledContracts[addr]; ok {
+		return true
 	}
 	return false
 }
 
-func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
-	if Gte120Version {
-		if _, ok := PlatONPrecompiledContracts120[addr]; ok {
-			return true
-		}
-	} else {
-		if _, ok := PlatONPrecompiledContracts[addr]; ok {
-			return true
-		}
+func IsBubblePrecompiledContract(addr common.Address) bool {
+	if _, ok := BubblePrecompiledContracts[addr]; ok {
+		return true
 	}
 	return false
 }
 
-func IsPrecompiledContract(addr common.Address, gte120Version bool, gte140Version bool) bool {
-	if IsEVMPrecompiledContract(addr, gte140Version) {
+func IsPrecompiledContract(addr common.Address) bool {
+	if IsEVMPrecompiledContract(addr) {
 		return true
 	} else {
-		return IsPlatONPrecompiledContract(addr, gte120Version)
+		return IsBubblePrecompiledContract(addr)
 	}
 }
 
 type PrecompiledContractCheck struct{}
 
-func (pcc *PrecompiledContractCheck) IsPlatONPrecompiledContract(address common.Address) bool {
+func (pcc *PrecompiledContractCheck) IsBubblePrecompiledContract(address common.Address) bool {
 	// 涉及到数据修改的合约才需要此接口
-	if _, ok := PlatONPrecompiledContracts[address]; ok {
+	if _, ok := BubblePrecompiledContracts[address]; ok {
 		return true
 	}
 	return false

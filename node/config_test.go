@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/p2p"
 )
 
 // Tests that datadirs can be successfully created, be them manually configured
@@ -85,15 +85,15 @@ func TestIPCPathResolution(t *testing.T) {
 	}{
 		{"", "", false, ""},
 		{"data", "", false, ""},
-		{"", "platon.ipc", false, filepath.Join(os.TempDir(), "platon.ipc")},
-		{"data", "platon.ipc", false, "data/platon.ipc"},
-		{"data", "./platon.ipc", false, "./platon.ipc"},
-		{"data", "/platon.ipc", false, "/platon.ipc"},
+		{"", "bubble.ipc", false, filepath.Join(os.TempDir(), "bubble.ipc")},
+		{"data", "bubble.ipc", false, "data/bubble.ipc"},
+		{"data", "./bubble.ipc", false, "./bubble.ipc"},
+		{"data", "/bubble.ipc", false, "/bubble.ipc"},
 		{"", "", true, ``},
 		{"data", "", true, ``},
-		{"", "platon.ipc", true, `\\.\pipe\platon.ipc`},
-		{"data", "platon.ipc", true, `\\.\pipe\platon.ipc`},
-		{"data", `\\.\pipe\platon.ipc`, true, `\\.\pipe\platon.ipc`},
+		{"", "bubble.ipc", true, `\\.\pipe\bubble.ipc`},
+		{"data", "bubble.ipc", true, `\\.\pipe\bubble.ipc`},
+		{"data", `\\.\pipe\bubble.ipc`, true, `\\.\pipe\bubble.ipc`},
 	}
 	for i, test := range tests {
 		// Only run when platform/test match

@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -25,22 +25,22 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	cvm "github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/cbfttypes"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/x/handler"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/plugin"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 type BlockChainReactor struct {
@@ -50,7 +50,7 @@ type BlockChainReactor struct {
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
-	validatorMode string                    // mode: static, inner, ppos
+	validatorMode string                    // mode: static, inner, dpos
 	NodeId        discover.NodeID           // The nodeId of current node
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
@@ -77,7 +77,7 @@ func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int) *BlockChainReact
 
 func (bcr *BlockChainReactor) Start(mode string) {
 	bcr.setValidatorMode(mode)
-	if mode == common.PPOS_VALIDATOR_MODE {
+	if mode == common.DPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 		// start the loop rutine
@@ -86,7 +86,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 }
 
 func (bcr *BlockChainReactor) Close() {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode == common.DPOS_VALIDATOR_MODE {
 		bcr.exitOnce.Do(func() {
 			exitDone := make(chan struct{})
 			bcr.exitCh <- exitDone
@@ -156,7 +156,7 @@ func (bcr *BlockChainReactor) commit(block *types.Block) error {
 }
 
 func (bcr *BlockChainReactor) OnCommit(block *types.Block) error {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode == common.DPOS_VALIDATOR_MODE {
 		return bcr.commit(block)
 	}
 	return nil
@@ -179,7 +179,7 @@ func (bcr *BlockChainReactor) SetVRFhandler(vher *handler.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE && nil != privateKey {
+	if bcr.validatorMode == common.DPOS_VALIDATOR_MODE && nil != privateKey {
 		if nil != bcr.vh {
 			bcr.vh.SetPrivateKey(privateKey)
 		}
@@ -198,9 +198,9 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId discover.NodeID) {
 
 	/**
-	this things about ppos
+	this things about dpos
 	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode != common.DPOS_VALIDATOR_MODE {
 		return
 	}
 
@@ -229,9 +229,9 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
 	/**
-	this things about ppos
+	this things about dpos
 	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode != common.DPOS_VALIDATOR_MODE {
 		return nil
 	}
 
@@ -286,9 +286,9 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
 
 	/**
-	this things about ppos
+	this things about dpos
 	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode != common.DPOS_VALIDATOR_MODE {
 		return nil
 	}
 
@@ -313,14 +313,14 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		}
 	}
 
-	// storage the ppos k-v Hash
-	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	// storage the dpos k-v Hash
+	dposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
 
-	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
-		// store hash about ppos
-		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
-		log.Debug("Store ppos hash", "blockHash", blockHash, "blockNumber", header.Number.Uint64(),
-			"pposHash", hex.EncodeToString(pposHash))
+	if len(dposHash) != 0 && !bytes.Equal(dposHash, make([]byte, len(dposHash))) {
+		// store hash about dpos
+		state.SetState(cvm.StakingContractAddr, staking.GetDPOSHASHKey(), dposHash)
+		log.Debug("Store dpos hash", "blockHash", blockHash, "blockNumber", header.Number.Uint64(),
+			"dposHash", hex.EncodeToString(dposHash))
 	}
 
 	// This must not be deleted
@@ -333,7 +333,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
 
-	if !vm.IsPlatONPrecompiledContract(to, true) {
+	if !vm.IsBubblePrecompiledContract(to) {
 		return nil
 	}
 
@@ -342,25 +342,25 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 		return nil
 	}
 
-	var contract vm.PlatONPrecompiledContract
+	var contract vm.BubblePrecompiledContract
 	switch to {
 	case cvm.StakingContractAddr:
-		c := vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
-		contract = c.(vm.PlatONPrecompiledContract)
+		c := vm.BubblePrecompiledContracts[cvm.StakingContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.RestrictingContractAddr:
-		c := vm.PlatONPrecompiledContracts[cvm.RestrictingContractAddr]
-		contract = c.(vm.PlatONPrecompiledContract)
+		c := vm.BubblePrecompiledContracts[cvm.RestrictingContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.GovContractAddr:
-		c := vm.PlatONPrecompiledContracts[cvm.GovContractAddr]
-		contract = c.(vm.PlatONPrecompiledContract)
+		c := vm.BubblePrecompiledContracts[cvm.GovContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.SlashingContractAddr:
-		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
-		contract = c.(vm.PlatONPrecompiledContract)
+		c := vm.BubblePrecompiledContracts[cvm.SlashingContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	default:
 		// pass if the contract is validatorInnerContract
 		return nil
 	}
-	// verify the ppos contract tx.data
+	// verify the dpos contract tx.data
 	if contract != nil {
 		if fcode, _, _, err := plugin.VerifyTxData(input, contract.FnSigns()); nil != err {
 			return err
@@ -368,7 +368,7 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 			return contract.CheckGasPrice(tx.GasPrice(), fcode)
 		}
 	} else {
-		log.Warn("Cannot find an appropriate PlatONPrecompiledContract!")
+		log.Warn("Cannot find an appropriate BubblePrecompiledContract!")
 		return nil
 	}
 }

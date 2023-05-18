@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
-
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package network
 
@@ -25,16 +24,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/consensus/cbft/protocols"
+	types2 "github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus/cbft/utils"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/bubblenet/bubble/p2p"
 )
 
 var loglevel = flag.Int("loglevel", 4, "verbosity of logs")
@@ -44,7 +43,7 @@ func newFakePrepareBlock() *protocols.PrepareBlock {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
+		Coinbase: common.HexToAddress("0x8888f1F195AFa192CfeE860698584c030f4c9dB1"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     1426516743,
@@ -167,7 +166,7 @@ func newFakeQCBlockList() *protocols.QCBlockList {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
+		Coinbase: common.HexToAddress("0x8888f1F195AFa192CfeE860698584c030f4c9dB1"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     1426516743,

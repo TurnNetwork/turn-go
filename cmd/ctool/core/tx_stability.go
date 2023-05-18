@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
-
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -29,10 +28,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/secp256k1"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -174,7 +173,7 @@ func StabilityTest(pkFile string, times, interval int) error {
 			continue
 		}
 
-		acc, ok := accountPool[common.MustBech32ToAddress(from)]
+		acc, ok := accountPool[common.HexToAddress(from)]
 		if !ok {
 			return fmt.Errorf("private key not found,addr:%s", from)
 		}

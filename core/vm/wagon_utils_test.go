@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,6 @@ func TestDecodeFuncAndParams(t *testing.T) {
 	b1, _ := rlp.EncodeToBytes(params1)
 	name1, _, err := decodeFuncAndParams(b1)
 	assert.Nil(t, err)
-
 
 	assert.Equal(t, initUint64, name1)
 

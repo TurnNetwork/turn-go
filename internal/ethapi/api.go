@@ -21,19 +21,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/vm/vrfstatistics"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/bubblenet/bubble/accounts/abi"
 
 	"strings"
 
@@ -41,21 +38,21 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.
@@ -379,7 +376,12 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args *SendTxArg
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-	return wallet.SignTxWithPassphrase(account, passwd, tx, s.b.ChainConfig().PIP7ChainID)
+
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
 }
 
 // SendTransaction will create a transaction from the given arguments and
@@ -511,17 +513,9 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{b}
 }
 
-// ChainId is the PIP-7 replay-protection chain id for the current chain config.
+// ChainId is the replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
-	stateDB, _, err := s.b.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(s.b.CurrentBlock().Number().Uint64()))
-	config := s.b.ChainConfig()
-	if err == nil {
-		pip7 := gov.Gte120VersionState(stateDB)
-		if pip7 {
-			return (*hexutil.Big)(config.PIP7ChainID), nil
-		}
-	}
-	return (*hexutil.Big)(config.ChainID), nil
+	return (*hexutil.Big)(s.b.ChainConfig().ChainID), nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -540,15 +534,6 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	}
 	state.ClearParentReference()
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
-}
-
-func (s *PublicBlockChainAPI) GetAddressHrp() string {
-	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
-	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
-	if chainConfig == nil || chainConfig.AddressHRP == "" {
-		return common.DefaultAddressHRP
-	}
-	return chainConfig.AddressHRP
 }
 
 func (s *PublicBlockChainAPI) GetSumOfRandomNum() (uint64, error) {
@@ -1281,7 +1266,7 @@ type RPCTransaction struct {
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 
@@ -1480,7 +1465,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	receipt := receipts[index]
 
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1649,7 +1634,11 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 		return nil, err
 	}
 	// Request the wallet to sign the transaction
-	return wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return wallet.SignTx(account, tx, chainID)
 }
 
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
@@ -1743,20 +1732,16 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	// If the transaction fee cap is already specified, ensure the
 	// fee of the given transaction is _reasonable_.
-	feeLat := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.LAT)))
+	feeLat := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.BUB)))
 	feeFloat, _ := feeLat.Float64()
 	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
-		return common.Hash{}, fmt.Errorf("tx fee (%.2f lat) exceeds the configured cap (%.2f lat)", feeFloat, b.RPCTxFeeCap())
-	}
-	if !b.UnprotectedAllowed() && !tx.Protected() {
-		// Ensure only eip155 signed transactions are submitted if EIP155Required is set.
-		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
+		return common.Hash{}, fmt.Errorf("tx fee (%.2f bub) exceeds the configured cap (%.2f bub)", feeFloat, b.RPCTxFeeCap())
 	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.MakeSigner(b.ChainConfig(), true, true)
+		signer := types.MakeSigner(b.ChainConfig())
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
@@ -1794,7 +1779,12 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
 
-	signed, err := wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	log.Info("Sign transaction with:", "ChainID", chainID.String())
+	signed, err := wallet.SignTx(account, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -1900,7 +1890,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	}
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
-		var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+		var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 		from, _ := types.Sender(signer, tx)
 		if _, exists := accounts[from]; exists {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
@@ -1933,7 +1923,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	}
 
 	for _, p := range pending {
-		var signer types.Signer = types.NewPIP11Signer(p.ChainId(), p.ChainId())
+		var signer types.Signer = types.NewEIP155Signer(p.ChainId())
 		wantSigHash := signer.Hash(matchTx, p.ChainId())
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p, p.ChainId()) == wantSigHash {

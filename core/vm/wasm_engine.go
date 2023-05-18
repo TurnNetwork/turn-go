@@ -3,14 +3,14 @@ package vm
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 
 	"hash/fnv"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/lru"
+	"github.com/bubblenet/bubble/core/lru"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/pkg/errors"

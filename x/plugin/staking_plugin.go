@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
@@ -21,9 +21,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common/sort"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/rlp"
 	math2 "math"
 	"math/big"
 	"math/rand"
@@ -31,28 +31,28 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/bubblenet/bubble/x/reward"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/bubblenet/bubble/x/handler"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/cbfttypes"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto/vrf"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 // 特殊节点在采集数据过程中，需要临时存储的数据，都存入此db。其实可以移动到一个专门的路径和文件中，参考中心化节点的做法。
@@ -179,55 +179,53 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 		}
 	}
 	if xutil.IsEndOfConsensus(blockNumber) {
-		if gov.Gte140VersionState(state) {
-			// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
-			// Used to record historical consensus round node information.
-			// 1. Simplify the consensus node information
-			// 2. Calculate the identification ID
-			// 3. Compute the hash of the simplified list of node information
-			// 4. Replace the value of header.extra[0:32] with the Hash value.
-			// 5. Form a list of identification IDs in the order of block generation and write them into the DB
-			next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
-			if err != nil {
-				log.Error("Failed to Query Next validators on stakingPlugin Begin When end of consensus",
-					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-				return err
-			}
-			historyValidatorList := make(staking.HistoryValidatorList, len(next.Arr))
-			historyValidatorIDList := make(staking.HistoryValidatorIDList, len(next.Arr))
-			for i := 0; i < len(next.Arr); i++ {
-				hv := &staking.HistoryValidator{
-					NodeId:    next.Arr[i].NodeId,
-					BlsPubKey: next.Arr[i].BlsPubKey,
-				}
-				id := hv.ID()
-				historyValidatorList[i] = hv
-				historyValidatorIDList[i] = id
-				if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
-					return err
-				}
-			}
-			if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
-				return err
-			}
-			listHash, err := historyValidatorList.Hash()
-			if err != nil {
-				log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-				return err
-			}
-			// The outgoing block node writes to extra.
-			// Non-outgoing block nodes validate extra.
-			if xutil.IsWorker(header.Extra) {
-				// The hash value will be signed by the node.
-				// will also be counted in the block Hash.
-				copy(header.Extra[:32], listHash.Bytes())
-			} else {
-				if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
-					return errors.New("historical validator list Hash is not the same")
-				}
-			}
-			log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
+		// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
+		// Used to record historical consensus round node information.
+		// 1. Simplify the consensus node information
+		// 2. Calculate the identification ID
+		// 3. Compute the hash of the simplified list of node information
+		// 4. Replace the value of header.extra[0:32] with the Hash value.
+		// 5. Form a list of identification IDs in the order of block generation and write them into the DB
+		next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
+		if err != nil {
+			log.Error("Failed to Query Next validators on stakingPlugin Begin When end of consensus",
+				"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
+		historyValidatorList := make(staking.HistoryValidatorList, len(next.Arr))
+		historyValidatorIDList := make(staking.HistoryValidatorIDList, len(next.Arr))
+		for i := 0; i < len(next.Arr); i++ {
+			hv := &staking.HistoryValidator{
+				NodeId:    next.Arr[i].NodeId,
+				BlsPubKey: next.Arr[i].BlsPubKey,
+			}
+			id := hv.ID()
+			historyValidatorList[i] = hv
+			historyValidatorIDList[i] = id
+			if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
+				return err
+			}
+		}
+		if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
+			return err
+		}
+		listHash, err := historyValidatorList.Hash()
+		if err != nil {
+			log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		// The outgoing block node writes to extra.
+		// Non-outgoing block nodes validate extra.
+		if xutil.IsWorker(header.Extra) {
+			// The hash value will be signed by the node.
+			// will also be counted in the block Hash.
+			copy(header.Extra[:32], listHash.Bytes())
+		} else {
+			if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
+				return errors.New("historical validator list Hash is not the same")
+			}
+		}
+		log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
 	}
 	return nil
 }
@@ -383,27 +381,27 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
 			return err
 		}
-
-		diff := make(staking.ValidatorQueue, 0)
-		var isNext bool
-
-		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
-		isCurr, currMap, err := sk.SetValidator(block, numStr, nodeId)
+		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != err {
-			log.Error("Failed to SetValidator on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
+				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
 			return err
 		}
 
-		//noCache := block.NumberU64() - xcom.GetDBCacheEpoch()*xutil.CalcBlocksEachEpoch()
-		//log.Debug("election begin check data, start remove old data", "noCache", noCache, " cache flag", xcom.GetDBDisabledCache())
-		//if xcom.GetDBDisabledCache() && noCache > uint64(0){
-		//	removeNum := strconv.FormatUint(noCache+xcom.ElectionDistance(), 10)
-		//	err := STAKING_DB.HistoryDB.Delete([]byte(ValidatorName + removeNum))
-		//	log.Debug("delete Validator suc","removeNum",removeNum)
-		//	if nil != err {
-		//		log.Error("remove old data err","err data", err.Error())
-		//	}
-		//}
+		diff := make(staking.ValidatorQueue, 0)
+		var isCurr, isNext bool
+
+		//
+		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
+		isCurr, currMap, err := sk.SetValidator(block, numStr, nodeId)
+		//currMap := make(map[discover.NodeID]struct{})
+
+		for _, v := range current.Arr {
+			currMap[v.NodeId] = struct{}{}
+			if nodeId == v.NodeId {
+				isCurr = true
+			}
+		}
 
 		for _, v := range next.Arr {
 			if _, ok := currMap[v.NodeId]; !ok {
@@ -1058,7 +1056,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, sk.db.GetDB()); err != nil {
 		return err
 	}
-	version13 := gov.Gte130VersionState(state)
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -1084,7 +1081,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	} else {
-		if version13 && typ == LockVon {
+		if typ == LockVon {
 			lockReleasedHes, lockRestrictingHes, err := sk.AdvanceDelegationLockedFunds(blockHash, delAddr, uint32(epoch), amount)
 			if err != nil {
 				log.Error("Failed to Delegate on stakingPlugin: call  AdvanceDelegationLockedFunds() is failed",
@@ -1105,7 +1102,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	del.DelegateEpoch = uint32(epoch)
 
 	// set new delegate info
-	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, version13); nil != err {
+	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, true); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store Delegate info is failed",
 			"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum",
 			can.StakingBlockNum, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1211,7 +1208,6 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 
 	del.DelegateEpoch = uint32(epoch)
 
-	versionLockDelegation := gov.Gte130VersionState(state)
 	switch {
 	// Illegal parameter
 	case can.IsNotEmpty() && stakingBlockNum > can.StakingBlockNum:
@@ -1237,22 +1233,18 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			if can.IsNotEmpty() {
 				can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
 			}
-			if versionLockDelegation {
-				returnReleased.Add(returnReleased, new(big.Int).Sub(del.ReleasedHes, rbalance))
-				returnRestrictingPlan.Add(returnRestrictingPlan, new(big.Int).Sub(del.RestrictingPlanHes, lbalance))
-			}
+			returnReleased.Add(returnReleased, new(big.Int).Sub(del.ReleasedHes, rbalance))
+			returnRestrictingPlan.Add(returnRestrictingPlan, new(big.Int).Sub(del.RestrictingPlanHes, lbalance))
 
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
-		if versionLockDelegation {
-			delegationLock, err := sk.db.GetDelegationLock(blockHash, delAddr, uint32(epoch))
-			if err != nil {
-				if err == snapshotdb.ErrNotFound {
-					delegationLock = staking.NewDelegationLock()
-				} else {
-					return nil, nil, nil, nil, nil, err
-				}
+		delegationLock, err := sk.db.GetDelegationLock(blockHash, delAddr, uint32(epoch))
+		if err != nil {
+			if err == snapshotdb.ErrNotFound {
+				delegationLock = staking.NewDelegationLock()
+			} else {
+				return nil, nil, nil, nil, nil, err
 			}
 			// 计算委托需要锁定的最后一个周期
 			lockEndEpoch, err := calDelegationLockEndEpoch(blockNumber.Uint64(), blockHash, uint32(epoch))
@@ -1340,7 +1332,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				return nil, nil, nil, nil, nil, err
 			}
 		} else {
-			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, versionLockDelegation); nil != err {
+			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, true); nil != err {
 				log.Error("Failed to WithdrewDelegation on stakingPlugin: Store detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
@@ -3566,23 +3558,15 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		return nil, err
 	}
 
-	var p float64
-	if gov.Gte110Version(currentVersion) {
-		p = xcom.CalcPV110(totalSqrtWeightsFloat)
-	} else {
-		p = xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
-	}
-
+	p := xcom.CalcP(totalSqrtWeightsFloat)
 	shuffleSeed := new(big.Int).SetBytes(preNonces[0]).Int64()
 	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
 		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen, "shuffleSeed", shuffleSeed)
 
-	if gov.Gte110Version(currentVersion) {
-		rd := rand.New(rand.NewSource(shuffleSeed))
-		rd.Shuffle(len(svList), func(i, j int) {
-			svList[i], svList[j] = svList[j], svList[i]
-		})
-	}
+	rd := rand.New(rand.NewSource(shuffleSeed))
+	rd.Shuffle(len(svList), func(i, j int) {
+		svList[i], svList[j] = svList[j], svList[i]
+	})
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
@@ -3609,11 +3593,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
 
-	if gov.Gte110Version(currentVersion) {
-		sort.Sort(newSortValidatorQueue(svList))
-	} else {
-		sort.Sort(svList)
-	}
+	sort.Sort(newSortValidatorQueue(svList))
 	for index, sv := range svList {
 		if index == shiftLen {
 			break

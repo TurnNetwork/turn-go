@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package cbft
 
@@ -27,41 +27,41 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/trie"
 
 	"github.com/pkg/errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/bubblenet/bubble/crypto/bls"
 
 	"reflect"
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
-	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/consensus/cbft/evidence"
+	"github.com/bubblenet/bubble/consensus/cbft/executor"
+	"github.com/bubblenet/bubble/consensus/cbft/fetcher"
+	"github.com/bubblenet/bubble/consensus/cbft/network"
+	"github.com/bubblenet/bubble/consensus/cbft/protocols"
+	"github.com/bubblenet/bubble/consensus/cbft/rules"
+	cstate "github.com/bubblenet/bubble/consensus/cbft/state"
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/consensus/cbft/utils"
+	"github.com/bubblenet/bubble/consensus/cbft/validator"
+	"github.com/bubblenet/bubble/consensus/cbft/wal"
+	"github.com/bubblenet/bubble/core/cbfttypes"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/node"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 const (
@@ -428,7 +428,8 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 // ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 //
 // Possible message types are:
-//  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
+//
+//	PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// If the node is synchronizing the block, discard sync msg directly and do not count the msg
 	// When the syncMsgCh channel is congested, it is easy to cause a message backlog
@@ -851,9 +852,9 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Public:    true,
 		},
 		{
-			Namespace: "platon",
+			Namespace: "bub",
 			Version:   "1.0",
-			Service:   NewPublicPlatonConsensusAPI(cbft),
+			Service:   NewPublicBubbleConsensusAPI(cbft),
 			Public:    true,
 		},
 		{

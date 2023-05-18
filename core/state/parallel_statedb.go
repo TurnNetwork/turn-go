@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 func (self *StateDB) GetOrNewParallelStateObject(addr common.Address) *ParallelStateObject {
 	stateObject := self.justGetStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
-		log.Debug("Cannot find stateObject in Parallel", "addr", addr.Bech32(), "isNil", stateObject == nil)
+		log.Debug("Cannot find stateObject in Parallel", "addr", addr.String(), "isNil", stateObject == nil)
 		return self.justCreateObject(addr)
 	}
 	return NewParallelStateObject(stateObject, false)

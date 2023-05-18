@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 func BenchmarkCutOriginal(b *testing.B) {

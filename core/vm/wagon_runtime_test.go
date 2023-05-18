@@ -12,23 +12,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mock"
+	"github.com/bubblenet/bubble/crypto"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/bubblenet/bubble/common/math"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +47,7 @@ var testCase = []*Case{
 				GasPrice: big.NewInt(12)},
 			},
 		},
-		funcName: "platon_gas_price_test",
+		funcName: "bub_gas_price_test",
 		check: func(self *Case, err error) bool {
 			return big.NewInt(12).Cmp(new(big.Int).SetBytes(self.ctx.Output)) == 0
 		},
@@ -61,7 +61,7 @@ var testCase = []*Case{
 				}},
 			},
 		},
-		funcName: "platon_block_hash_test",
+		funcName: "bub_block_hash_test",
 		check: func(self *Case, err error) bool {
 			hash := common.Hash{1, 2, 3}
 			return bytes.Equal(hash[:], self.ctx.Output)
@@ -72,7 +72,7 @@ var testCase = []*Case{
 			evm: &EVM{Context: BlockContext{
 				BlockNumber: big.NewInt(99),
 			}}},
-		funcName: "platon_block_number_test",
+		funcName: "bub_block_number_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
 			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.BlockNumber.Uint64())
@@ -84,7 +84,7 @@ var testCase = []*Case{
 			evm: &EVM{Context: BlockContext{
 				GasLimit: 99,
 			}}},
-		funcName: "platon_gas_limit_test",
+		funcName: "bub_gas_limit_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
 			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.GasLimit)
@@ -94,7 +94,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			contract: &Contract{Gas: 99}},
-		funcName: "platon_gas_test",
+		funcName: "bub_gas_test",
 		check: func(self *Case, err error) bool {
 			gas := binary.LittleEndian.Uint64(self.ctx.Output)
 			return gas >= self.ctx.contract.Gas
@@ -105,7 +105,7 @@ var testCase = []*Case{
 			evm: &EVM{Context: BlockContext{
 				Time: big.NewInt(93),
 			}}},
-		funcName: "platon_timestamp_test",
+		funcName: "bub_timestamp_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
 			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time.Uint64())
@@ -117,7 +117,7 @@ var testCase = []*Case{
 			evm: &EVM{Context: BlockContext{
 				Coinbase: addr1,
 			}}},
-		funcName: "platon_coinbase_test",
+		funcName: "bub_coinbase_test",
 		check: func(self *Case, err error) bool {
 			return bytes.Equal(self.ctx.evm.Context.Coinbase[:], self.ctx.Output)
 		},
@@ -134,7 +134,7 @@ var testCase = []*Case{
 				},
 			},
 		},
-		funcName: "platon_balance_test",
+		funcName: "bub_balance_test",
 		check: func(self *Case, err error) bool {
 			return big.NewInt(99).Cmp(new(big.Int).SetBytes(self.ctx.Output)) == 0
 		},
@@ -153,7 +153,7 @@ var testCase = []*Case{
 				},
 			},
 		},
-		funcName: "platon_balance_test",
+		funcName: "bub_balance_test",
 		check: func(self *Case, err error) bool {
 			return big.NewInt(99).Cmp(new(big.Int).SetBytes(self.ctx.Output)) == 0
 		},
@@ -163,7 +163,7 @@ var testCase = []*Case{
 			evm: &EVM{TxContext: TxContext{
 				Origin: addr1,
 			}}},
-		funcName: "platon_origin_test",
+		funcName: "bub_origin_test",
 		check: func(self *Case, err error) bool {
 			addr := addr1
 			return bytes.Equal(addr[:], self.ctx.Output)
@@ -184,9 +184,9 @@ var testCase = []*Case{
 				},
 			},
 		},
-		funcName: "platon_caller_test",
+		funcName: "bub_caller_test",
 		init: func(self *Case, t *testing.T) {
-			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_0_11_0, ActiveBlock: 1}
+			curAv := gov.ActiveVersionValue{ActiveVersion: params.INITVERSION_0_1_0, ActiveBlock: 1}
 			avList := []gov.ActiveVersionValue{curAv}
 			avListBytes, _ := json.Marshal(avList)
 			self.ctx.evm.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), avListBytes)
@@ -199,7 +199,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			contract: &Contract{value: big.NewInt(99)}},
-		funcName: "platon_call_value_test",
+		funcName: "bub_call_value_test",
 		check: func(self *Case, err error) bool {
 			return big.NewInt(99).Cmp(new(big.Int).SetBytes(self.ctx.Output)) == 0
 		},
@@ -207,7 +207,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			contract: &Contract{self: &AccountRef{1, 2, 3}}},
-		funcName: "platon_address_test",
+		funcName: "bub_address_test",
 		check: func(self *Case, err error) bool {
 			addr := addr1
 			return bytes.Equal(addr[:], self.ctx.Output)
@@ -223,7 +223,7 @@ var testCase = []*Case{
 					},
 					Journal: mock.NewJournal(),
 				}}},
-		funcName: "platon_caller_nonce_test",
+		funcName: "bub_caller_nonce_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
 			binary.LittleEndian.PutUint64(res[:], 0)
@@ -234,7 +234,7 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			Input: []byte{1},
 		},
-		funcName: "platon_sha3_test",
+		funcName: "bub_sha3_test",
 		check: func(self *Case, err error) bool {
 			value := crypto.Keccak256([]byte{1})
 			return bytes.Equal(value[:], self.ctx.Output)
@@ -250,7 +250,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}},
 			Input:    []byte{1, 2, 3},
 		},
-		funcName: "platon_set_state_test",
+		funcName: "bub_set_state_test",
 		check: func(self *Case, err error) bool {
 			value := self.ctx.evm.StateDB.GetState(addr1, []byte("key"))
 			return bytes.Equal(value[:], self.ctx.Input)
@@ -269,7 +269,7 @@ var testCase = []*Case{
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.StateDB.SetState(self.ctx.contract.Address(), []byte("key"), self.ctx.Input)
 		},
-		funcName: "platon_get_state_test",
+		funcName: "bub_get_state_test",
 		check: func(self *Case, err error) bool {
 			return bytes.Equal(self.ctx.Output, self.ctx.Input)
 		},
@@ -278,21 +278,21 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			CallOut: []byte{1, 2, 3},
 		},
-		funcName: "platon_get_call_output_test",
+		funcName: "bub_get_call_output_test",
 		check: func(self *Case, err error) bool {
 			return bytes.Equal(self.ctx.Output, self.ctx.CallOut)
 		},
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_revert_test",
+		funcName: "bub_revert_test",
 		check: func(self *Case, err error) bool {
 			return self.ctx.Revert == true
 		},
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_panic_test",
+		funcName: "bub_panic_test",
 		check: func(self *Case, err error) bool {
 			return true
 		},
@@ -321,7 +321,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: []byte{1}},
 			Input:    addr2.Bytes(),
 		},
-		funcName: "platon_transfer_test",
+		funcName: "bub_transfer_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -361,7 +361,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: []byte{1}},
 			Input:    callContractInput(),
 		},
-		funcName: "platon_call_contract_test",
+		funcName: "bub_call_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(self.ctx, addr1, addr2, readContractCode())
@@ -403,7 +403,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input:    callContractInput(),
 		},
-		funcName: "platon_delegate_call_contract_test",
+		funcName: "bub_delegate_call_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(self.ctx, addr1, addr2, readContractCode())
@@ -446,7 +446,7 @@ var testCase = []*Case{
 			contract: &Contract{self: &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input:    queryContractInput(),
 		},
-		funcName: "platon_static_call_contract_test",
+		funcName: "bub_static_call_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(ctx, readContractCode())
@@ -491,7 +491,7 @@ var testCase = []*Case{
 				caller:        &AccountRef{1, 2, 4},
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 		},
-		funcName: "platon_destroy_contract_test",
+		funcName: "bub_destroy_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -570,7 +570,7 @@ var testCase = []*Case{
 				return append(interp, barr...)
 			}(),
 		},
-		funcName: "platon_migrate_contract_test",
+		funcName: "bub_migrate_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(self.ctx, addr1, addr2, readContractCode())
@@ -689,7 +689,7 @@ var testCase = []*Case{
 				return input
 			}(),
 		},
-		funcName: "platon_clone_migrate_contract_test",
+		funcName: "bub_clone_migrate_contract_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(self.ctx, addr1, addr2, readContractCode())
@@ -808,7 +808,7 @@ var testCase = []*Case{
 				return input
 			}(),
 		},
-		funcName: "platon_clone_migrate_contract_error_test",
+		funcName: "bub_clone_migrate_contract_error_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 			deployContract(self.ctx, addr1, addr2, readContractCode())
@@ -865,7 +865,7 @@ var testCase = []*Case{
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
-		funcName: "platon_event0_test",
+		funcName: "bub_event0_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -935,7 +935,7 @@ var testCase = []*Case{
 				self:          &AccountRef{1, 2, 3}, Gas: 1000000, Code: WasmInterp.Bytes()},
 			Input: []byte("I am wagon"),
 		},
-		funcName: "platon_event3_test",
+		funcName: "bub_event3_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -969,7 +969,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_sha256_test",
+		funcName: "bub_sha256_test",
 		check: func(self *Case, err error) bool {
 			input := []byte{1, 2, 3}
 			h := sha256.Sum256(input)
@@ -978,7 +978,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_ripemd160_test",
+		funcName: "bub_ripemd160_test",
 		check: func(self *Case, err error) bool {
 			input := []byte{1, 2, 3}
 			rip := ripemd160.New()
@@ -989,7 +989,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_ecrecover_test",
+		funcName: "bub_ecrecover_test",
 		check: func(self *Case, err error) bool {
 			var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
 			key, _ := crypto.HexToECDSA(testPrivHex)
@@ -1013,7 +1013,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_rlp_u128_test",
+		funcName: "bub_rlp_u128_test",
 		check: func(self *Case, err error) bool {
 			res := []byte{0x90, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
 			return bytes.Equal(res, self.ctx.Output)
@@ -1029,7 +1029,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_rlp_bytes_test",
+		funcName: "bub_rlp_bytes_test",
 		check: func(self *Case, err error) bool {
 			res := []byte{0x90, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
 			return bytes.Equal(res, self.ctx.Output)
@@ -1045,14 +1045,14 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_rlp_list_test",
+		funcName: "bub_rlp_list_test",
 		check: func(self *Case, err error) bool {
 			res := []byte{0xd0, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
 			return bytes.Equal(res, self.ctx.Output)
 		},
 	},
 
-	// platon_contract_code_length_test
+	// bub_contract_code_length_test
 	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
@@ -1073,7 +1073,7 @@ var testCase = []*Case{
 				Gas: 1000000,
 			},
 		},
-		funcName: "platon_contract_code_length_test",
+		funcName: "bub_contract_code_length_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -1092,7 +1092,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// platon_contract_code_test
+	// bub_contract_code_test
 	{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
@@ -1113,7 +1113,7 @@ var testCase = []*Case{
 				Gas: 1000000,
 			},
 		},
-		funcName: "platon_contract_code_test",
+		funcName: "bub_contract_code_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -1127,7 +1127,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// platon_deploy
+	// bub_deploy
 	{
 		ctx: &VMContext{
 			gasTable: params.GasTableConstantinople,
@@ -1187,7 +1187,7 @@ var testCase = []*Case{
 				return append(interp, barr...)
 			}(),
 		},
-		funcName: "platon_deploy_test",
+		funcName: "bub_deploy_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -1215,7 +1215,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// platon_clone
+	// bub_clone
 	{
 		ctx: &VMContext{
 			gasTable: params.GasTableConstantinople,
@@ -1268,7 +1268,7 @@ var testCase = []*Case{
 				return input
 			}(),
 		},
-		funcName: "platon_clone_test",
+		funcName: "bub_clone_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -1296,7 +1296,7 @@ var testCase = []*Case{
 		},
 	},
 
-	// platon clone error
+	// bubble clone error
 	{
 		ctx: &VMContext{
 			gasTable: params.GasTableConstantinople,
@@ -1349,7 +1349,7 @@ var testCase = []*Case{
 				return input
 			}(),
 		},
-		funcName: "platon_clone_error_test",
+		funcName: "bub_clone_error_test",
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
@@ -1470,7 +1470,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 
 	_, err = vm.ExecCode(index)
 
-	if c.funcName == "platon_panic_test" {
+	if c.funcName == "bub_panic_test" {
 		assert.NotNil(t, err)
 	} else if strings.Contains(c.funcName, "_error_test") {
 		assert.NotNil(t, err)

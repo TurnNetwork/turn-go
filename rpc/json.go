@@ -28,9 +28,9 @@ import (
 	"sync"
 	"time"
 
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	json2 "github.com/bubblenet/bubble/common/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 const (
@@ -40,9 +40,9 @@ const (
 	unsubscribeMethodSuffix  = "_unsubscribe"
 	notificationMethodSuffix = "_subscription"
 	ethMethodPrefix          = "eth_"
-	platonMethodPrefix       = "platon_"
+	bubbleMethodPrefix       = "bub_"
 	ethMethod                = "eth"
-	platonMethod             = "platon"
+	bubbleMethod             = "bub"
 
 	defaultWriteTimeout = 10 * time.Second // used if context has no deadline
 )
@@ -65,17 +65,13 @@ type jsonrpcMessage struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 	Error   *jsonError      `json:"error,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
-	Bech32  bool            `json:"bech32,omitempty"`
 }
 
 func (msg *jsonrpcMessage) isEthMessage() bool {
 	if strings.HasPrefix(msg.Method, ethMethodPrefix) {
 		return true
-	} else if strings.HasPrefix(msg.Method, platonMethodPrefix) {
+	} else if strings.HasPrefix(msg.Method, bubbleMethodPrefix) {
 		return false
-	}
-	if !msg.Bech32 {
-		return true
 	}
 	return false
 }

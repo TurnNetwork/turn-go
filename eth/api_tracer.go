@@ -28,22 +28,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/eth/tracers"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/rpc"
+	"github.com/bubblenet/bubble/trie"
 )
 
 const (
@@ -204,7 +204,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.NewPIP11Signer(api.eth.blockchain.Config().ChainID, api.eth.blockchain.Config().PIP7ChainID)
+				signer := types.NewEIP155Signer(api.eth.blockchain.Config().ChainID)
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.eth.blockchain)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
@@ -460,7 +460,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.eth.blockchain.Config(), false, false)
+		signer = types.MakeSigner(api.eth.blockchain.Config())
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
@@ -556,7 +556,7 @@ func (api *PrivateDebugAPI) standardTraceBlockToFile(ctx context.Context, block 
 
 	// Execute transaction, either tracing all or just the requested one
 	var (
-		signer      = types.MakeSigner(api.eth.blockchain.Config(), false, false)
+		signer      = types.MakeSigner(api.eth.blockchain.Config())
 		dumps       []string
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.eth.blockchain)
 		chainConfig = api.eth.blockchain.Config()
@@ -853,7 +853,7 @@ func (api *PrivateDebugAPI) computeTxEnv(block *types.Block, txIndex int, reexec
 	}
 
 	// Recompute transactions up to the target index.
-	signer := types.NewPIP11Signer(api.eth.blockchain.Config().ChainID, api.eth.blockchain.Config().PIP7ChainID)
+	signer := types.NewEIP155Signer(api.eth.blockchain.Config().ChainID)
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer)

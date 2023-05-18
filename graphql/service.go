@@ -23,10 +23,9 @@ import (
 	"github.com/graph-gophers/graphql-go"
 
 	graphqlEth "github.com/AlayaNetwork/graphql-go"
-
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	json2 "github.com/bubblenet/bubble/common/json"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/node"
 )
 
 type handler struct {
@@ -102,14 +101,14 @@ func newHandler(stack *node.Node, backend ethapi.Backend, cors, vhosts []string)
 	handler := node.NewHTTPHandlerStack(h, cors, vhosts)
 
 	stack.RegisterHandler("GraphQL UI", "/graphql/ui", GraphiQL{})
-	stack.RegisterHandler("GraphQL UI", "/platon/graphql/ui", GraphiQL{}) // for PlatON
+	stack.RegisterHandler("GraphQL UI", "/bubble/graphql/ui", GraphiQL{}) // for Bubble
 
 	stack.RegisterHandler("GraphQL", "/graphql", handler)
 	stack.RegisterHandler("GraphQL", "/graphql/", handler)
 
-	// for PlatON
-	stack.RegisterHandler("GraphQL", "/platon/graphql", handler)
-	stack.RegisterHandler("GraphQL", "/platon/graphql/", handler)
+	// for Bubble
+	stack.RegisterHandler("GraphQL", "/bubble/graphql", handler)
+	stack.RegisterHandler("GraphQL", "/bubble/graphql/", handler)
 
 	return nil
 }

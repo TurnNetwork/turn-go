@@ -84,7 +84,7 @@ The config.json file is as follows：
 }
 ```
 
-##### 8.ppos staking api 
+##### 8.dpos staking api 
 ```
 ./ctool  staking
 
@@ -106,7 +106,7 @@ COMMANDS:
 eg:  ./ctool.exe staking  getVerifierList  --rpcurl 'http://127.0.0.1:6771' -testnet
 ```
 
-##### 9.ppos gov api 
+##### 9.dpos gov api 
 ```
 ./ctool gov 
 NAME:
@@ -127,7 +127,7 @@ COMMANDS:
 eg:  ./ctool.exe gov  getProposal  --rpcurl 'http://127.0.0.1:6771' -testnet --proposalID '0x41'
 ```
 
-##### 10.ppos restricting api 
+##### 10.dpos restricting api 
 ```
 ./ctool  restricting getRestrictingInfo 
 NAME:
@@ -146,7 +146,7 @@ eg:  ./ctool.exe restricting  getRestrictingInfo  --rpcurl 'http://127.0.0.1:677
 ```
 
 
-##### 11.ppos reward api 
+##### 11.dpos reward api 
 ```
 NAME:
    ctool reward getDelegateReward - 5100,query account not withdrawn commission rewards at each node,parameter:nodeList(can empty)
@@ -163,7 +163,7 @@ OPTIONS:
 eg:  ./ctool.exe reward  getDelegateReward  --rpcurl 'http://127.0.0.1:6771' -testnet 
 ```
 
-##### 12.ppos slashing api 
+##### 12.dpos slashing api 
 ```
 NAME:
    ctool slashing - use for slashing

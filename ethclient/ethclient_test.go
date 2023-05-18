@@ -22,29 +22,29 @@ import (
 	"reflect"
 	"testing"
 
-	platon "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	bubble "github.com/bubblenet/bubble"
+	"github.com/bubblenet/bubble/common"
 )
 
 // Verify that Client implements the ethereum interfaces.
 var (
-	_ = platon.ChainReader(&Client{})
-	_ = platon.TransactionReader(&Client{})
-	_ = platon.ChainStateReader(&Client{})
-	_ = platon.ChainSyncReader(&Client{})
-	_ = platon.ContractCaller(&Client{})
-	_ = platon.GasEstimator(&Client{})
-	_ = platon.GasPricer(&Client{})
-	_ = platon.LogFilterer(&Client{})
-	_ = platon.PendingStateReader(&Client{})
+	_ = bubble.ChainReader(&Client{})
+	_ = bubble.TransactionReader(&Client{})
+	_ = bubble.ChainStateReader(&Client{})
+	_ = bubble.ChainSyncReader(&Client{})
+	_ = bubble.ContractCaller(&Client{})
+	_ = bubble.GasEstimator(&Client{})
+	_ = bubble.GasPricer(&Client{})
+	_ = bubble.LogFilterer(&Client{})
+	_ = bubble.PendingStateReader(&Client{})
 	// _ = ethereum.PendingStateEventer(&Client{})
-	_ = platon.PendingContractCaller(&Client{})
+	_ = bubble.PendingContractCaller(&Client{})
 )
 
 func TestToFilterArg(t *testing.T) {
 	blockHashErr := fmt.Errorf("cannot specify both BlockHash and FromBlock/ToBlock")
 	addresses := []common.Address{
-		common.MustBech32ToAddress("lax16dnj9t0v8mwt98yw0ddy0u6j6uqnjdrzej57np"),
+		common.HexToAddress("0xD36722ADeC3EdCB29c8e7b5a47f352D701393462"),
 	}
 	blockHash := common.HexToHash(
 		"0xeb94bb7d78b73657a9d7a99792413f50c0a45c51fc62bdcb08a53f18e9a2b4eb",
@@ -52,13 +52,13 @@ func TestToFilterArg(t *testing.T) {
 
 	for _, testCase := range []struct {
 		name   string
-		input  platon.FilterQuery
+		input  bubble.FilterQuery
 		output interface{}
 		err    error
 	}{
 		{
 			"without BlockHash",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				FromBlock: big.NewInt(1),
 				ToBlock:   big.NewInt(2),
@@ -74,7 +74,7 @@ func TestToFilterArg(t *testing.T) {
 		},
 		{
 			"with nil fromBlock and nil toBlock",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				Topics:    [][]common.Hash{},
 			},
@@ -88,7 +88,7 @@ func TestToFilterArg(t *testing.T) {
 		},
 		{
 			"with blockhash",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				BlockHash: &blockHash,
 				Topics:    [][]common.Hash{},
@@ -102,7 +102,7 @@ func TestToFilterArg(t *testing.T) {
 		},
 		{
 			"with blockhash and from block",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				BlockHash: &blockHash,
 				FromBlock: big.NewInt(1),
@@ -113,7 +113,7 @@ func TestToFilterArg(t *testing.T) {
 		},
 		{
 			"with blockhash and to block",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				BlockHash: &blockHash,
 				ToBlock:   big.NewInt(1),
@@ -124,7 +124,7 @@ func TestToFilterArg(t *testing.T) {
 		},
 		{
 			"with blockhash and both from / to block",
-			platon.FilterQuery{
+			bubble.FilterQuery{
 				Addresses: addresses,
 				BlockHash: &blockHash,
 				FromBlock: big.NewInt(1),

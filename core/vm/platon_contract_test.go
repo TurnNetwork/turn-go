@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
@@ -24,24 +24,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mock"
+	cvm "github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/gov"
+	"github.com/bubblenet/bubble/x/plugin"
+	"github.com/bubblenet/bubble/x/restricting"
+	"github.com/bubblenet/bubble/x/staking"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 func init() {
@@ -80,31 +80,31 @@ var (
 	}
 
 	addrArr = []common.Address{
-		common.MustBech32ToAddress("lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj"),
-		common.MustBech32ToAddress("lax1mplpp7806tpj7h5gklp8n9f6aahwtzgzjqryaa"),
-		common.MustBech32ToAddress("lax1atkxp3ecamv5drn2enqagql6eudxwrmdnh5qsw"),
-		common.MustBech32ToAddress("lax1t3veg9jjvkkrr2h7sa9zx8evt58098p6xspu4t"),
-		common.MustBech32ToAddress("lax1h9zfav3xewfu806lajskepd8xafcuf8s5722uu"),
-		common.MustBech32ToAddress("lax1jz966xprhhdxdnr9u7ytn5qefduht9m2qcwfsw"),
-		common.MustBech32ToAddress("lax18h7xf2rak5skvfn4mll2frgvyzzpf48c8n5amr"),
-		common.MustBech32ToAddress("lax14k9d7dgx3n04wty7lddqd8dy35hpvk4pk3409g"),
-		common.MustBech32ToAddress("lax17va4mfrudm9uv88s03ec0t7xau8297rx4rnqsg"),
-		common.MustBech32ToAddress("lax19e0mfauw87umrzvdulta3keagnrzqs97t2vy8j"),
-		common.MustBech32ToAddress("lax19pw0sn4ru9m7rlyl894whjfjngy02xa4z57x7d"),
-		common.MustBech32ToAddress("lax1jxllmjyr9xham97ldl5jel20eduj0tkdw0g9h2"),
-		common.MustBech32ToAddress("lax1tzmzll6sg6hjy5h3lrkttse59tdrjnmjzfuf5u"),
-		common.MustBech32ToAddress("lax13mq3dsgas527sg3v40ztasr23qx9rkffpqazlk"),
-		common.MustBech32ToAddress("lax1xe8vht0ycdd7utu2qnuzpxatyd453g66qxn47n"),
-		common.MustBech32ToAddress("lax1y6ykcw22rcfqjh5z9edssr5wlgzscuuvev7qry"),
-		common.MustBech32ToAddress("lax1x9p98qjv66mmeutp8j4sqyndvpm00guffccn8r"),
-		common.MustBech32ToAddress("lax124z0qh23u306vjt6lmq0rfwkg5cmyxlqmjwcmv"),
-		common.MustBech32ToAddress("lax18k5rp7kj56vrm9ydwf3t9t0haffmj5a706xfnm"),
-		common.MustBech32ToAddress("lax1s9d8jyxqxhe0h9z3ek35n95h3pzfcg5gm7auvu"),
-		common.MustBech32ToAddress("lax1fnw5ncy9slyzf3mzne73ysuskux3q46qt3fek6"),
-		common.MustBech32ToAddress("lax16pqmt742fdepysd92yrlarceecd68elae9unre"),
-		common.MustBech32ToAddress("lax1e0zc8hkmhe44rwrqxmqyqkttkzsznxnnp79644"),
-		common.MustBech32ToAddress("lax1rs9y2zd6gm02gam44k9jpgvl8x9cypjzy5hnmw"),
-		common.MustBech32ToAddress("lax1amssl39r4vee7knc3uac966hww8swhkwmxdu9d"),
+		common.HexToAddress("0xc9E1C2B330Cf7e759F2493c5C754b34d98B07f93"),
+		common.HexToAddress("0xd87E10F8efd2C32f5e88b7C279953aEF6EE58902"),
+		common.HexToAddress("0xeAEc60C738eeD9468e6AcCc1d403faCF1A670F6D"),
+		common.HexToAddress("0x5c5994165265Ac31AAFE874a231f2C5d0eF29C3a"),
+		common.HexToAddress("0xB9449Eb226cb93c3BF5FeCA16c85a737538e24f0"),
+		common.HexToAddress("0x908bad1823BddA66cc65E788b9d0194b7975976A"),
+		common.HexToAddress("0x3DfC64A87db521662675DffEa48d0c208414D4f8"),
+		common.HexToAddress("0xad8adf35068Cdf572c9eFb5a069dA48D2E165Aa1"),
+		common.HexToAddress("0xf33b5Da47c6ECbC61cF07C7387Afc6ef0EA2f866"),
+		common.HexToAddress("0x2E5FB4F78E3FB9b1898DE7d7D8dB3d44C62040be"),
+		common.HexToAddress("0x285CF84ea3E177E1fC9F396aEbc9329a08f51bb5"),
+		common.HexToAddress("0x91BffdC88329AfDD97DF6fe92cfd4FcB7927Aecd"),
+		common.HexToAddress("0x58b62FfF5046aF2252F1F8Ecb5c3342ada394F72"),
+		common.HexToAddress("0x8ec116c11d8515e8222Cabc4BEc06A880C51D929"),
+		common.HexToAddress("0x364eCBade4c35beE2F8a04F8209BaB236B48A35a"),
+		common.HexToAddress("0x26896c394A1E12095e822e5b080e8EfA050c738C"),
+		common.HexToAddress("0x314253824CD6b7BCF1613CAB00126D6076F7a389"),
+		common.HexToAddress("0x5544F05D51E45fa6497AFEC0F1A5d64531B21be0"),
+		common.HexToAddress("0x3da830FAd2A6983d948d7262B2AdF7eA53b953be"),
+		common.HexToAddress("0x815A7910C035F2FB9451cDA349969788449c2288"),
+		common.HexToAddress("0x4Cdd49e08587c824c7629e7d124390B70d105740"),
+		common.HexToAddress("0xD041b5fAaa4B721241A55107FE8F19ce1ba3E7fD"),
+		common.HexToAddress("0xcbc583DEdbbE6b51B86036C040596bB0a0299a73"),
+		common.HexToAddress("0x1c0A4509Ba46deA47775Ad8B20A19f398B820642"),
+		common.HexToAddress("0xEEE10Fc4A3AB339f5a788f3b82Eb57738F075EcE"),
 	}
 
 	priKeyArr = []*ecdsa.PrivateKey{
@@ -148,11 +148,11 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender        = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
-	anotherSender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp553n425hnm")
+	sender        = common.HexToAddress("0x00Ce0d46d924CC8437c806721496599FC3FFA268")
+	anotherSender = common.HexToAddress("0x0Eef233120ce31B3fac20dAc379db243021A5233")
 	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
-	delegateSender        = common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec")
+	delegateSender        = common.HexToAddress("0xC1f330B214668beAc2E6418Dd651B09C759a4Bf5")
 	delegateSenderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
 	txHashArr = []common.Hash{
@@ -189,7 +189,7 @@ var (
 	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // version: 0.8.0
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	promoteVersion      = params.FORKVERSION_0_11_0 // version: 0.11.0
+	promoteVersion      = params.INITVERSION_0_1_0 // version: 0.11.0
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
 
 	balanceStr = []string{
@@ -221,7 +221,7 @@ var (
 	}
 
 	nodeNameArr = []string{
-		"PlatON",
+		"Bubble",
 		"Gavin",
 		"Emma",
 		"Kally",
@@ -234,7 +234,7 @@ var (
 		"gang",
 		"guang",
 		"hua",
-		"PlatON_2",
+		"Bubble_2",
 		"Gavin_2",
 		"Emma_2",
 		"Kally_2",

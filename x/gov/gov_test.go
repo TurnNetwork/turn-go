@@ -1,45 +1,44 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package gov
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/x/xcom"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/node"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/bubblenet/bubble/x/staking"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/mock"
 )
 
 var (
-	sender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
+	sender = common.HexToAddress("0x00Ce0d46d924CC8437c806721496599FC3FFA268")
 	nodeID = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
 
 	priKey = crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132")
@@ -970,28 +969,4 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
-}
-
-func TestFork130EcHash(t *testing.T) {
-	chain := setup(t)
-	defer clear(chain, t)
-	if Gte130VersionState(chain.StateDB) {
-		if err := WriteEcHash130(chain.StateDB); nil != err {
-			t.Fatal(err)
-		}
-	}
-	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
-	assert.True(t, pposHash == nil)
-
-	if err := AddActiveVersion(params.FORKVERSION_1_3_0, 0, chain.StateDB); err != nil {
-		t.Error("AddActiveVersion, err", err)
-	}
-
-	if Gte130VersionState(chain.StateDB) {
-		if err := WriteEcHash130(chain.StateDB); nil != err {
-			t.Fatal(err)
-		}
-	}
-	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
-	assert.True(t, pposHash != nil)
 }

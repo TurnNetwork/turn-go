@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
@@ -22,24 +22,24 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/bubblenet/bubble/x/staking"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/bubblenet/bubble/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/restricting"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 type RestrictingPlugin struct {
@@ -668,36 +668,35 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	result.DLRestrictingBalance = (*hexutil.Big)(big.NewInt(0))
 	result.Locks = make([]restricting.DelegationLockPeriodResult, 0)
 	// 设置锁仓金
-	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
-	if err == nil {
+	_, info, bizErr := rp.mustGetRestrictingInfoByDecode(state, account)
+	if bizErr == nil {
 		result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
 		result.PledgeBalance = (*hexutil.Big)(info.AdvanceAmount)
 	}
 
 	// 设置委托锁定金
-	if gov.Gte130VersionState(state) {
-		var (
-			dLock  restricting.DelegationLockPeriodResult
-			dLocks []restricting.DelegationLockPeriodResult
-		)
-		locks, err := StakingInstance().GetGetDelegationLockCompactInfo(blockHash, blockNumber, account)
+	var (
+		dLock  restricting.DelegationLockPeriodResult
+		dLocks []restricting.DelegationLockPeriodResult
+	)
+	//var locks *staking.DelegationLockHex
+	locks, err := StakingInstance().GetGetDelegationLockCompactInfo(blockHash, blockNumber, account)
 
-		if err == nil {
-			result.DLFreeBalance = locks.Released
-			result.DLRestrictingBalance = locks.RestrictingPlan
-			for _, lock := range locks.Locks {
-				dLock.Epoch = lock.Epoch
-				dLock.Released = lock.Released
-				dLock.RestrictingPlan = lock.RestrictingPlan
-				dLocks = append(dLocks, dLock)
-			}
-
-			if len(dLocks) > 0 {
-				result.Locks = dLocks
-			}
+	if err == nil {
+		result.DLFreeBalance = locks.Released
+		result.DLRestrictingBalance = locks.RestrictingPlan
+		for _, lock := range locks.Locks {
+			dLock.Epoch = lock.Epoch
+			dLock.Released = lock.Released
+			dLock.RestrictingPlan = lock.RestrictingPlan
+			dLocks = append(dLocks, dLock)
 		}
-		log.Debug("end to GetRestrictingBalance", "locks", locks)
+
+		if len(dLocks) > 0 {
+			result.Locks = dLocks
+		}
 	}
+	log.Debug("end to GetRestrictingBalance", "locks", locks)
 	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
 
 	return result, nil

@@ -20,8 +20,8 @@
 package node
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // NoopLifecycle is a trivial implementation of the Service interface.

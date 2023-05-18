@@ -17,7 +17,7 @@
 package keystore
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/bubblenet/bubble/accounts/keystore"
 	"os"
 )
 

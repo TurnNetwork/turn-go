@@ -1,38 +1,38 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/params"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/gov"
+	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xutil"
 )
 
 var (
@@ -133,16 +133,13 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 				return err
 			}
-			if versionProposal.NewVersion == params.FORKVERSION_1_3_0 {
-				if err = gov.Set130Param(header.Number.Uint64(), blockHash, snapshotdb.Instance(), govPlugin.chainDB); err != nil {
-					log.Error("save  version 130 Param failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
-					return err
-				}
-				if err := gov.WriteEcHash130(state); nil != err {
-					log.Error("save EcHash130 to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-					return err
-				}
-				log.Info("Successfully upgraded the new version 1.3.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+			if err = gov.SetUnDelegateFreezeDuration(header.Number.Uint64(), blockHash, snapshotdb.Instance(), govPlugin.chainDB); err != nil {
+				log.Error("save UnDelegateFreezeDuration failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID, "err", err)
+				return err
+			}
+			if err := gov.WriteEcExtendHash(state); nil != err {
+				log.Error("save EcExtendHash to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+				return err
 			}
 
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
@@ -334,7 +331,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	}
 
 	// for now, do not remove these data.
-	// If really want to remove these data, please confirmed with PlatON Explorer Project
+	// If really want to remove these data, please confirmed with Bubble Explorer Project
 	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return err
@@ -501,7 +498,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		}
 	}
 	// for now, do not remove these data.
-	// If really want to remove these data, please confirmed with PlatON Explorer Project
+	// If really want to remove these data, please confirmed with Bubble Explorer Project
 	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return false, err

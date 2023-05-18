@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
-
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -25,8 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common/hexutil"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 const (
@@ -163,8 +162,10 @@ func parseFuncFromAbi(fileName string, funcName string) (*FuncDesc, error) {
 	return nil, fmt.Errorf("function %s not found in %s", funcName, fileName)
 }
 
-/**
-  Find the method called by parsing abi
+/*
+*
+
+	Find the method called by parsing abi
 */
 func GetFuncNameAndParams(f string) (string, []string) {
 	funcName := string(f[0:strings.Index(f, "(")])
@@ -184,8 +185,10 @@ func GetFuncNameAndParams(f string) (string, []string) {
 
 }
 
-/**
-  Self-test method for encrypting parameters
+/*
+*
+
+	Self-test method for encrypting parameters
 */
 func encodeParam(abiPath string, funcName string, funcParams string) error {
 	// Determine if the method exists

@@ -1,8 +1,8 @@
 package staking
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"testing"
 )

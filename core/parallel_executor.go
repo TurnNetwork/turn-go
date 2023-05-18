@@ -6,17 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
 	"github.com/panjf2000/ants/v2"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -28,8 +24,6 @@ var (
 	executorOnce sync.Once
 	executor     Executor
 	EIP155Signer types.Signer
-	PIP7Signer   types.Signer
-	PIP11Signer  types.Signer
 )
 
 type Executor struct {
@@ -62,9 +56,8 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		})
 		executor.chainConfig = chainConfig
 		executor.chainContext = chainContext
-		EIP155Signer = types.MakeSigner(chainConfig, false, false)
-		PIP7Signer = types.MakeSigner(chainConfig, true, false)
-		PIP11Signer = types.MakeSigner(chainConfig, true, true)
+		EIP155Signer = types.NewEIP155Signer(chainConfig.ChainID)
+		EIP155Signer = types.MakeSigner(chainConfig)
 		executor.signer = EIP155Signer
 		executor.vmCfg = vmCfg
 		executor.txpool = txpool
@@ -76,14 +69,7 @@ func GetExecutor() *Executor {
 }
 
 func (exe *Executor) MakeSigner(stateDB *state.StateDB) types.Signer {
-	gte140 := gov.Gte140VersionState(stateDB)
-	if gte140 {
-		exe.signer = PIP11Signer
-	} else if gov.Gte120VersionState(stateDB) {
-		exe.signer = PIP7Signer
-	} else {
-		exe.signer = EIP155Signer
-	}
+	exe.signer = EIP155Signer
 	return exe.signer
 }
 
@@ -123,7 +109,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 
 						from := tx.FromAddr(exe.Signer())
 						if _, popped := ctx.poppedAddresses[from]; popped {
-							log.Debug("Address popped", "from", from.Bech32())
+							log.Debug("Address popped", "from", from.String())
 							continue
 						}
 					}
@@ -261,6 +247,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state), gov.Gte140VersionState(state)) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
 	return isContract
 }

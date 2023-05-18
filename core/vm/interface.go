@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -78,7 +78,7 @@ type StateDB interface {
 
 	ForEachStorage(common.Address, func([]byte, []byte) bool)
 	MigrateStorage(from, to common.Address)
-	//ppos add
+	//dpos add
 	TxHash() common.Hash
 	TxIdx() uint32
 

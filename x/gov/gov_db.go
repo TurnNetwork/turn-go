@@ -1,36 +1,36 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package gov
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/rlp"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 var (
@@ -257,7 +257,7 @@ func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.State
 	return nil
 }
 
-func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB ethdb.Writer) error {
+func SetUnDelegateFreezeDuration(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB ethdb.Writer) error {
 	list, err := db.Get(hash, KeyParamItems())
 	if err != nil {
 		return err
@@ -273,13 +273,13 @@ func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB
 	paramItemList = append(paramItemList, unDelegateFreezeDurationParam.ParamItem)
 	value := common.MustRlpEncode(unDelegateFreezeDurationParam.ParamValue)
 	if err := db.Put(hash, KeyParamValue(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name), value); err != nil {
-		return fmt.Errorf("failed to Store govern 130 parameter. error:%s", err.Error())
+		return fmt.Errorf("failed to Store unDelegateFreezeDuration. error:%s", err.Error())
 	}
 	RegGovernParamVerifier(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name, unDelegateFreezeDurationParam.ParamVerifier)
 
 	valueList := common.MustRlpEncode(paramItemList)
 	if err := db.Put(hash, KeyParamItems(), valueList); err != nil {
-		return fmt.Errorf("failed to Store govern 130 parameter list. error:%s", err.Error())
+		return fmt.Errorf("failed to Store parameter list. error:%s", err.Error())
 	}
 	num, err := strconv.Atoi(unDelegateFreezeDurationParam.ParamValue.Value)
 	if nil != err {

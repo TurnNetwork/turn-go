@@ -43,33 +43,33 @@ func tmpDatadirWithKeystore(t *testing.T) string {
 }
 
 func TestAccountListEmpty(t *testing.T) {
-	platon := runPlatON(t, "account", "list")
-	platon.ExpectExit()
+	bubble := runBubble(t, "account", "list")
+	bubble.ExpectExit()
 }
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t, "account", "list", "--datadir", datadir)
-	defer platon.ExpectExit()
+	bubble := runBubble(t, "account", "list", "--datadir", datadir)
+	defer bubble.ExpectExit()
 	if runtime.GOOS == "windows" {
-		platon.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
+		bubble.Expect(`
+Account #0: {0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {0xf466859eAD1932D743d622CB74FC058882E8648A} keystore://{{.Datadir}}\keystore\aaa
+Account #2: {0x289d485D9771714CCe91D3393D764E1311907ACc} keystore://{{.Datadir}}\keystore\zzz
 `)
 	} else {
-		platon.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}/keystore/aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}/keystore/zzz
+		bubble.Expect(`
+Account #0: {0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {0xf466859eAD1932D743d622CB74FC058882E8648A} keystore://{{.Datadir}}/keystore/aaa
+Account #2: {0x289d485D9771714CCe91D3393D764E1311907ACc} keystore://{{.Datadir}}/keystore/zzz
 `)
 	}
 }
 
 func TestAccountNew(t *testing.T) {
-	platon := runPlatON(t, "account", "new", "--lightkdf")
-	defer platon.ExpectExit()
-	platon.Expect(`
+	bubble := runBubble(t, "account", "new", "--lightkdf")
+	defer bubble.ExpectExit()
+	bubble.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
@@ -78,8 +78,8 @@ Repeat password: {{.InputLine "foobar"}}
 Your new key was generated
 `)
 
-	platon.ExpectRegexp(`
-Public address of the key:   lat1[0-9a-z]{38}
+	bubble.ExpectRegexp(`
+Public address of the key:   [0-9a-f]{40}
 Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
 
 - You can share your public address with anyone. Others need it to interact with you.
@@ -115,15 +115,15 @@ func importAccountWithExpect(t *testing.T, key string, expected string) {
 	if err := ioutil.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
 		t.Error(err)
 	}
-	platon := runPlatON(t, "account", "import", keyfile, "-password", passwordFile)
-	defer platon.ExpectExit()
-	platon.Expect(expected)
+	bubble := runBubble(t, "account", "import", keyfile, "-password", passwordFile)
+	defer bubble.ExpectExit()
+	bubble.Expect(expected)
 }
 
 func TestAccountNewBadRepeat(t *testing.T) {
-	platon := runPlatON(t, "account", "new", "--lightkdf")
-	defer platon.ExpectExit()
-	platon.Expect(`
+	bubble := runBubble(t, "account", "new", "--lightkdf")
+	defer bubble.ExpectExit()
+	bubble.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "something"}}
@@ -134,12 +134,12 @@ Fatal: Passwords do not match
 
 func TestAccountUpdate(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t, "account", "update",
+	bubble := runBubble(t, "account", "update",
 		"--datadir", datadir, "--lightkdf",
-		"lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
-	defer platon.ExpectExit()
-	platon.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+		"0xf466859eAD1932D743d622CB74FC058882E8648A")
+	defer bubble.ExpectExit()
+	bubble.Expect(`
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 Please give a new password. Do not forget this password.
@@ -150,23 +150,23 @@ Repeat password: {{.InputLine "foobar2"}}
 
 func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
-		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
+		"--unlock", "0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
 		"js", "testdata/empty.js")
-	platon.Expect(`
-Unlocking account lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32 | Attempt 1/3
+	bubble.Expect(`
+Unlocking account 0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 `)
-	platon.ExpectExit()
+	bubble.ExpectExit()
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
 	}
 	for _, m := range wantMessages {
-		if !strings.Contains(platon.StderrText(), m) {
+		if !strings.Contains(bubble.StderrText(), m) {
 			t.Errorf("stderr text does not contain %q", m)
 		}
 	}
@@ -174,45 +174,45 @@ Password: {{.InputLine "foobar"}}
 
 func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
-	defer platon.ExpectExit()
-	platon.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A")
+	defer bubble.ExpectExit()
+	bubble.Expect(`
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "wrong1"}}
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 2/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 2/3
 Password: {{.InputLine "wrong2"}}
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 3/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 3/3
 Password: {{.InputLine "wrong3"}}
-Fatal: Failed to unlock account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 (could not decrypt key with given password)
+Fatal: Failed to unlock account 0xf466859eAD1932D743d622CB74FC058882E8648A (could not decrypt key with given password)
 `)
 }
 
 // https://github.com/ethereum/go-ethereum/issues/1785
 func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "0,2",
 		"js", "testdata/empty.js")
-	platon.Expect(`
+	bubble.Expect(`
 Unlocking account 0 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 Unlocking account 2 | Attempt 1/3
 Password: {{.InputLine "foobar"}}
 `)
-	platon.ExpectExit()
+	bubble.ExpectExit()
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"=lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
+		"=0x289d485D9771714CCe91D3393D764E1311907ACc",
 	}
 	for _, m := range wantMessages {
-		if !strings.Contains(platon.StderrText(), m) {
+		if !strings.Contains(bubble.StderrText(), m) {
 			t.Errorf("stderr text does not contain %q", m)
 		}
 	}
@@ -220,19 +220,19 @@ Password: {{.InputLine "foobar"}}
 
 func TestUnlockFlagPasswordFile(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
 		"--password", "testdata/passwords.txt", "--unlock", "0,2", "--ipcdisable", "--testnet",
 		"js", "testdata/empty.js")
-	platon.ExpectExit()
+	bubble.ExpectExit()
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"=lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
+		"=0x289d485D9771714CCe91D3393D764E1311907ACc",
 	}
 	for _, m := range wantMessages {
-		if !strings.Contains(platon.StderrText(), m) {
+		if !strings.Contains(bubble.StderrText(), m) {
 			t.Errorf("stderr text does not contain %q", m)
 		}
 	}
@@ -240,33 +240,33 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 
 func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
-	defer platon.ExpectExit()
-	platon.Expect(`
+	defer bubble.ExpectExit()
+	bubble.Expect(`
 Fatal: Failed to unlock account 0 (could not decrypt key with given password)
 `)
 }
 
 func TestUnlockFlagAmbiguous(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A",
 		"js", "testdata/empty.js")
-	defer platon.ExpectExit()
+	defer bubble.ExpectExit()
 
 	// Helper for the expect template, returns absolute keystore path.
-	platon.SetTemplateFunc("keypath", func(file string) string {
+	bubble.SetTemplateFunc("keypath", func(file string) string {
 		abs, _ := filepath.Abs(filepath.Join(store, file))
 		return abs
 	})
-	platon.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+	bubble.Expect(`
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
-Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
+Multiple key files exist for address 0xf466859eAD1932D743d622CB74FC058882E8648A:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
 Testing your password against all of them...
@@ -274,14 +274,14 @@ Your password unlocked keystore://{{keypath "1"}}
 In order to avoid this warning, you need to remove the following duplicate key files:
    keystore://{{keypath "2"}}
 `)
-	platon.ExpectExit()
+	bubble.ExpectExit()
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
+		"=0xf466859eAD1932D743d622CB74FC058882E8648A",
 	}
 	for _, m := range wantMessages {
-		if !strings.Contains(platon.StderrText(), m) {
+		if !strings.Contains(bubble.StderrText(), m) {
 			t.Errorf("stderr text does not contain %q", m)
 		}
 	}
@@ -289,25 +289,25 @@ In order to avoid this warning, you need to remove the following duplicate key f
 
 func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
-	defer platon.ExpectExit()
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A")
+	defer bubble.ExpectExit()
 
 	// Helper for the expect template, returns absolute keystore path.
-	platon.SetTemplateFunc("keypath", func(file string) string {
+	bubble.SetTemplateFunc("keypath", func(file string) string {
 		abs, _ := filepath.Abs(filepath.Join(store, file))
 		return abs
 	})
-	platon.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+	bubble.Expect(`
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "wrong"}}
-Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
+Multiple key files exist for address 0xf466859eAD1932D743d622CB74FC058882E8648A:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
 Testing your password against all of them...
 Fatal: None of the listed files could be unlocked.
 `)
-	platon.ExpectExit()
+	bubble.ExpectExit()
 }

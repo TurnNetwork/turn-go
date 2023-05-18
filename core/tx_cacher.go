@@ -19,9 +19,9 @@ package core
 import (
 	"runtime"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 // senderCacher is a concurrent transaction sender recoverer anc cacher.
@@ -49,7 +49,7 @@ type txSenderCacher struct {
 	txPool  *TxPool
 }
 
-//todoewTxSenderCacher creates a new transaction sender background cacher and starts
+// todoewTxSenderCacher creates a new transaction sender background cacher and starts
 // as many processing goroutines as allowed by the GOMAXPROCS on construction.
 func NewTxSenderCacher(threads int) *txSenderCacher {
 	cacher := &txSenderCacher{

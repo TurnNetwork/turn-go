@@ -25,42 +25,42 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+	"github.com/bubblenet/bubble/consensus/cbft/wal"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/bubblenet/bubble/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/bubblenet/bubble/x/handler"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+	"github.com/bubblenet/bubble/consensus/cbft/evidence"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
-	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/consensus"
+	"github.com/bubblenet/bubble/consensus/cbft"
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/consensus/cbft/validator"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/bloombits"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
+	"github.com/bubblenet/bubble/eth/downloader"
+	"github.com/bubblenet/bubble/eth/filters"
+	"github.com/bubblenet/bubble/eth/gasprice"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/miner"
+	"github.com/bubblenet/bubble/node"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rpc"
+	xplugin "github.com/bubblenet/bubble/x/plugin"
+	"github.com/bubblenet/bubble/x/xcom"
 )
 
 // Ethereum implements the Ethereum full node service.
@@ -100,7 +100,7 @@ type Ethereum struct {
 func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
+		return nil, errors.New("can't run bubble in light sync mode, use les.LightBubble")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -116,12 +116,12 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	hDB, error := stack.OpenDatabase("historydata",config.DatabaseCache, config.DatabaseHandles, "eth/db/historydata/" )
+	hDB, error := stack.OpenDatabase("historydata", config.DatabaseCache, config.DatabaseHandles, "eth/db/historydata/")
 	if error != nil {
 		return nil, error
 	}
 	xplugin.STAKING_DB = &xplugin.StakingDB{
-		HistoryDB:  hDB,
+		HistoryDB: hDB,
 	}
 	snapshotBaseDB, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 	if err != nil {
@@ -209,7 +209,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 
 	log.Info("Initialised chain configuration", "config", chainConfig)
-	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
+	stack.SetP2pChainID(chainConfig.ChainID)
 
 	eth := &Ethereum{
 		config:            config,
@@ -231,11 +231,11 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if bcVersion != nil {
 		dbVer = fmt.Sprintf("%d", *bcVersion)
 	}
-	log.Info("Initialising PlatON protocol", "versions", ProtocolVersions, "network", config.NetworkId, "dbversion", dbVer)
+	log.Info("Initialising bubble protocol", "versions", ProtocolVersions, "network", config.NetworkId, "dbversion", dbVer)
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, PlatON %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, bubble %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
@@ -255,7 +255,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			TrieCleanRejournal: config.TrieCleanCacheRejournal,
 			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
-			DBDisabledCache:config.DBDisabledCache,DBCacheEpoch:config.DBCacheEpoch,
+			DBDisabledCache: config.DBDisabledCache, DBCacheEpoch: config.DBCacheEpoch,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
@@ -317,7 +317,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
-		// - ppos
+		// - dpos
 
 		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
@@ -328,8 +328,8 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			offset := blocksPerNode * 2
 			agency = validator.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 			reactor.Start(common.INNER_VALIDATOR_MODE)
-		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
-			reactor.Start(common.PPOS_VALIDATOR_MODE)
+		} else if chainConfig.Cbft.ValidatorMode == common.DPOS_VALIDATOR_MODE {
+			reactor.Start(common.DPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
@@ -356,10 +356,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
 		return nil, err
 	}
-	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
-	if eth.APIBackend.allowUnprotectedTxs {
-		log.Info("Unprotected transactions allowed")
-	}
+	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
@@ -418,7 +415,7 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "platon",
+			Namespace: "bub",
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
@@ -428,7 +425,7 @@ func (s *Ethereum) APIs() []rpc.API {
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
 		}, {
-			Namespace: "platon",
+			Namespace: "bub",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
 			Public:    true,
@@ -448,7 +445,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   xplugin.NewPublicPPOSAPI(),
+			Service:   xplugin.NewPublicDPOSAPI(),
 		}, {
 			Namespace: "net",
 			Version:   "1.0",

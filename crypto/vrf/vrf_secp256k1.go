@@ -1,19 +1,20 @@
-// Copyright 2017 The PlatON Authors
-// This file is part of the PlatON library.
+// Copyright 2017 The Bubble Authors
+// This file is part of the Bubble library.
 //
-// The PlatON library is free software: you can redistribute it and/or modify
+// The Bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON library is distributed in the hope that it will be useful,
+// The Bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON library. If not, see <http://www.gnu.org/licenses/>.
+// along with the Bubble library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build !nacl && !js && !nocgo
 // +build !nacl,!js,!nocgo
 
 package vrf
@@ -24,8 +25,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/rfc6979"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"github.com/bubblenet/bubble/crypto/rfc6979"
+	"github.com/bubblenet/bubble/crypto/secp256k1"
 )
 
 const (

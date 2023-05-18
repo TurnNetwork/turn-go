@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
-// platon is the official command-line client for Ethereum.
+// bubble is the official command-line client for Ethereum.
 package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/bubblenet/bubble/console/prompt"
+	"github.com/panjf2000/ants/v2"
+	"gopkg.in/urfave/cli.v1"
 	"math"
 	"os"
 	"runtime"
@@ -29,26 +31,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/panjf2000/ants/v2"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/ethclient"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/ethclient"
+	"github.com/bubblenet/bubble/internal/debug"
+	"github.com/bubblenet/bubble/internal/ethapi"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
+	"github.com/bubblenet/bubble/node"
 
 	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 const (
-	clientIdentifier = "platon" // Client identifier to advertise over the network
+	clientIdentifier = "bubble" // Client identifier to advertise over the network
 )
 
 var (
@@ -56,7 +55,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = utils.NewApp(gitCommit, gitDate, "the bubble-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -147,7 +146,6 @@ var (
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
 		utils.RPCGlobalTxFeeCapFlag,
-		utils.AllowUnprotectedTxs,
 	}
 
 	metricsFlags = []cli.Flag{
@@ -189,10 +187,10 @@ var (
 )
 
 func init() {
-	// Initialize the CLI app and start PlatON
-	app.Action = platon
+	// Initialize the CLI app and start Bubble
+	app.Action = bubble
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2019 The bubble Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -294,10 +292,10 @@ func main() {
 	}
 }
 
-// platon is the main entry point into the system if no special subcommand is ran.
+// bubble is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
-func platon(ctx *cli.Context) error {
+func bubble(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}

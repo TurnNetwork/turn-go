@@ -18,23 +18,21 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 	"math/big"
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/holiman/uint256"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/bubblenet/bubble/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
 )
 
 const InvokedByTx = false
@@ -61,20 +59,13 @@ type (
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
-		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
-			precompiles = PrecompiledContractsBerlin
-		}
-
-		if p := precompiles[*contract.CodeAddr]; p != nil {
+		if p := PrecompiledContracts[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		if p := PlatONPrecompiledContracts120[*contract.CodeAddr]; p != nil {
+		if p := BubblePrecompiledContracts[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
 			case *vrf:
-				if gov.Gte120VersionState(evm.StateDB) {
-					return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
-				}
+				return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
 			case *validatorInnerContract:
 				vic := &validatorInnerContract{
 					Contract: contract,
@@ -88,28 +79,28 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Contract: contract,
 					Evm:      evm,
 				}
-				return RunPlatONPrecompiledContract(staking, input, contract)
+				return RunBubblePrecompiledContract(staking, input, contract)
 			case *RestrictingContract:
 				restricting := &RestrictingContract{
 					Plugin:   plugin.RestrictingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
-				return RunPlatONPrecompiledContract(restricting, input, contract)
+				return RunBubblePrecompiledContract(restricting, input, contract)
 			case *SlashingContract:
 				slashing := &SlashingContract{
 					Plugin:   plugin.SlashInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
-				return RunPlatONPrecompiledContract(slashing, input, contract)
+				return RunBubblePrecompiledContract(slashing, input, contract)
 			case *GovContract:
 				govContract := &GovContract{
 					Plugin:   plugin.GovPluginInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
-				return RunPlatONPrecompiledContract(govContract, input, contract)
+				return RunBubblePrecompiledContract(govContract, input, contract)
 			case *DelegateRewardContract:
 				delegateRewardContract := &DelegateRewardContract{
 					Plugin:    plugin.RewardMgrInstance(),
@@ -117,7 +108,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Contract:  contract,
 					Evm:       evm,
 				}
-				return RunPlatONPrecompiledContract(delegateRewardContract, input, contract)
+				return RunBubblePrecompiledContract(delegateRewardContract, input, contract)
 
 			}
 		}
@@ -228,12 +219,9 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	//第3阶段EVM中CHAINID指令返回值使用新链ID
-
-	if statedb != nil && gov.Gte130VersionState(statedb) {
+	if statedb != nil {
 		cpyChainCfg := &params.ChainConfig{
-			ChainID:        chainConfig.PIP7ChainID,
-			AddressHRP:     chainConfig.AddressHRP,
+			ChainID:        chainConfig.ChainID,
 			EmptyBlock:     chainConfig.EmptyBlock,
 			EIP155Block:    chainConfig.EIP155Block,
 			EWASMBlock:     chainConfig.EWASMBlock,
@@ -312,12 +300,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
 	if !evm.StateDB.Exist(addr) {
-		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
-			precompiles = PrecompiledContractsBerlin
-		}
-
-		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
+		if PrecompiledContracts[addr] == nil && !IsBubblePrecompiledContract(addr) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)

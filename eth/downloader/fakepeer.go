@@ -22,14 +22,14 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core"
+	"github.com/bubblenet/bubble/core/rawdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/ethdb"
 )
 
 // FakePeer is a mock downloader peer that operates on a local database instance
@@ -182,20 +182,20 @@ func (p *FakePeer) RequestNodeData(hashes []common.Hash) error {
 	return nil
 }
 
-func (p *FakePeer) RequestPPOSStorage() error {
+func (p *FakePeer) RequestDPOSStorage() error {
 	f := func(num *big.Int, iter iterator.Iterator) error {
 		var (
 			count int
 			KVNum uint64
 		)
-		KVs := make([]PPOSStorageKV, 0)
+		KVs := make([]DPOSStorageKV, 0)
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
 		Pivot := p.hc.GetHeaderByNumber(num.Uint64())
 		Latest := p.hc.CurrentHeader()
-		if err := p.dl.DeliverPposInfo(p.id, Latest, Pivot); err != nil {
-			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		if err := p.dl.DeliverDposInfo(p.id, Latest, Pivot); err != nil {
+			log.Error("[GetDPOSStorageMsg]send last dpos meassage fail", "error", err)
 			return err
 		}
 		for iter.Next() {
@@ -209,24 +209,24 @@ func (p *FakePeer) RequestPPOSStorage() error {
 			KVs = append(KVs, kv)
 			KVNum++
 			count++
-			if count >= PPOSStorageKVSizeFetch {
-				if err := p.dl.DeliverPposStorage(p.id, KVs, false, KVNum); err != nil {
-					log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
+			if count >= DPOSStorageKVSizeFetch {
+				if err := p.dl.DeliverDposStorage(p.id, KVs, false, KVNum); err != nil {
+					log.Error("[GetDPOSStorageMsg]send dpos meassage fail", "error", err, "kvnum", KVNum)
 					return err
 				}
 				count = 0
-				KVs = make([]PPOSStorageKV, 0)
+				KVs = make([]DPOSStorageKV, 0)
 			}
 		}
-		if err := p.dl.DeliverPposStorage(p.id, KVs, true, KVNum); err != nil {
-			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		if err := p.dl.DeliverDposStorage(p.id, KVs, true, KVNum); err != nil {
+			log.Error("[GetDPOSStorageMsg]send last dpos meassage fail", "error", err)
 			return err
 		}
 		return nil
 	}
 
 	if err := p.snapshotDB.WalkBaseDB(nil, f); err != nil {
-		log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		log.Error("[GetDPOSStorageMsg]send  dpos storage fail", "error", err)
 		return err
 	}
 	return nil

@@ -86,11 +86,11 @@ var customGenesisTests = []struct {
         },
         "reward":{
             "newBlockRate": 50,
-            "platonFoundationYear": 10 
+            "bubbleFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
-            "platonFundBalance": 0,
+            "bubbleFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
+            "bubbleFundBalance": 0,
             "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
@@ -111,11 +111,11 @@ var customGenesisTests = []struct {
             ],
             "amount":10,
 			"period":10000,
-            "validatorMode":"ppos"
+            "validatorMode":"dpos"
         }
     }
 }`,
-		query:  "platon.getBlock(0).nonce",
+		query:  "bub.getBlock(0).nonce",
 		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with only cbft config
@@ -176,11 +176,11 @@ var customGenesisTests = []struct {
         },
         "reward":{
             "newBlockRate": 50,
-            "platonFoundationYear": 10 
+            "bubbleFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
-            "platonFundBalance": 0,
+            "bubbleFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
+            "bubbleFundBalance": 0,
             "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
@@ -201,11 +201,11 @@ var customGenesisTests = []struct {
             ],
             "amount":10,
 			"period":10000,
-            "validatorMode":"ppos"
+            "validatorMode":"dpos"
         }
     }
 }`,
-		query:  "platon.getBlock(0).nonce",
+		query:  "bub.getBlock(0).nonce",
 		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with specific chain configurations
@@ -266,11 +266,11 @@ var customGenesisTests = []struct {
         },
         "reward":{
             "newBlockRate": 50,
-            "platonFoundationYear": 10 
+            "bubbleFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
-            "platonFundBalance": 0,
+            "bubbleFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
+            "bubbleFundBalance": 0,
             "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
@@ -294,16 +294,16 @@ var customGenesisTests = []struct {
             ],
             "amount":10,
 			"period":10000,
-            "validatorMode":"ppos"
+            "validatorMode":"dpos"
         }
     }
 }`,
-		query:  "platon.getBlock(0).nonce",
+		query:  "bub.getBlock(0).nonce",
 		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 }
 
-// Tests that initializing PlatON with a custom genesis block and chain definitions
+// Tests that initializing Bubble with a custom genesis block and chain definitions
 // work properly.
 func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {
@@ -316,15 +316,15 @@ func TestCustomGenesis(t *testing.T) {
 		if err := ioutil.WriteFile(json, []byte(tt.genesis), 0600); err != nil {
 			t.Fatalf("test %d: failed to write genesis file: %v", i, err)
 		}
-		runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
+		runBubble(t, "--datadir", datadir, "init", json).WaitExit()
 
 		// Query the custom genesis block
-		platon := runPlatON(t,
+		bubble := runBubble(t,
 			"--datadir", datadir, "--maxpeers", "60", "--port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)
-		platon.ExpectRegexp(tt.result)
-		platon.ExpectExit()
+		bubble.ExpectRegexp(tt.result)
+		bubble.ExpectExit()
 	}
 }

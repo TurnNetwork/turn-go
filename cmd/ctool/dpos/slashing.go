@@ -1,27 +1,26 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
-package ppos
+package dpos
 
 import (
 	"errors"
-
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 var (
@@ -36,9 +35,8 @@ var (
 	checkDuplicateSignCmd = cli.Command{
 		Name:   "checkDuplicateSign",
 		Usage:  "3001,query whether the node has been reported for too many signatures,parameter:duplicateSignType,nodeid,blockNum",
-		Before: netCheck,
 		Action: checkDuplicateSign,
-		Flags: []cli.Flag{rpcUrlFlag, addressHRPFlag,
+		Flags: []cli.Flag{rpcUrlFlag,
 			cli.Uint64Flag{
 				Name:  "duplicateSignType",
 				Usage: "duplicateSign type,1：prepareBlock，2：prepareVote，3：viewChange",
@@ -50,9 +48,8 @@ var (
 	zeroProduceNodeListCmd = cli.Command{
 		Name:   "zeroProduceNodeList",
 		Usage:  "3002,query the list of nodes with zero block",
-		Before: netCheck,
 		Action: zeroProduceNodeList,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	blockNumFlag = cli.Uint64Flag{
 		Name:  "blockNum",

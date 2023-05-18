@@ -1,29 +1,28 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
-package ppos
+package dpos
 
 import (
 	"errors"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/bubblenet/bubble/common"
+
+	"github.com/bubblenet/bubble/p2p/discover"
 )
 
 var (
@@ -46,72 +45,62 @@ var (
 	GetVerifierListCmd = cli.Command{
 		Name:   "getVerifierList",
 		Usage:  "1100,query the validator queue of the current settlement epoch",
-		Before: netCheck,
 		Action: getVerifierList,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getValidatorListCmd = cli.Command{
 		Name:   "getValidatorList",
 		Usage:  "1101,query the list of validators in the current consensus round",
-		Before: netCheck,
 		Action: getValidatorList,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getCandidateListCmd = cli.Command{
 		Name:   "getCandidateList",
 		Usage:  "1102,Query the list of all real-time candidates",
-		Before: netCheck,
 		Action: getCandidateList,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
 		Usage:  "1103,Query the NodeID and staking Id of the node entrusted by the current account address,parameter:add",
-		Before: netCheck,
 		Action: getRelatedListByDelAddr,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addFlag, jsonFlag},
 	}
 	getDelegateInfoCmd = cli.Command{
 		Name:   "getDelegateInfo",
 		Usage:  "1104,Query the delegation information of the current single node,parameter:stakingBlock,address,nodeid",
-		Before: netCheck,
 		Action: getDelegateInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
 	}
 	getCandidateInfoCmd = cli.Command{
 		Name:   "getCandidateInfo",
 		Usage:  "1105,Query the staking information of the current node,parameter:nodeid",
-		Before: netCheck,
 		Action: getCandidateInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeIdFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, nodeIdFlag, jsonFlag},
 	}
 	getDelegationLockCmd = cli.Command{
 		Name:   "getDelegationLock",
 		Usage:  "1106,Query the delegation lock information of the current account,parameter:address",
-		Before: netCheck,
 		Action: getDelegationLock,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, addFlag, jsonFlag},
 	}
 	getPackageRewardCmd = cli.Command{
 		Name:   "getPackageReward",
 		Usage:  "1200,query the block reward of the current settlement epoch",
-		Before: netCheck,
 		Action: getPackageReward,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getStakingRewardCmd = cli.Command{
 		Name:   "getStakingReward",
 		Usage:  "1201,query the staking reward of the current settlement epoch",
-		Before: netCheck,
 		Action: getStakingReward,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getAvgPackTimeCmd = cli.Command{
 		Name:   "getAvgPackTime",
 		Usage:  "1202,average time to query packaged blocks",
-		Before: netCheck,
 		Action: getAvgPackTime,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	addFlag = cli.StringFlag{
 		Name:  "address",
@@ -144,7 +133,7 @@ func getRelatedListByDelAddr(c *cli.Context) error {
 	if addstring == "" {
 		return errors.New("The Del's account address is not set")
 	}
-	add, err := common.Bech32ToAddress(addstring)
+	add, err := common.StringToAddress(addstring)
 	if err != nil {
 		return err
 	}
@@ -156,7 +145,7 @@ func getDelegateInfo(c *cli.Context) error {
 	if addstring == "" {
 		return errors.New("The Del's account address is not set")
 	}
-	add, err := common.Bech32ToAddress(addstring)
+	add, err := common.StringToAddress(addstring)
 	if err != nil {
 		return err
 	}
@@ -189,7 +178,7 @@ func getDelegationLock(c *cli.Context) error {
 	if addstring == "" {
 		return errors.New("The Del's account address is not set")
 	}
-	add, err := common.Bech32ToAddress(addstring)
+	add, err := common.StringToAddress(addstring)
 	if err != nil {
 		return err
 	}

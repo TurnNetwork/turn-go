@@ -15,9 +15,9 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 // Init --
@@ -439,8 +439,8 @@ func DHKeyExchange(sec *SecretKey, pub *PublicKey) (out PublicKey) {
 	return out
 }
 
-//add@20190716
-//get G2
+// add@20190716
+// get G2
 func GetGeneratorOfG2() (pub *PublicKey) {
 	pub = new(PublicKey)
 	C.blsGetGeneratorOfPublicKey(pub.getPointer())

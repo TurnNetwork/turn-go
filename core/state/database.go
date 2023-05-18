@@ -20,15 +20,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
 	"github.com/VictoriaMetrics/fastcache"
 
 	lru "github.com/hashicorp/golang-lru"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/trie"
 )
 
 const (
@@ -96,7 +96,7 @@ type cachingDB struct {
 	codeCache     *fastcache.Cache
 }
 
-//OpenTrie opens the main account trie.
+// OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db)
 }

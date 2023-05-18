@@ -3,14 +3,14 @@ package bls
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 )
 import (
 	"bytes"
 	"fmt"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 var unitN = 0
@@ -387,7 +387,7 @@ func TestNmain(t *testing.T) {
 	}
 }
 
-//add @20190716
+// add @20190716
 func testGetGOfG2(t *testing.T, c int) {
 	err := Init(c)
 	if err != nil {
@@ -801,8 +801,8 @@ func benchmarkDeriveSeckeyShare(k int, b *testing.B) {
 	}
 }
 
-//func BenchmarkDeriveSeckeyShare100(b *testing.B)  { benchmarkDeriveSeckeyShare(100, b) }
-//func BenchmarkDeriveSeckeyShare200(b *testing.B)  { benchmarkDeriveSeckeyShare(200, b) }
+// func BenchmarkDeriveSeckeyShare100(b *testing.B)  { benchmarkDeriveSeckeyShare(100, b) }
+// func BenchmarkDeriveSeckeyShare200(b *testing.B)  { benchmarkDeriveSeckeyShare(200, b) }
 func BenchmarkDeriveSeckeyShare500(b *testing.B) { benchmarkDeriveSeckeyShare(500, b) }
 
 //func BenchmarkDeriveSeckeyShare1000(b *testing.B) { benchmarkDeriveSeckeyShare(1000, b) }

@@ -18,13 +18,13 @@ package vm
 
 import (
 	"encoding/hex"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/plugin"
+	"github.com/bubblenet/bubble/x/staking"
 	"github.com/holiman/uint256"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/sha3"
@@ -723,7 +723,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]by
 	}
 	callContext.contract.Gas += returnGas
 
-	if IsPlatONPrecompiledContract(toAddr, false) {
+	if IsBubblePrecompiledContract(toAddr) {
 		saveTransData(interpreter, args, callContext.contract.self.Address().Bytes(), addr.Bytes(), string(ret))
 	}
 
@@ -790,7 +790,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, callContext *callCt
 	}
 	callContext.contract.Gas += returnGas
 
-	if IsPlatONPrecompiledContract(toAddr, false) {
+	if IsBubblePrecompiledContract(toAddr) {
 		saveTransData(interpreter, args, callContext.contract.CallerAddress.Bytes(), addr.Bytes(), string(ret))
 	}
 
@@ -1093,7 +1093,7 @@ func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
 }
 
 func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.Address, amount *big.Int) {
-	log.Debug("saveEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
+	log.Debug("saveEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from, "to", to, "amount", amount)
 
 	transKey := plugin.EmbedTransfer + txHash.String()
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))

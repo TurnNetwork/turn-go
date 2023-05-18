@@ -18,12 +18,11 @@ package utils
 
 import (
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/eth"
+	"github.com/bubblenet/bubble/node"
 )
 
 var ShowDeprecated = cli.Command{

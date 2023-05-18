@@ -19,7 +19,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"sort"
@@ -27,14 +26,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/prque"
+	"github.com/bubblenet/bubble/core/state"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/metrics"
+	"github.com/bubblenet/bubble/params"
 )
 
 const (
@@ -102,11 +101,11 @@ var (
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
 
-	// PlatON inner contract tx data invalid
-	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
+	// Bubble inner contract tx data invalid
+	ErrBubbleTxDataInvalid = errors.New("the tx data is invalid")
 
-	// the txSizeLimit of PlatON govern param found failed
-	//ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
+	// the txSizeLimit of Bubble govern param found failed
+	//ErrBubbleGovTxDataSize = errors.New("not found the govern txData size")
 )
 
 var (
@@ -321,21 +320,12 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
-	pip7, gte140 := false, false
-	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
-		stateDB, err := chain.GetState(currentBlock.Header())
-		if err == nil && stateDB != nil {
-			pip7 = gov.Gte120VersionState(stateDB)
-			gte140 = gov.Gte140VersionState(stateDB)
-		}
-	}
-
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.MakeSigner(chainconfig, pip7, gte140),
+		signer:      types.MakeSigner(chainconfig),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -507,9 +497,10 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHeader.GasLimit
-
 	// reset signer
-	pool.resetSigner(statedb)
+	pool.signer = types.MakeSigner(pool.chainconfig)
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -736,7 +727,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if nil != tx.To() {
 		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
 			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
-			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
+			return fmt.Errorf("%s: %s", ErrBubbleTxDataInvalid.Error(), err.Error())
 		}
 	}
 
@@ -1418,28 +1409,15 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
 	// reset signer
-	pool.resetSigner(statedb)
+	pool.signer = types.MakeSigner(pool.chainconfig)
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
-}
 
-func (pool *TxPool) resetSigner(statedb *state.StateDB) {
-	var signer types.Signer
-	gte140 := gov.Gte140VersionState(statedb)
-	if gte140 {
-		signer = types.MakeSigner(pool.chainconfig, true, true)
-	} else if gov.Gte120VersionState(statedb) {
-		signer = types.MakeSigner(pool.chainconfig, true, false)
-	} else {
-		signer = types.MakeSigner(pool.chainconfig, false, false)
-	}
-
-	pool.signer = signer
-	pool.locals.signer = pool.signer
-	pool.cacheAccountNeedPromoted.signer = pool.signer
 }
 
 // promoteExecutables moves transactions that have become processable from the

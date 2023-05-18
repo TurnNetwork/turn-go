@@ -1,18 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of the bubble library.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
+// The bubble library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The PlatON-Go library is distributed in the hope that it will be useful,
+// The bubble library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// along with the bubble library. If not, see <http://www.gnu.org/licenses/>.
 
 package cbft
 
@@ -22,18 +22,18 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
+	"github.com/bubblenet/bubble/consensus/cbft/state"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/bubblenet/bubble/node"
 
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/consensus/cbft/wal"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/bubblenet/bubble/consensus/cbft/protocols"
+	"github.com/bubblenet/bubble/core/types"
 )
 
 var (
@@ -177,7 +177,7 @@ func (b *baseBridge) addQCState(qc *protocols.State, chainState *protocols.Chain
 
 // ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
 // at the same time we will record the current fileID and fileSequence.
-// the next time the platon node restart, we will recovery the msg from this check point.
+// the next time the bubble node restart, we will recovery the msg from this check point.
 func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64) {
 	tStart := time.Now()
 	// save the identity location of the wal message in the file system
@@ -251,7 +251,7 @@ func (b *baseBridge) Close() {
 	b.cbft.wal.Close()
 }
 
-// recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
+// recoveryChainState tries to recovery consensus chainState from wal when the bubble node restart.
 // need to do some necessary checks based on the latest blockchain block.
 // execute commit/lock/qcs block and load the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
@@ -375,7 +375,7 @@ func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block,
 	}
 }
 
-// recoveryMsg tries to recovery consensus msg from wal when the platon node restart.
+// recoveryMsg tries to recovery consensus msg from wal when the bubble node restart.
 func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 	cbft.log.Info("Recover journal message from wal", "msgType", reflect.TypeOf(msg))
 

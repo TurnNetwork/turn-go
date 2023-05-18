@@ -27,18 +27,18 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 
 	"github.com/prometheus/tsdb/fileutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/ethdb"
+	"github.com/bubblenet/bubble/event"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p"
+	"github.com/bubblenet/bubble/rpc"
 )
 
 // Node is a container on which services can be registered.
@@ -119,7 +119,7 @@ func New(conf *Config) (*Node, error) {
 		return nil, err
 	}
 	// Ensure that the AccountManager method works before the node has started. We rely on
-	// this in cmd/platon.
+	// this in cmd/bubble.
 	am, ephemeralKeystore, err := makeAccountManager(conf)
 	if err != nil {
 		return nil, err
@@ -199,9 +199,8 @@ func (n *Node) Start() error {
 	return err
 }
 
-func (n *Node) SetP2pChainID(ChainID, PIP7ChainID *big.Int) {
+func (n *Node) SetP2pChainID(ChainID *big.Int) {
 	n.server.ChainID = ChainID
-	n.server.PIP7ChainID = PIP7ChainID
 }
 
 // Close stops the Node and releases resources acquired in

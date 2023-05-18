@@ -13,36 +13,36 @@ GO ?= latest
 GPATH = $(shell go env GOPATH)
 GORUN = env GO111MODULE=on GOPATH=$(GPATH) go run
 
-platon:
+bubble:
 	build/build_deps.sh
-	$(GORUN) build/ci.go install ./cmd/platon
+	$(GORUN) build/ci.go install ./cmd/bubble
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/platon\" to launch platon."
+	@echo "Run \"$(GOBIN)/bubble\" to launch bubble."
 
-platon-with-mpc:
+bubble-with-mpc:
 	build/build_deps.sh
-	$(GORUN) build/ci.go install -mpc on ./cmd/platon
-	@echo "Done building platon with mpc."
-	@echo "Run \"$(GOBIN)/platon\" to launch platon."
+	$(GORUN) build/ci.go install -mpc on ./cmd/bubble
+	@echo "Done building bubble with mpc."
+	@echo "Run \"$(GOBIN)/bubble\" to launch bubble."
 
-platon-with-vc:
-	build/build_deps.sh
-	build/build_snark.sh
-	$(GORUN) build/ci.go install -vc on ./cmd/platon
-	@echo "Done building platon with vc."
-	@echo "Run \"$(GOBIN)/platon\" to launch platon."
-
-platon-with-mv:
+bubble-with-vc:
 	build/build_deps.sh
 	build/build_snark.sh
-	$(GORUN) build/ci.go install -mv on ./cmd/platon
-	@echo "Done building platon with vc."
-	@echo "Run \"$(GOBIN)/platon\" to launch platon."
+	$(GORUN) build/ci.go install -vc on ./cmd/bubble
+	@echo "Done building bubble with vc."
+	@echo "Run \"$(GOBIN)/bubble\" to launch bubble."
+
+bubble-with-mv:
+	build/build_deps.sh
+	build/build_snark.sh
+	$(GORUN) build/ci.go install -mv on ./cmd/bubble
+	@echo "Done building bubble with vc."
+	@echo "Run \"$(GOBIN)/bubble\" to launch bubble."
 
 all:
 	build/build_deps.sh
 	$(GORUN) build/ci.go install
-	@mv $(GOBIN)/keytool $(GOBIN)/platonkey
+	@mv $(GOBIN)/keytool $(GOBIN)/bubblekey
 
 all-debug:
 	build/build_deps.sh

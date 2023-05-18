@@ -27,12 +27,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 func tmpKeyStoreIface(t *testing.T, encrypted bool) (dir string, ks keyStore) {
-	d, err := ioutil.TempDir("", "platon-keystore-test")
+	d, err := ioutil.TempDir("", "bubble-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,13 +107,13 @@ func TestImportPreSaleKey(t *testing.T) {
 	// file content of a presale key file generated with:
 	// python pyethsaletool.py genwallet
 	// with password "foo"
-	fileContent := "{\"encseed\": \"26d87f5f2bf9835f9a47eefae571bc09f9107bb13d54ff12a4ec095d01f83897494cf34f7bed2ed34126ecba9db7b62de56c9d7cd136520a0427bfb11b8954ba7ac39b90d4650d3448e31185affcd74226a68f1e94b1108e6e0a4a91cdd83eba\", \"ethaddr\": \"lax163vykhmz9xmmayrj0v8u334erw6z0qslq30zf2\", \"email\": \"gustav.simonsson@gmail.com\", \"btcaddr\": \"1EVknXyFC68kKNLkh6YnKzW41svSRoaAcx\"}"
+	fileContent := "{\"encseed\": \"26d87f5f2bf9835f9a47eefae571bc09f9107bb13d54ff12a4ec095d01f83897494cf34f7bed2ed34126ecba9db7b62de56c9d7cd136520a0427bfb11b8954ba7ac39b90d4650d3448e31185affcd74226a68f1e94b1108e6e0a4a91cdd83eba\", \"ethaddr\": \"0xd4584b5F6229b7BE90727b0FC8C6b91BB427821f\", \"email\": \"gustav.simonsson@gmail.com\", \"btcaddr\": \"1EVknXyFC68kKNLkh6YnKzW41svSRoaAcx\"}"
 	pass := "foo"
 	account, _, err := importPreSaleKey(ks, []byte(fileContent), pass)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if account.Address != common.MustBech32ToAddress("lax163vykhmz9xmmayrj0v8u334erw6z0qslq30zf2") {
+	if account.Address != common.HexToAddress("0xd4584b5F6229b7BE90727b0FC8C6b91BB427821f") {
 		t.Errorf("imported account has wrong address %x", account.Address)
 	}
 	if !strings.HasPrefix(account.URL.Path, dir) {
@@ -192,7 +192,7 @@ func TestV1_1(t *testing.T) {
 func TestV1_2(t *testing.T) {
 	t.Parallel()
 	ks := &keyStorePassphrase{"testdata/v1", LightScryptN, LightScryptP, true}
-	addr := common.MustBech32ToAddress("lax1edsat2wy39hmjevqjz6e0mcw00n00dn78xx5s5")
+	addr := common.HexToAddress("0xCB61d5A9C4896Fb9658090B597Ef0e7Be6F7B67e")
 	file := "testdata/v1/cb61d5a9c4896fb9658090b597ef0e7be6f7b67e/cb61d5a9c4896fb9658090b597ef0e7be6f7b67e"
 	k, err := ks.GetKey(addr, file, "g")
 	if err != nil {
@@ -248,7 +248,7 @@ func loadKeyStoreTestV1(file string, t *testing.T) map[string]KeyStoreTestV1 {
 func TestKeyForDirectICAP(t *testing.T) {
 	t.Parallel()
 	key := NewKeyForDirectICAP(rand.Reader)
-	if !strings.HasPrefix(key.Address.String(), common.GetAddressHRP()) {
+	if !common.IsHexAddress(key.Address.String()) {
 		t.Errorf("Expected first address byte to be zero, have: %s", key.Address.String())
 	}
 }

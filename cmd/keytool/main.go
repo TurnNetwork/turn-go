@@ -18,10 +18,10 @@ package main
 
 import (
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/bubblenet/bubble/cmd/utils"
 )
 
 const (
@@ -34,7 +34,7 @@ var gitDate = ""
 var app *cli.App
 
 func init() {
-	app = utils.NewApp(gitCommit, gitDate, "an PlatON-Go key manager")
+	app = utils.NewApp(gitCommit, gitDate, "an bubble key manager")
 	app.Commands = []cli.Command{
 		commandGenerate,
 		commandInspect,
@@ -43,7 +43,6 @@ func init() {
 		commandVerifyMessage,
 		commandGenkeypair,
 		commandGenblskeypair,
-		commandAddressHexToBech32,
 	}
 	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }

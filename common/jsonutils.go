@@ -2,7 +2,7 @@ package common
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/log"
 )
 
 func ToJson(obj interface{}) []byte {

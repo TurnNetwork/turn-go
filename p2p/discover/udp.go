@@ -27,11 +27,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/nat"
+	"github.com/bubblenet/bubble/p2p/netutil"
+	"github.com/bubblenet/bubble/rlp"
 )
 
 // Errors
@@ -66,8 +66,7 @@ const (
 )
 
 var (
-	cRest     = []rlp.RawValue{{0x65}, {0x65}}
-	cRestPIP7 = []rlp.RawValue{{0x65}, {0x65}}
+	cRest = []rlp.RawValue{{0x65}, {0x65}}
 )
 
 // RPC request structures
@@ -227,8 +226,7 @@ type Config struct {
 	PrivateKey *ecdsa.PrivateKey
 
 	// chainId identifies the current chain and is used for replay protection
-	ChainID     *big.Int `toml:"-"`
-	PIP7ChainID *big.Int `toml:"-"`
+	ChainID *big.Int `toml:"-"`
 
 	// These settings are optional:
 	AnnounceAddr *net.UDPAddr      // local address announced in the DHT
@@ -249,11 +247,6 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 		bytes_ChainId, _ := rlp.EncodeToBytes(cfg.ChainID)
 		log.Info("UDP set chain ID ", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
 		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
-	}
-	if cfg.PIP7ChainID != nil {
-		bytes_PIP7ChainID, _ := rlp.EncodeToBytes(cfg.PIP7ChainID)
-		cRestPIP7 = []rlp.RawValue{bytes_PIP7ChainID, bytes_PIP7ChainID}
-		log.Info("UDP set pip7 chain ID ", "chainId", cfg.PIP7ChainID, "bytes_ChainId", bytes_PIP7ChainID)
 	}
 
 	log.Info("UDP listener up", "self", tab.self)
@@ -625,7 +618,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 
@@ -656,7 +649,7 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 
@@ -673,7 +666,7 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 	if !t.db.hasBond(fromID) {
@@ -719,7 +712,7 @@ func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 	if !t.handleReply(fromID, neighborsPacket, req) {

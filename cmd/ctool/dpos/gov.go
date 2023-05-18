@@ -1,27 +1,26 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
-package ppos
+package dpos
 
 import (
 	"errors"
-
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/bubblenet/bubble/common"
 )
 
 var (
@@ -41,51 +40,44 @@ var (
 	getProposalCmd = cli.Command{
 		Name:   "getProposal",
 		Usage:  "2100,get proposal,parameter:proposalID",
-		Before: netCheck,
 		Action: getProposal,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, proposalIDFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, proposalIDFlag, jsonFlag},
 	}
 	getTallyResultCmd = cli.Command{
 		Name:   "getTallyResult",
 		Usage:  "2101,get tally result,parameter:proposalID",
-		Before: netCheck,
 		Action: getTallyResult,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, proposalIDFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, proposalIDFlag, jsonFlag},
 	}
 	listProposalCmd = cli.Command{
 		Name:   "listProposal",
 		Usage:  "2102,list proposal",
-		Before: netCheck,
 		Action: listProposal,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getActiveVersionCmd = cli.Command{
 		Name:   "getActiveVersion",
 		Usage:  "2103,query the effective version of the  chain",
-		Before: netCheck,
 		Action: getActiveVersion,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, jsonFlag},
 	}
 	getGovernParamValueCmd = cli.Command{
 		Name:   "getGovernParamValue",
 		Usage:  "2104,query the governance parameter value of the current block height,parameter:module,name",
-		Before: netCheck,
 		Action: getGovernParamValue,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, moduleFlag, nameFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, moduleFlag, nameFlag, jsonFlag},
 	}
 	getAccuVerifiersCountCmd = cli.Command{
 		Name:   "getAccuVerifiersCount",
 		Usage:  "2105,query the cumulative number of votes available for a proposal,parameter:proposalID,blockHash",
-		Before: netCheck,
 		Action: getAccuVerifiersCount,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, proposalIDFlag, blockHashFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, proposalIDFlag, blockHashFlag, jsonFlag},
 	}
 	listGovernParamCmd = cli.Command{
 		Name:   "listGovernParam",
 		Usage:  "2106,query the list of governance parameters,parameter:module",
-		Before: netCheck,
 		Action: listGovernParam,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, moduleFlag, jsonFlag},
+		Flags:  []cli.Flag{rpcUrlFlag, moduleFlag, jsonFlag},
 	}
 	proposalIDFlag = cli.StringFlag{
 		Name:  "proposalID",

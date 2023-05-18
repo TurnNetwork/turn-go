@@ -14,20 +14,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/bubblenet/bubble/core"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/bubblenet/bubble/core/rawdb"
 
 	"github.com/mroth/weightedrand"
 
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/bubblenet/bubble/event"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/log"
 )
 
 const (
@@ -755,9 +755,9 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 			return nil, fmt.Errorf("NewTxMakeManger HexToECDSA fail:%v", err)
 		}
 
-		address := common.MustBech32ToAddress(txgenInput.Tx[i].Add)
+		address := common.HexToAddress(txgenInput.Tx[i].Add)
 		if err != nil {
-			return nil, fmt.Errorf("NewTxMakeManger Bech32ToAddress fail:%v", err)
+			return nil, fmt.Errorf("NewTxMakeManger StringToAddress fail:%v", err)
 		}
 		nonce := GetNonce(address)
 		now := time.Now()
@@ -808,7 +808,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 		for _, config := range ContractConfigs {
 			if config.CallWeights != 0 {
 				txReceiver := new(txGenContractReceiver)
-				txReceiver.ContractsAddress = common.MustBech32ToAddress(config.ContractsAddress)
+				txReceiver.ContractsAddress = common.HexToAddress(config.ContractsAddress)
 				if getCodeSize(txReceiver.ContractsAddress) <= 0 {
 					return nil, fmt.Errorf("new tx gen fail the address don't have code,add:%s", txReceiver.ContractsAddress.String())
 				}

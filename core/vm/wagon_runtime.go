@@ -7,16 +7,16 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/bubblenet/bubble/common"
+	imath "github.com/bubblenet/bubble/common/math"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/rlp"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/PlatONnetwork/wagon/wasm"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/params"
 
 	"math/big"
 	"reflect"
@@ -59,8 +59,8 @@ func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
 	m.Export.Entries = make(map[string]wasm.ExportEntry)
 
-	// uint8_t platon_gas_price(uint8_t gas_price[16])
-	// func $platon_gas_price(param $0 i32) (result i32)
+	// uint8_t bub_gas_price(uint8_t gas_price[16])
+	// func $bub_gas_price(param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -71,12 +71,12 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_gas_price",
+			FieldStr: "bub_gas_price",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
-	// void platon_block_hash(int64_t num, uint8_t hash[32])
-	// func $platon_block_hash(param $0 i64) (param $1 i32)
+	// void bub_block_hash(int64_t num, uint8_t hash[32])
+	// func $bub_block_hash(param $0 i64) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI64, wasm.ValueTypeI32},
@@ -86,13 +86,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_block_hash",
+			FieldStr: "bub_block_hash",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// uint64_t platon_block_number()
-	// func $platon_block_number (result i64)
+	// uint64_t bub_block_number()
+	// func $bub_block_number (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
@@ -102,13 +102,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_block_number",
+			FieldStr: "bub_block_number",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// uint64_t platon_gas_limit()
-	// func $platon_gas_limit (result i64)
+	// uint64_t bub_gas_limit()
+	// func $bub_gas_limit (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
@@ -118,12 +118,12 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_gas_limit",
+			FieldStr: "bub_gas_limit",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
-	// uint64_t platon_gas()
-	// func $platon_gas (result i64)
+	// uint64_t bub_gas()
+	// func $bub_gas (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
@@ -133,12 +133,12 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_gas",
+			FieldStr: "bub_gas",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int64_t platon_timestamp()
+	// int64_t bub_timestamp()
 	// func $timestamp (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
@@ -149,13 +149,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_timestamp",
+			FieldStr: "bub_timestamp",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_coinbase(uint8_t addr[20])
-	// func $platon_coinbase (param $0 i32)
+	// void bub_coinbase(uint8_t addr[20])
+	// func $bub_coinbase (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -165,13 +165,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_coinbase",
+			FieldStr: "bub_coinbase",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// uint8_t platon_balance(const uint8_t addr[20], uint8_t balance[16])
-	// func $platon_balance (param $0 i32) (param $1 i32) (result i32)
+	// uint8_t bub_balance(const uint8_t addr[20], uint8_t balance[16])
+	// func $bub_balance (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -182,13 +182,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_balance",
+			FieldStr: "bub_balance",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_origin(uint8_t addr[20])
-	// func $platon_origin (param $0 i32)
+	// void bub_origin(uint8_t addr[20])
+	// func $bub_origin (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -198,13 +198,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_origin",
+			FieldStr: "bub_origin",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_caller(uint8_t addr[20])
-	// func $platon_caller (param $0 i32)
+	// void bub_caller(uint8_t addr[20])
+	// func $bub_caller (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -214,13 +214,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_caller",
+			FieldStr: "bub_caller",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// uint8_t platon_call_value(uint8_t val[16])
-	// func $platon_call_value (param $0 i32) (result i32)
+	// uint8_t bub_call_value(uint8_t val[16])
+	// func $bub_call_value (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -231,13 +231,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_call_value",
+			FieldStr: "bub_call_value",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_address(uint8_t addr[20])
-	// func $platon_address  (param $0 i32)
+	// void bub_address(uint8_t addr[20])
+	// func $bub_address  (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -247,13 +247,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_address",
+			FieldStr: "bub_address",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_sha3(const uint8_t *src, size_t srcLen, uint8_t *dest, size_t destLen)
-	// func $platon_sha3  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
+	// void bub_sha3(const uint8_t *src, size_t srcLen, uint8_t *dest, size_t destLen)
+	// func $bub_sha3  (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -263,13 +263,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_sha3",
+			FieldStr: "bub_sha3",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// uint64_t platon_caller_nonce()
-	// func $platon_caller_nonce  (result i64)
+	// uint64_t bub_caller_nonce()
+	// func $bub_caller_nonce  (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
@@ -279,13 +279,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_caller_nonce",
+			FieldStr: "bub_caller_nonce",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_transfer(const uint8_t to[20], const uint8_t *amount, size_t len)
-	// func $platon_transfer  (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
+	// int32_t bub_transfer(const uint8_t to[20], const uint8_t *amount, size_t len)
+	// func $bub_transfer  (param $1 i32) (param $2 i32) (param $3 i32) (result i64)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -296,13 +296,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_transfer",
+			FieldStr: "bub_transfer",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_set_state(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen)
-	// func $platon_set_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
+	// void bub_set_state(const uint8_t* key, size_t klen, const uint8_t *value, size_t vlen)
+	// func $bub_set_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -312,13 +312,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_set_state",
+			FieldStr: "bub_set_state",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// size_t platon_get_state_length (const uint8_t* key, size_t klen)
-	// func $platon_get_state_length (param $0 i32) (param $1 i32) (result i32)
+	// size_t bub_get_state_length (const uint8_t* key, size_t klen)
+	// func $bub_get_state_length (param $0 i32) (param $1 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -330,13 +330,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_state_length",
+			FieldStr: "bub_get_state_length",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_get_state(const uint8_t *key, size_t klen, uint8_t *value, size_t vlen)
-	// func $platon_get_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+	// int32_t bub_get_state(const uint8_t *key, size_t klen, uint8_t *value, size_t vlen)
+	// func $bub_get_state (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -347,13 +347,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_state",
+			FieldStr: "bub_get_state",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// size_t platon_get_input_length()
-	// func $platon_get_input_length  (result i32)
+	// size_t bub_get_input_length()
+	// func $bub_get_input_length  (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -363,13 +363,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_input_length",
+			FieldStr: "bub_get_input_length",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_get_input(const uint8_t *value)
-	// func $platon_get_input (param $0 i32)
+	// void bub_get_input(const uint8_t *value)
+	// func $bub_get_input (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -379,13 +379,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_input",
+			FieldStr: "bub_get_input",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// size_t platon_get_call_output_length()
-	// func $platon_get_call_output_length  (result i32)
+	// size_t bub_get_call_output_length()
+	// func $bub_get_call_output_length  (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -395,13 +395,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_call_output_length",
+			FieldStr: "bub_get_call_output_length",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_get_call_output(const uint8_t *value)
-	// func $platon_get_call_output (param $0 i32)
+	// void bub_get_call_output(const uint8_t *value)
+	// func $bub_get_call_output (param $0 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
@@ -411,13 +411,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_get_call_output",
+			FieldStr: "bub_get_call_output",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_return(const uint8_t *value, const size_t len)
-	// func $platon_return(param $0 i32) (param $1 i32)
+	// void bub_return(const uint8_t *value, const size_t len)
+	// func $bub_return(param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -427,13 +427,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_return",
+			FieldStr: "bub_return",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_revert()
-	// func $platon_return()
+	// void bub_revert()
+	// func $bub_return()
 	addFuncExport(m,
 		wasm.FunctionSig{},
 		wasm.Function{
@@ -441,13 +441,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_revert",
+			FieldStr: "bub_revert",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_panic()
-	// func $platon_panic()
+	// void bub_panic()
+	// func $bub_panic()
 	addFuncExport(m,
 		wasm.FunctionSig{},
 		wasm.Function{
@@ -455,13 +455,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_panic",
+			FieldStr: "bub_panic",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_debug(const uint8_t *dst, size_t len)
-	// func $platon_debug (param i32 i32)
+	// void bub_debug(const uint8_t *dst, size_t len)
+	// func $bub_debug (param i32 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -471,13 +471,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_debug",
+			FieldStr: "bub_debug",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
-	// func $platon_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t bub_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
+	// func $bub_call  (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -488,13 +488,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_call",
+			FieldStr: "bub_call",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
-	// func $platon_delegate_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t bub_delegate_call(const uint8_t to[20], const uint8_t *args, size_t args_len, const uint8_t *call_cost, size_t call_cost_len);
+	// func $bub_delegate_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -505,13 +505,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_delegate_call",
+			FieldStr: "bub_delegate_call",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	/*	// int32_t platon_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
-		// func $platon_static_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	/*	// int32_t bub_static_call(const uint8_t to[20], const uint8_t* args, size_t argsLen, const uint8_t* callCost, size_t callCostLen);
+		// func $bub_static_call (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 		addFuncExport(m,
 			wasm.FunctionSig{
 				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -522,13 +522,13 @@ func NewHostModule() *wasm.Module {
 				Body: &wasm.FunctionBody{},
 			},
 			wasm.ExportEntry{
-				FieldStr: "platon_static_call",
+				FieldStr: "bub_static_call",
 				Kind:     wasm.ExternalFunction,
 			},
 		)*/
 
-	// int32_t platon_destroy(const uint8_t to[20])
-	// func $platon_destroy (param $0 i32) (result i32)
+	// int32_t bub_destroy(const uint8_t to[20])
+	// func $bub_destroy (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -539,13 +539,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_destroy",
+			FieldStr: "bub_destroy",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
-	// func $platon_migrate  (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t bub_migrate(uint8_t new_addr[20], const uint8_t *args, size_t args_len, const uint8_t *value, size_t value_len, const uint8_t *call_cost, size_t call_cost_len);
+	// func $bub_migrate  (param $1 i32) (param $2 i32) (param $0 i32) (param $1 i32) (param $2 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
@@ -557,13 +557,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_migrate",
+			FieldStr: "bub_migrate",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_clone_migrate(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-	// func $platon_clone_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
+	// int32_t bub_clone_migrate(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $bub_clone_migrate (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
@@ -575,13 +575,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_clone_migrate",
+			FieldStr: "bub_clone_migrate",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
-	// func $platon_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
+	// void bub_event(const uint8_t *topic, size_t topic_len, const uint8_t *args, size_t args_len);
+	// func $bub_event (param $0 i32) (param $1 i32) (param $0 i32) (param $1 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -591,13 +591,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_event",
+			FieldStr: "bub_event",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20])
-	// func platon_ecrecover (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
+	// int32_t bub_ecrecover(const uint8_t hash[32], const uint8_t* sig, const uint8_t sig_len, uint8_t addr[20])
+	// func bub_ecrecover (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -608,13 +608,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_ecrecover",
+			FieldStr: "bub_ecrecover",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t hash[20])
-	// func platon_ripemd160 (param $0 i32) (param $1 i32) (param $2 i32)
+	// void bub_ripemd160(const uint8_t *input, uint32_t input_len, uint8_t hash[20])
+	// func bub_ripemd160 (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -624,13 +624,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_ripemd160",
+			FieldStr: "bub_ripemd160",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// void platon_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32])
-	// func platon_sha256 (param $0 i32) (param $1 i32) (param $2 i32)
+	// void bub_sha256(const uint8_t *input, uint32_t input_len, uint8_t hash[32])
+	// func bub_sha256 (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -640,7 +640,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_sha256",
+			FieldStr: "bub_sha256",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -662,8 +662,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_rlp_u128(uint64_t heigh, uint64_t low, void * dest);
-	// func platon_rlp_u128 (param $0 i64) (param $1 i64) (param $2 i32)
+	// void bub_rlp_u128(uint64_t heigh, uint64_t low, void * dest);
+	// func bub_rlp_u128 (param $0 i64) (param $1 i64) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI64, wasm.ValueTypeI64, wasm.ValueTypeI32},
@@ -673,7 +673,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_rlp_u128",
+			FieldStr: "bub_rlp_u128",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -695,8 +695,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_rlp_bytes(const void *data, size_t len, void * dest);
-	// func platon_rlp_bytes (param $0 i32) (param $1 i32) (param $2 i32)
+	// void bub_rlp_bytes(const void *data, size_t len, void * dest);
+	// func bub_rlp_bytes (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -706,7 +706,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_rlp_bytes",
+			FieldStr: "bub_rlp_bytes",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -728,8 +728,8 @@ func NewHostModule() *wasm.Module {
 		},
 	)
 
-	// void platon_rlp_list(const void *data, size_t len, void * dest);
-	// func platon_rlp_list (param $0 i32) (param $1 i32) (param $2 i32)
+	// void bub_rlp_list(const void *data, size_t len, void * dest);
+	// func bub_rlp_list (param $0 i32) (param $1 i32) (param $2 i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -739,13 +739,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_rlp_list",
+			FieldStr: "bub_rlp_list",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// size_t platon_contract_code_length(const uint8_t addr[20]);
-	// func platon_contract_code_length (param $0 i32) (result i32)
+	// size_t bub_contract_code_length(const uint8_t addr[20]);
+	// func bub_contract_code_length (param $0 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
@@ -756,13 +756,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_contract_code_length",
+			FieldStr: "bub_contract_code_length",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
-	// func platon_contract_code (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
+	// int32_t bub_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
+	// func bub_contract_code (param $0 i32) (param $1 i32) (param $2 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
@@ -773,13 +773,13 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_contract_code",
+			FieldStr: "bub_contract_code",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-	// func $platon_deploy (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
+	// int32_t bub_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $bub_deploy (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
@@ -787,17 +787,17 @@ func NewHostModule() *wasm.Module {
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
-			Host: reflect.ValueOf(PlatonDeploy),
+			Host: reflect.ValueOf(BubbleDeploy),
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_deploy",
+			FieldStr: "bub_deploy",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
 
-	// int32_t platon_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-	// func $platon_clone (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
+	// int32_t bub_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+	// func $bub_clone (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (param $4 i32) (param $5 i32) (param $6 i32) (param $7 i32) (result i32)
 	addFuncExport(m,
 		wasm.FunctionSig{
 			ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
@@ -805,11 +805,11 @@ func NewHostModule() *wasm.Module {
 			ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 		},
 		wasm.Function{
-			Host: reflect.ValueOf(PlatonClone),
+			Host: reflect.ValueOf(BubbleClone),
 			Body: &wasm.FunctionBody{},
 		},
 		wasm.ExportEntry{
-			FieldStr: "platon_clone",
+			FieldStr: "bub_clone",
 			Kind:     wasm.ExternalFunction,
 		},
 	)
@@ -920,15 +920,8 @@ func Caller(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
 
-	// get current version
-	currentValue := ctx.evm.StateDB.GetCurrentActiveVersion()
-
 	// get caller address
-	callerAddress := ctx.contract.caller.Address().Bytes()
-	if currentValue >= params.FORKVERSION_1_1_0 {
-		callerAddress = ctx.contract.Caller().Bytes()
-	}
-
+	callerAddress := ctx.contract.Caller().Bytes()
 	_, err := proc.WriteAt(callerAddress, int64(dst))
 	if nil != err {
 		panic(err)
@@ -1923,7 +1916,7 @@ func RlpU128Size(proc *exec.Process, heigh uint64, low uint64) uint32 {
 	return size
 }
 
-// void platon_rlp_u128(uint64_t heigh, uint64_t low, void * dest);
+// void bub_rlp_u128(uint64_t heigh, uint64_t low, void * dest);
 func RlpU128(proc *exec.Process, heigh uint64, low uint64, dest uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	var (
@@ -1985,7 +1978,7 @@ func RlpBytesSize(proc *exec.Process, src uint32, length uint32) uint32 {
 	return uint32(len(bigEndian(uint64(length)))) + length + 1
 }
 
-// void platon_rlp_bytes(const void *data, size_t len, void * dest);
+// void bub_rlp_bytes(const void *data, size_t len, void * dest);
 func RlpBytes(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
@@ -2050,7 +2043,7 @@ func RlpListSize(proc *exec.Process, length uint32) uint32 {
 	return uint32(len(bigEndian(uint64(length)))) + length + 1
 }
 
-// void platon_rlp_list(const void *data, size_t len, void * dest);
+// void bub_rlp_list(const void *data, size_t len, void * dest);
 func RlpList(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
@@ -2100,7 +2093,7 @@ func RlpList(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	}
 }
 
-// size_t platon_contract_code_length(const uint8_t addr[20]);
+// size_t bub_contract_code_length(const uint8_t addr[20]);
 func ContractCodeLength(proc *exec.Process, addrPtr uint32) uint32 {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
@@ -2119,7 +2112,7 @@ func ContractCodeLength(proc *exec.Process, addrPtr uint32) uint32 {
 	return uint32(len(contractCode))
 }
 
-// int32_t platon_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
+// int32_t bub_contract_code(const uint8_t addr[20], uint8_t *code, size_t code_length);
 func ContractCode(proc *exec.Process, addrPtr uint32, code uint32, codeLen uint32) int32 {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
@@ -2148,8 +2141,8 @@ func ContractCode(proc *exec.Process, addrPtr uint32, code uint32, codeLen uint3
 	return int32(len(contractCode))
 }
 
-// int32_t platon_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-func PlatonDeploy(proc *exec.Process, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+// int32_t bub_deploy(uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+func BubbleDeploy(proc *exec.Process, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)
@@ -2282,8 +2275,8 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	return 0
 }
 
-// int32_t platon_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
-func PlatonClone(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
+// int32_t bub_clone(const uint8_t old_addr[20], uint8_t newAddr[20], const uint8_t* args, size_t argsLen, const uint8_t* value, size_t valueLen, const uint8_t* callCost, size_t callCostLen);
+func BubbleClone(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)

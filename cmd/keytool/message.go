@@ -19,14 +19,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/accounts/keystore"
+	"github.com/bubblenet/bubble/cmd/utils"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 type outputSign struct {
@@ -99,21 +98,16 @@ It is possible to refer to a file containing the message.`,
 	Flags: []cli.Flag{
 		jsonFlag,
 		msgfileFlag,
-		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		hrp := ctx.String(utils.AddressHRPFlag.Name)
-		if err := common.SetAddressHRP(hrp); err != nil {
-			return err
-		}
 		addressStr := ctx.Args().First()
 		signatureHex := ctx.Args().Get(1)
 		message := getMessage(ctx, 2)
 
-		if !common.IsBech32Address(addressStr) {
+		if !common.IsHexAddress(addressStr) {
 			utils.Fatalf("Invalid address: %s", addressStr)
 		}
-		address, err := common.Bech32ToAddress(addressStr)
+		address, err := common.StringToAddress(addressStr)
 		if err != nil {
 			utils.Fatalf("decode address fail: %s", addressStr)
 		}

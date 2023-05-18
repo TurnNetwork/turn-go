@@ -29,9 +29,9 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/log"
 )
 
 // Minimum amount of time between cache reloads. This limit applies if the platform does
@@ -264,7 +264,7 @@ func (ac *accountCache) scanAccounts() error {
 			return nil
 		}
 
-		addr, err := common.Bech32ToAddress(key.Address)
+		addr, err := common.StringToAddress(key.Address)
 		switch {
 		case err != nil:
 			log.Debug("Failed to decode keystore key", "path", path, "err", err)

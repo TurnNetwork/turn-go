@@ -30,9 +30,9 @@ import (
 
 	"github.com/pborman/uuid"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/bubblenet/bubble/accounts"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
 )
 
 const (
@@ -113,7 +113,7 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 	*u = uuid.Parse(keyJSON.Id)
 	k.Id = *u
 
-	addr, err := common.Bech32ToAddress(keyJSON.Address)
+	addr, err := common.StringToAddress(keyJSON.Address)
 	if err != nil {
 		return err
 	}

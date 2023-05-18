@@ -1,19 +1,18 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of PlatON-Go.
+// Copyright 2021 The Bubble Network Authors
+// This file is part of bubble.
 //
-// PlatON-Go is free software: you can redistribute it and/or modify
+// bubble is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// PlatON-Go is distributed in the hope that it will be useful,
+// bubble is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
-
+// along with bubble. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -30,11 +29,11 @@ import (
 
 	"github.com/docker/docker/pkg/reexec"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
+	"github.com/bubblenet/bubble/internal/cmdtest"
 	"github.com/stretchr/testify/assert"
 )
 
-type testPlatON struct {
+type testBubble struct {
 	*cmdtest.TestCmd
 
 	// template variables for expect
@@ -88,11 +87,11 @@ var (
         },
         "reward":{
             "newBlockRate": 50,
-            "platonFoundationYear": 10 
+            "bubbleFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
-            "platonFundBalance": 0,
+            "bubbleFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "bubbleFundBalance": 0,
             "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
             "cdfBalance": 331811981000000000000000000
         }
@@ -114,7 +113,7 @@ var (
             ],
             "amount":10,
 			"period":10000,
-            "validatorMode":"ppos"
+            "validatorMode":"dpos"
         }
     }
 }`
@@ -141,7 +140,7 @@ func parseConfig(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("%v", err))
 }
 
-func prepare(t *testing.T) (*testPlatON, string) {
+func prepare(t *testing.T) (*testBubble, string) {
 	parseConfig(t)
 	datadir := tmpdir(t)
 	json := filepath.Join(datadir, "genesis.json")
@@ -149,14 +148,14 @@ func prepare(t *testing.T) (*testPlatON, string) {
 
 	assert.Nil(t, err, fmt.Sprintf("failed to write genesis file: %v", err))
 
-	runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
+	runBubble(t, "--datadir", datadir, "init", json).WaitExit()
 
 	//time.Sleep(2 * time.Second)
 
 	port := strings.Split(config.Url, ":")[2] // http://localhost:6789
-	platon := runPlatON(t,
+	bubble := runBubble(t,
 		"--datadir", datadir, "--port", "0", "--nodiscover", "--nat", "none",
-		"--rpc", "--rpcaddr", "0.0.0.0", "--rpcport", port, "--rpcapi", "txpool,platon,net,web3,miner,admin,personal,version")
+		"--rpc", "--rpcaddr", "0.0.0.0", "--rpcport", port, "--rpcapi", "txpool,bub,net,web3,miner,admin,personal,version")
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
 
@@ -172,13 +171,13 @@ func prepare(t *testing.T) (*testPlatON, string) {
 	_, e := HttpPost(unlock)
 
 	assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
-	return platon, datadir
+	return bubble, datadir
 }
 
-func clean(platon *testPlatON, datadir string) {
+func clean(bubble *testBubble, datadir string) {
 
-	platon.Interrupt()
-	platon.ExpectExit()
+	bubble.Interrupt()
+	bubble.ExpectExit()
 	os.RemoveAll(datadir)
 }
 
@@ -188,15 +187,15 @@ func trulyRandInt(lo, hi int) int {
 }
 
 func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "platon-test")
+	dir, err := ioutil.TempDir("", "bubble-test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-func runPlatON(t *testing.T, args ...string) *testPlatON {
-	tt := &testPlatON{}
+func runBubble(t *testing.T, args ...string) *testBubble {
+	tt := &testBubble{}
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {
 		switch {
@@ -217,9 +216,9 @@ func runPlatON(t *testing.T, args ...string) *testPlatON {
 			}
 		}()
 	}
-	t.Log("run platon args: ", strings.Join(args, " "))
+	t.Log("run bubble args: ", strings.Join(args, " "))
 
-	tt.Run("platon-test", args...)
+	tt.Run("bubble-test", args...)
 
 	return tt
 }
