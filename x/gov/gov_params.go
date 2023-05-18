@@ -390,12 +390,7 @@ var ParamVerifierMap = make(map[string]ParamVerifier)
 func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	var paramItemList []*ParamItem
 
-	initParamList := queryInitParam()
-
-	if genesisVersion >= params.FORKVERSION_1_3_0 {
-		log.Info("init 1.3.0 params")
-		initParamList = append(initParamList, initUnDelegateFreezeDurationParamGenesis())
-	}
+	initParamList := append(queryInitParam(), initUnDelegateFreezeDurationParamGenesis())
 
 	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
 		if err := snapDB.PutBaseDB(key, val); nil != err {

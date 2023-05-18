@@ -257,7 +257,7 @@ func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.State
 	return nil
 }
 
-func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB ethdb.Writer) error {
+func SetUnDelegateFreezeDuration(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB ethdb.Writer) error {
 	list, err := db.Get(hash, KeyParamItems())
 	if err != nil {
 		return err
@@ -273,13 +273,13 @@ func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB
 	paramItemList = append(paramItemList, unDelegateFreezeDurationParam.ParamItem)
 	value := common.MustRlpEncode(unDelegateFreezeDurationParam.ParamValue)
 	if err := db.Put(hash, KeyParamValue(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name), value); err != nil {
-		return fmt.Errorf("failed to Store govern 130 parameter. error:%s", err.Error())
+		return fmt.Errorf("failed to Store unDelegateFreezeDuration. error:%s", err.Error())
 	}
 	RegGovernParamVerifier(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name, unDelegateFreezeDurationParam.ParamVerifier)
 
 	valueList := common.MustRlpEncode(paramItemList)
 	if err := db.Put(hash, KeyParamItems(), valueList); err != nil {
-		return fmt.Errorf("failed to Store govern 130 parameter list. error:%s", err.Error())
+		return fmt.Errorf("failed to Store parameter list. error:%s", err.Error())
 	}
 	num, err := strconv.Atoi(unDelegateFreezeDurationParam.ParamValue.Value)
 	if nil != err {

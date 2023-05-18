@@ -333,7 +333,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
 
-	if !vm.IsBubblePrecompiledContract(to, true) {
+	if !vm.IsBubblePrecompiledContract(to) {
 		return nil
 	}
 

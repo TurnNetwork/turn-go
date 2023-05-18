@@ -12,7 +12,6 @@ import (
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
-	"github.com/bubblenet/bubble/x/gov"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -248,6 +247,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state), gov.Gte140VersionState(state)) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
 	return isContract
 }

@@ -317,7 +317,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, gov.Gte130VersionState(state)); err != nil {
+			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, true); err != nil {
 				return nil, err
 			}
 		}

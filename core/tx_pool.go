@@ -19,7 +19,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/x/gov"
 	"math"
 	"math/big"
 	"sort"
@@ -498,13 +497,10 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHeader.GasLimit
-
 	// reset signer
-	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig)
-		pool.locals.signer = pool.signer
-		pool.cacheAccountNeedPromoted.signer = pool.signer
-	}
+	pool.signer = types.MakeSigner(pool.chainconfig)
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -1413,11 +1409,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
 	// reset signer
-	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig)
-		pool.locals.signer = pool.signer
-		pool.cacheAccountNeedPromoted.signer = pool.signer
-	}
+	pool.signer = types.MakeSigner(pool.chainconfig)
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)

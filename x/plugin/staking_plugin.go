@@ -159,55 +159,53 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 		}
 	}
 	if xutil.IsEndOfConsensus(blockNumber) {
-		if gov.Gte140VersionState(state) {
-			// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
-			// Used to record historical consensus round node information.
-			// 1. Simplify the consensus node information
-			// 2. Calculate the identification ID
-			// 3. Compute the hash of the simplified list of node information
-			// 4. Replace the value of header.extra[0:32] with the Hash value.
-			// 5. Form a list of identification IDs in the order of block generation and write them into the DB
-			next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
-			if err != nil {
-				log.Error("Failed to Query Next validators on stakingPlugin Begin When end of consensus",
-					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-				return err
-			}
-			historyValidatorList := make(staking.HistoryValidatorList, len(next.Arr))
-			historyValidatorIDList := make(staking.HistoryValidatorIDList, len(next.Arr))
-			for i := 0; i < len(next.Arr); i++ {
-				hv := &staking.HistoryValidator{
-					NodeId:    next.Arr[i].NodeId,
-					BlsPubKey: next.Arr[i].BlsPubKey,
-				}
-				id := hv.ID()
-				historyValidatorList[i] = hv
-				historyValidatorIDList[i] = id
-				if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
-					return err
-				}
-			}
-			if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
-				return err
-			}
-			listHash, err := historyValidatorList.Hash()
-			if err != nil {
-				log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-				return err
-			}
-			// The outgoing block node writes to extra.
-			// Non-outgoing block nodes validate extra.
-			if xutil.IsWorker(header.Extra) {
-				// The hash value will be signed by the node.
-				// will also be counted in the block Hash.
-				copy(header.Extra[:32], listHash.Bytes())
-			} else {
-				if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
-					return errors.New("historical validator list Hash is not the same")
-				}
-			}
-			log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
+		// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
+		// Used to record historical consensus round node information.
+		// 1. Simplify the consensus node information
+		// 2. Calculate the identification ID
+		// 3. Compute the hash of the simplified list of node information
+		// 4. Replace the value of header.extra[0:32] with the Hash value.
+		// 5. Form a list of identification IDs in the order of block generation and write them into the DB
+		next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
+		if err != nil {
+			log.Error("Failed to Query Next validators on stakingPlugin Begin When end of consensus",
+				"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
 		}
+		historyValidatorList := make(staking.HistoryValidatorList, len(next.Arr))
+		historyValidatorIDList := make(staking.HistoryValidatorIDList, len(next.Arr))
+		for i := 0; i < len(next.Arr); i++ {
+			hv := &staking.HistoryValidator{
+				NodeId:    next.Arr[i].NodeId,
+				BlsPubKey: next.Arr[i].BlsPubKey,
+			}
+			id := hv.ID()
+			historyValidatorList[i] = hv
+			historyValidatorIDList[i] = id
+			if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
+				return err
+			}
+		}
+		if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
+			return err
+		}
+		listHash, err := historyValidatorList.Hash()
+		if err != nil {
+			log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		// The outgoing block node writes to extra.
+		// Non-outgoing block nodes validate extra.
+		if xutil.IsWorker(header.Extra) {
+			// The hash value will be signed by the node.
+			// will also be counted in the block Hash.
+			copy(header.Extra[:32], listHash.Bytes())
+		} else {
+			if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
+				return errors.New("historical validator list Hash is not the same")
+			}
+		}
+		log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
 	}
 	return nil
 }
@@ -983,7 +981,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, sk.db.GetDB()); err != nil {
 		return err
 	}
-	version13 := gov.Gte130VersionState(state)
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -1009,7 +1006,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	} else {
-		if version13 && typ == LockVon {
+		if typ == LockVon {
 			lockReleasedHes, lockRestrictingHes, err := sk.AdvanceDelegationLockedFunds(blockHash, delAddr, uint32(epoch), amount)
 			if err != nil {
 				log.Error("Failed to Delegate on stakingPlugin: call  AdvanceDelegationLockedFunds() is failed",
@@ -1030,7 +1027,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	del.DelegateEpoch = uint32(epoch)
 
 	// set new delegate info
-	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, version13); nil != err {
+	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, true); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store Delegate info is failed",
 			"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum",
 			can.StakingBlockNum, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1136,7 +1133,6 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 
 	del.DelegateEpoch = uint32(epoch)
 
-	versionLockDelegation := gov.Gte130VersionState(state)
 	switch {
 	// Illegal parameter
 	case can.IsNotEmpty() && stakingBlockNum > can.StakingBlockNum:
@@ -1162,22 +1158,18 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			if can.IsNotEmpty() {
 				can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
 			}
-			if versionLockDelegation {
-				returnReleased.Add(returnReleased, new(big.Int).Sub(del.ReleasedHes, rbalance))
-				returnRestrictingPlan.Add(returnRestrictingPlan, new(big.Int).Sub(del.RestrictingPlanHes, lbalance))
-			}
+			returnReleased.Add(returnReleased, new(big.Int).Sub(del.ReleasedHes, rbalance))
+			returnRestrictingPlan.Add(returnRestrictingPlan, new(big.Int).Sub(del.RestrictingPlanHes, lbalance))
 
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
-		if versionLockDelegation {
-			delegationLock, err := sk.db.GetDelegationLock(blockHash, delAddr, uint32(epoch))
-			if err != nil {
-				if err == snapshotdb.ErrNotFound {
-					delegationLock = staking.NewDelegationLock()
-				} else {
-					return nil, nil, nil, nil, nil, err
-				}
+		delegationLock, err := sk.db.GetDelegationLock(blockHash, delAddr, uint32(epoch))
+		if err != nil {
+			if err == snapshotdb.ErrNotFound {
+				delegationLock = staking.NewDelegationLock()
+			} else {
+				return nil, nil, nil, nil, nil, err
 			}
 			// 计算委托需要锁定的最后一个周期
 			lockEndEpoch, err := calDelegationLockEndEpoch(blockNumber.Uint64(), blockHash, uint32(epoch))
@@ -1265,7 +1257,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				return nil, nil, nil, nil, nil, err
 			}
 		} else {
-			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, versionLockDelegation); nil != err {
+			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, true); nil != err {
 				log.Error("Failed to WithdrewDelegation on stakingPlugin: Store detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
@@ -3205,23 +3197,15 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		return nil, err
 	}
 
-	var p float64
-	if gov.Gte110Version(currentVersion) {
-		p = xcom.CalcPV110(totalSqrtWeightsFloat)
-	} else {
-		p = xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
-	}
-
+	p := xcom.CalcP(totalSqrtWeightsFloat)
 	shuffleSeed := new(big.Int).SetBytes(preNonces[0]).Int64()
 	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
 		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen, "shuffleSeed", shuffleSeed)
 
-	if gov.Gte110Version(currentVersion) {
-		rd := rand.New(rand.NewSource(shuffleSeed))
-		rd.Shuffle(len(svList), func(i, j int) {
-			svList[i], svList[j] = svList[j], svList[i]
-		})
-	}
+	rd := rand.New(rand.NewSource(shuffleSeed))
+	rd.Shuffle(len(svList), func(i, j int) {
+		svList[i], svList[j] = svList[j], svList[i]
+	})
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
@@ -3248,11 +3232,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
 
-	if gov.Gte110Version(currentVersion) {
-		sort.Sort(newSortValidatorQueue(svList))
-	} else {
-		sort.Sort(svList)
-	}
+	sort.Sort(newSortValidatorQueue(svList))
 	for index, sv := range svList {
 		if index == shiftLen {
 			break

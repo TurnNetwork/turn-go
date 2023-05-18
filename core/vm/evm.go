@@ -22,8 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bubblenet/bubble/x/gov"
-
 	"github.com/holiman/uint256"
 
 	"github.com/bubblenet/bubble/core/snapshotdb"
@@ -57,20 +55,13 @@ type (
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
-		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
-			precompiles = PrecompiledContractsBerlin
-		}
-
-		if p := precompiles[*contract.CodeAddr]; p != nil {
+		if p := PrecompiledContracts[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		if p := BubblePrecompiledContracts120[*contract.CodeAddr]; p != nil {
+		if p := BubblePrecompiledContracts[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
 			case *vrf:
-				if gov.Gte120VersionState(evm.StateDB) {
-					return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
-				}
+				return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
 			case *validatorInnerContract:
 				vic := &validatorInnerContract{
 					Contract: contract,
@@ -224,9 +215,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	//第3阶段EVM中CHAINID指令返回值使用新链ID
-
-	if statedb != nil && gov.Gte130VersionState(statedb) {
+	if statedb != nil {
 		cpyChainCfg := &params.ChainConfig{
 			ChainID:        chainConfig.ChainID,
 			EmptyBlock:     chainConfig.EmptyBlock,
@@ -307,12 +296,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
 	if !evm.StateDB.Exist(addr) {
-		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
-			precompiles = PrecompiledContractsBerlin
-		}
-
-		if precompiles[addr] == nil && !IsBubblePrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
+		if PrecompiledContracts[addr] == nil && !IsBubblePrecompiledContract(addr) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
