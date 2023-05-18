@@ -381,7 +381,7 @@ web3._extend({
 
 const BubbleJs = `
 web3._extend({
-	property: 'bubble',
+	property: 'bub',
 	methods: [
 		new web3._extend.Method({
 		name: 'chainId',
