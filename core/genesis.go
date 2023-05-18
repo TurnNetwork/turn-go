@@ -308,11 +308,9 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if g.Config.ChainID == nil {
 		return errors.New("chainId configuration is missed")
 	}
-	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
-		file.Seek(0, io.SeekStart)
-		if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
-			return err
-		}
+	file.Seek(0, io.SeekStart)
+	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
+		return err
 	}
 
 	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
@@ -411,11 +409,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
-	// 1.3.0
-	if gov.Gte130Version(genesisVersion) {
-		if err := gov.WriteEcHash130(statedb); nil != err {
-			panic("Failed Store EcHash130: " + err.Error())
-		}
+	if err := gov.WriteEcExtendHash(statedb); nil != err {
+		panic("Failed Store EcExtendHash: " + err.Error())
 	}
 
 	root := statedb.IntermediateRoot(false)
@@ -491,9 +486,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
-	if config.GenesisVersion >= params.FORKVERSION_1_3_0 {
-		rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
-	}
+	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 
 	return block, nil
 }

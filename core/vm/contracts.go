@@ -57,32 +57,9 @@ type BubblePrecompiledContract interface {
 	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
-// PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
-// contracts used in the Frontier and Homestead releases.
-var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-}
-
-// PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
-// contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-	common.BytesToAddress([]byte{5}): &bigModExp{},
-	common.BytesToAddress([]byte{6}): &bn256Add{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common.BytesToAddress([]byte{8}): &bn256Pairing{},
-	common.BytesToAddress([]byte{9}): &blake2F{},
-}
-
-// PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
+// PrecompiledContracts contains the default set of pre-compiled Ethereum
 // contracts used in the Berlin release.
-var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+var PrecompiledContracts = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}):  &ecrecover{},
 	common.BytesToAddress([]byte{2}):  &sha256hash{},
 	common.BytesToAddress([]byte{3}):  &ripemd160hash{},
@@ -130,17 +107,6 @@ var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.GovContractAddr:         &GovContract{},
 	vm.RewardManagerPoolAddr:   &rewardEmpty{},
 	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
-}
-
-var BubblePrecompiledContracts120 = map[common.Address]PrecompiledContract{
-	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
-	// add by economic model
-	vm.StakingContractAddr:     &StakingContract{},
-	vm.RestrictingContractAddr: &RestrictingContract{},
-	vm.SlashingContractAddr:    &SlashingContract{},
-	vm.GovContractAddr:         &GovContract{},
-	vm.RewardManagerPoolAddr:   &rewardEmpty{},
-	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 	vm.VrfInnerContractAddr:    &vrf{},
 }
 
@@ -161,37 +127,25 @@ func RunBubblePrecompiledContract(p BubblePrecompiledContract, input []byte, con
 	return nil, ErrOutOfGas
 }
 
-func IsEVMPrecompiledContract(addr common.Address, gte140Version bool) bool {
-	if gte140Version {
-		if _, ok := PrecompiledContractsBerlin[addr]; ok {
-			return true
-		}
-	} else {
-		if _, ok := PrecompiledContractsByzantium[addr]; ok {
-			return true
-		}
+func IsEVMPrecompiledContract(addr common.Address) bool {
+	if _, ok := PrecompiledContracts[addr]; ok {
+		return true
 	}
 	return false
 }
 
-func IsBubblePrecompiledContract(addr common.Address, Gte120Version bool) bool {
-	if Gte120Version {
-		if _, ok := BubblePrecompiledContracts120[addr]; ok {
-			return true
-		}
-	} else {
-		if _, ok := BubblePrecompiledContracts[addr]; ok {
-			return true
-		}
+func IsBubblePrecompiledContract(addr common.Address) bool {
+	if _, ok := BubblePrecompiledContracts[addr]; ok {
+		return true
 	}
 	return false
 }
 
-func IsPrecompiledContract(addr common.Address, gte120Version bool, gte140Version bool) bool {
-	if IsEVMPrecompiledContract(addr, gte140Version) {
+func IsPrecompiledContract(addr common.Address) bool {
+	if IsEVMPrecompiledContract(addr) {
 		return true
 	} else {
-		return IsBubblePrecompiledContract(addr, gte120Version)
+		return IsBubblePrecompiledContract(addr)
 	}
 }
 

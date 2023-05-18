@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"sync"
@@ -64,9 +63,7 @@ const (
 	IncreaseIssuanceRatioLowerLimit   = 0
 
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
-	ElectionBase = 30
-
-	ElectionBasePIP3 = 43
+	ElectionBase = 43
 
 	MainNetECHash = "0x259176769541cdb61bc19806cbf5a3f3489f4829b6b69f804f45f947a0c9c3e9"
 )
@@ -86,6 +83,7 @@ var (
 
 	// 10W
 	StakeLowerLimit, _ = new(big.Int).SetString("100000000000000000000000", 10)
+
 	// 1000W BUB
 	StakeUpperLimit, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
@@ -170,11 +168,10 @@ type EconomicModelExtend struct {
 }
 
 type stakingConfigExtend struct {
-	// 可治理参数,在版本升级或者私链初始化版本高于1.3.0的时候被写入到快照db,后续通过快照db查询
 	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
 }
 
-func EcParams130() ([]byte, error) {
+func EcExtendParams() ([]byte, error) {
 	params := struct {
 		UnDelegateFreezeDuration uint64
 	}{
@@ -286,9 +283,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				BubbleFundAccount: common.HexToAddress("lat1aaczrlrzylnanv57map5lndllkf7mvtnd9h8dj"),
+				BubbleFundAccount: common.HexToAddress("0xF1A63d79E43dEA9AE0715FDE95d59D34ce756264"),
 				BubbleFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("lat1fpccktpn37a94rdj9yxszxp7pt3kae05j6lr9l"),
+				CDFAccount:        common.HexToAddress("0x48718b2C338FBa5A8DB2290d01183e0aE36eE5F4"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
@@ -652,11 +649,11 @@ func CheckEconomicModel(version uint32) error {
 	if err := CheckMinimumRelease(ec.Restricting.MinimumRelease); nil != err {
 		return err
 	}
-	if version >= params.FORKVERSION_1_3_0 {
-		if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
-			return err
-		}
+
+	if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
+		return err
 	}
+
 	return nil
 }
 
@@ -908,10 +905,6 @@ func EconomicString() string {
 
 // Calculate the P value of the binomial distribution
 // Parameter: The total weight of the election
-func CalcP(totalWeight float64, sqrtWeight float64) float64 {
+func CalcP(sqrtWeight float64) float64 {
 	return float64(ElectionBase) / sqrtWeight
-}
-
-func CalcPV110(sqrtWeight float64) float64 {
-	return float64(ElectionBasePIP3) / sqrtWeight
 }

@@ -87,10 +87,7 @@ func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
 	if checkInputEmpty(input) {
 		return nil, nil
 	}
-	if gov.Gte130VersionState(stkc.Evm.StateDB) {
-		return execBubbleContract(input, stkc.FnSigns())
-	}
-	return execBubbleContract(input, stkc.FnSignsV1())
+	return execBubbleContract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
@@ -815,13 +812,9 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId d
 			return nil, err
 		}
 	}
-	if gov.Gte130VersionState(state) {
-		return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
-			"", TxWithdrewDelegation, int(common.NoErr.Code), issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan), nil
-	} else {
-		return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
-			"", TxWithdrewDelegation, int(common.NoErr.Code), issueIncome), nil
-	}
+	return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxWithdrewDelegation, int(common.NoErr.Code), issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan), nil
+
 }
 
 func (stkc *StakingContract) redeemDelegation() ([]byte, error) {
@@ -973,14 +966,9 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 			del, staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found")), nil
 	}
 
-	if gov.Gte130VersionState(stkc.Evm.StateDB) {
-		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-			delAddr, nodeId, stakingBlockNum),
-			del, nil), nil
-	}
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
 		delAddr, nodeId, stakingBlockNum),
-		del.V1(), nil), nil
+		del, nil), nil
 }
 
 func (stkc *StakingContract) getDelegateLock(delAddr common.Address) ([]byte, error) {
