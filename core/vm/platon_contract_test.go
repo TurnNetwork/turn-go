@@ -189,7 +189,7 @@ var (
 	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // version: 0.8.0
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	promoteVersion      = params.FORKVERSION_0_11_0 // version: 0.11.0
+	promoteVersion      = params.INITVERSION_0_1_0 // version: 0.11.0
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
 
 	balanceStr = []string{
