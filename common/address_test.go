@@ -23,12 +23,9 @@ func TestIsStringAddress(t *testing.T) {
 		str string
 		exp bool
 	}{
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", true},
-		{"lao1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
-		{"lam1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
-		{"lat1x4w7852dxs70sy2mgf8w0s7tmvqx3cz2ydaxq4", false},
-		{"lat1x4w7852dxs69sy2mgf8w0s7tmv", false},
+		{"0x355de3D14d343458115B424ee7C3CbdB0068E04A", true},
+		{"0x355de3D14d343458115B424ee7C3CbdB0068E04A", true},
+		{"0x355de3D14d34345818E04A", false},
 		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae", false},
 		{"5aaeb6053f3e94c9b9a09f33669435e7ef1beaed11", false},
 		{"0xxaaeb6053f3e94c9b9a09f33669435e7ef1beaed", false},
@@ -145,11 +142,11 @@ func TestJsonEncodeWithEIP55(t *testing.T) {
 		t.Error(err2)
 	}
 
-	if bytes.Equal(defaultJsonAddr, json2Addr) {
+	if !bytes.Equal(defaultJsonAddr, json2Addr) {
 		t.Error("should same")
 	}
 
-	if bytes.Equal(defaultJsonAddr, json2PtrAddr) {
+	if !bytes.Equal(defaultJsonAddr, json2PtrAddr) {
 		t.Error("should same ptr")
 	}
 }
@@ -163,7 +160,7 @@ func TestJsonEncodeWithEIP55(t *testing.T) {
 //}
 
 func BenchmarkAddressString(b *testing.B) {
-	testAddr := HexToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")
+	testAddr := HexToAddress("0x355de3D14d343458115B424ee7C3CbdB0068E04A")
 	for n := 0; n < b.N; n++ {
 		testAddr.String()
 	}

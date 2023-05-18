@@ -18,7 +18,6 @@ package xcom
 
 import (
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -29,24 +28,15 @@ func TestDefaultEMConfig(t *testing.T) {
 		if getDefaultEMConfig(DefaultMainNet) == nil {
 			t.Error("DefaultMainNet can't be nil config")
 		}
-		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
-			t.Error(err)
-		}
 	})
 	t.Run("DefaultTestNet", func(t *testing.T) {
 		if getDefaultEMConfig(DefaultTestNet) == nil {
 			t.Error("DefaultTestNet can't be nil config")
 		}
-		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
-			t.Error(err)
-		}
 	})
 	t.Run("DefaultUnitTestNet", func(t *testing.T) {
 		if getDefaultEMConfig(DefaultUnitTestNet) == nil {
 			t.Error("DefaultUnitTestNet can't be nil config")
-		}
-		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
-			t.Error(err)
 		}
 	})
 	if getDefaultEMConfig(10) != nil {

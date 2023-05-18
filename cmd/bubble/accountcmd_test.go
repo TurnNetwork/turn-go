@@ -53,15 +53,15 @@ func TestAccountList(t *testing.T) {
 	defer bubble.ExpectExit()
 	if runtime.GOOS == "windows" {
 		bubble.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
+Account #0: {0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {0xf466859eAD1932D743d622CB74FC058882E8648A} keystore://{{.Datadir}}\keystore\aaa
+Account #2: {0x289d485D9771714CCe91D3393D764E1311907ACc} keystore://{{.Datadir}}\keystore\zzz
 `)
 	} else {
 		bubble.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}/keystore/aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}/keystore/zzz
+Account #0: {0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {0xf466859eAD1932D743d622CB74FC058882E8648A} keystore://{{.Datadir}}/keystore/aaa
+Account #2: {0x289d485D9771714CCe91D3393D764E1311907ACc} keystore://{{.Datadir}}/keystore/zzz
 `)
 	}
 }
@@ -79,7 +79,7 @@ Your new key was generated
 `)
 
 	bubble.ExpectRegexp(`
-Public address of the key:   lat1[0-9a-z]{38}
+Public address of the key:   [0-9a-f]{40}
 Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
 
 - You can share your public address with anyone. Others need it to interact with you.
@@ -136,10 +136,10 @@ func TestAccountUpdate(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	bubble := runBubble(t, "account", "update",
 		"--datadir", datadir, "--lightkdf",
-		"lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
+		"0xf466859eAD1932D743d622CB74FC058882E8648A")
 	defer bubble.ExpectExit()
 	bubble.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 Please give a new password. Do not forget this password.
@@ -152,10 +152,10 @@ func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	bubble := runBubble(t,
 		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
-		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
+		"--unlock", "0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
 		"js", "testdata/empty.js")
 	bubble.Expect(`
-Unlocking account lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32 | Attempt 1/3
+Unlocking account 0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 `)
@@ -163,7 +163,7 @@ Password: {{.InputLine "foobar"}}
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
 	}
 	for _, m := range wantMessages {
 		if !strings.Contains(bubble.StderrText(), m) {
@@ -176,17 +176,17 @@ func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	bubble := runBubble(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A")
 	defer bubble.ExpectExit()
 	bubble.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "wrong1"}}
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 2/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 2/3
 Password: {{.InputLine "wrong2"}}
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 3/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 3/3
 Password: {{.InputLine "wrong3"}}
-Fatal: Failed to unlock account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 (could not decrypt key with given password)
+Fatal: Failed to unlock account 0xf466859eAD1932D743d622CB74FC058882E8648A (could not decrypt key with given password)
 `)
 }
 
@@ -208,8 +208,8 @@ Password: {{.InputLine "foobar"}}
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"=lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
+		"=0x289d485D9771714CCe91D3393D764E1311907ACc",
 	}
 	for _, m := range wantMessages {
 		if !strings.Contains(bubble.StderrText(), m) {
@@ -228,8 +228,8 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"=lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg",
+		"=0x7EF5A6135f1FD6a02593eEdC869c6D41D934aef8",
+		"=0x289d485D9771714CCe91D3393D764E1311907ACc",
 	}
 	for _, m := range wantMessages {
 		if !strings.Contains(bubble.StderrText(), m) {
@@ -253,7 +253,7 @@ func TestUnlockFlagAmbiguous(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
 	bubble := runBubble(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A",
 		"js", "testdata/empty.js")
 	defer bubble.ExpectExit()
 
@@ -263,10 +263,10 @@ func TestUnlockFlagAmbiguous(t *testing.T) {
 		return abs
 	})
 	bubble.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
-Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
+Multiple key files exist for address 0xf466859eAD1932D743d622CB74FC058882E8648A:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
 Testing your password against all of them...
@@ -278,7 +278,7 @@ In order to avoid this warning, you need to remove the following duplicate key f
 
 	wantMessages := []string{
 		"Unlocked account",
-		"=lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
+		"=0xf466859eAD1932D743d622CB74FC058882E8648A",
 	}
 	for _, m := range wantMessages {
 		if !strings.Contains(bubble.StderrText(), m) {
@@ -291,7 +291,7 @@ func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
 	bubble := runBubble(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6")
+		"--unlock", "0xf466859eAD1932D743d622CB74FC058882E8648A")
 	defer bubble.ExpectExit()
 
 	// Helper for the expect template, returns absolute keystore path.
@@ -300,10 +300,10 @@ func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 		return abs
 	})
 	bubble.Expect(`
-Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
+Unlocking account 0xf466859eAD1932D743d622CB74FC058882E8648A | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "wrong"}}
-Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
+Multiple key files exist for address 0xf466859eAD1932D743d622CB74FC058882E8648A:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
 Testing your password against all of them...
