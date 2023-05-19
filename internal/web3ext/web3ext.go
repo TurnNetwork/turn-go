@@ -467,7 +467,7 @@ web3._extend({
 		}),
 		new web3._extend.Method({
 			name: 'getTransactionByBlock',
-			call: 'platon_getTransactionByBlock',
+			call: 'bub_getTransactionByBlock',
 			params: 1
 		}),
 	],
