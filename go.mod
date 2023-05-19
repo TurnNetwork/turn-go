@@ -1,4 +1,4 @@
-module github.com/PlatONnetwork/PlatON-Go
+module github.com/bubblenet/bubble
 
 go 1.16
 
