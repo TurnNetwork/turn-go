@@ -8,5 +8,5 @@
     ignore = dirty
 [submodule "crypto/bls/bls_win"]
 	path = crypto/bls/bls_win
-	url = https://github.com/bubblenet/bls_win.git
+	url = https://github.com/PlatONnetwork/bls_win.git
     ignore = dirty
