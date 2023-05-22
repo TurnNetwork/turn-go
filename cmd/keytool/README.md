@@ -1,12 +1,12 @@
-bubblekey
+keytool
 ======
 
-bubblekey is a simple command-line tool for working with Bubble keyfiles.
+keytool is a simple command-line tool for working with Bubble keyfiles.
 
 
 # Usage
 
-### `bubblekey generate`
+### `keytool generate`
 
 Generate a new keyfile.
 If you want to use an existing private key to use in the keyfile, it can be 
@@ -14,28 +14,28 @@ specified by setting `--privatekey` with the location of the file containing the
 private key.
 
 
-### `bubblekey inspect <keyfile>`
+### `keytool inspect <keyfile>`
 
 Print various information about the keyfile.
 Private key information can be printed by using the `--private` flag;
 make sure to use this feature with great caution!
 
 
-### `bubblekey signmessage <keyfile> <message/file>`
+### `keytool signmessage <keyfile> <message/file>`
 
 Sign the message with a keyfile.
 It is possible to refer to a file containing the message.
 To sign a message contained in a file, use the `--msgfile` flag.
 
 
-### `bubblekey verifymessage <address> <signature> <message/file>`
+### `keytool verifymessage <address> <signature> <message/file>`
 
 Verify the signature of the message.
 It is possible to refer to a file containing the message.
 To sign a message contained in a file, use the --msgfile flag.
 
 
-### `bubblekey changepassword <keyfile>`
+### `keytool changepassword <keyfile>`
 
 Change the password of a keyfile.
 use the `--newpasswordfile` to point to the new password file.
