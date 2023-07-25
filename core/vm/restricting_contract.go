@@ -137,7 +137,7 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 	for i, account := range accountList {
 		address, err := common.StringToAddress(account)
 		if err != nil {
-			log.Error("Call getRestrictingBalance of RestrictingContract Bech32ToAddress Error", "account", account, "err", err)
+			log.Error("Call getRestrictingBalance of RestrictingContract StringToAddress Error", "account", account, "err", err)
 			continue
 		}
 		result, err := rc.Plugin.GetRestrictingBalance(address, state, blockHash, blockNumber.Uint64())
