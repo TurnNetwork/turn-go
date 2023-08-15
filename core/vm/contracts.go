@@ -99,6 +99,7 @@ func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
 }
 
 var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
+	vm.TokenContractAddr:          &TokenContract{},
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},

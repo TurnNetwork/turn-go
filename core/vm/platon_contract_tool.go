@@ -17,9 +17,12 @@
 package vm
 
 import (
+	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 
+	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/x/plugin"
@@ -122,4 +125,42 @@ func checkInputEmpty(input []byte) bool {
 	} else {
 		return false
 	}
+}
+
+// encodeMintFuncCall: Generate function signatures for ERC20 contract minting transactions
+func encodeMintFuncCall(to common.Address, amount *big.Int) ([]byte, error) {
+	// Create a contract ABI resolver
+	encodeABI, err := abi.JSON(strings.NewReader(`[
+		{
+			"inputs": [
+				{
+				  "internalType": "address",
+				  "name": "to",
+				  "type": "address"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "amount",
+				  "type": "uint256"
+				}
+			],
+			"name": "mint",
+			"type": "function"
+		}
+	]`))
+	if err != nil {
+		return nil, err
+	}
+
+	functionName := "mint"
+	// Encode function call data
+	data, err := encodeABI.Pack(functionName, to, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the encoded data to a hexadecimal string
+	// encodedData := common.Bytes2Hex(data)
+	// fmt.Println(encodedData)
+	return data, nil
 }

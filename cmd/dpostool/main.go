@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/bubblenet/bubble/x/token"
 	"math/big"
 	"os"
 	"strconv"
@@ -227,6 +228,14 @@ type Dpos_5100 struct {
 	NodeIDs []discover.NodeID
 }
 
+// Dpos_6000 mintToken
+type Dpos_6000 struct {
+	//Account      common.Address       // 账户地址
+	//NativeAmount *big.Int             // 原生代币余额
+	//TokenAssets  []token.AccountAsset // Token资产
+	AccAsset token.AccountAsset
+}
+
 type decDataConfig struct {
 	P1000 Dpos_1000
 	P1001 Dpos_1001
@@ -255,6 +264,7 @@ type decDataConfig struct {
 	P4000 Dpos_4000
 	P4100 Dpos_4100
 	P5100 Dpos_5100
+	P6000 Dpos_6000
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
@@ -529,6 +539,18 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeIds, _ := rlp.EncodeToBytes(cfg.P5100.NodeIDs)
 			params = append(params, addr)
 			params = append(params, nodeIds)
+		}
+	case 6000:
+		{
+			//account, _ := rlp.EncodeToBytes(cfg.P6000.Account)
+			//nativeAmount, _ := rlp.EncodeToBytes(cfg.P6000.NativeAmount)
+			//tokenAssets, _ := rlp.EncodeToBytes(cfg.P6000.TokenAssets)
+			//params = append(params, account)
+			//params = append(params, nativeAmount)
+			//params = append(params, tokenAssets)
+
+			accAsset, _ := rlp.EncodeToBytes(cfg.P6000.AccAsset)
+			params = append(params, accAsset)
 		}
 	default:
 		{

@@ -38,6 +38,7 @@ const (
 	RewardRule
 	GovernanceRule
 	CollectDeclareVersionRule
+	TokenRule
 )
 
 const (

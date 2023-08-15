@@ -344,6 +344,9 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 
 	var contract vm.BubblePrecompiledContract
 	switch to {
+	case cvm.TokenContractAddr:
+		c := vm.BubblePrecompiledContracts[cvm.TokenContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.StakingContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.StakingContractAddr]
 		contract = c.(vm.BubblePrecompiledContract)

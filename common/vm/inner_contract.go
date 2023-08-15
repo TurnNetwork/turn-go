@@ -20,6 +20,7 @@ import "github.com/bubblenet/bubble/common"
 
 // the inner contract addr  table
 var (
+	TokenContractAddr          = common.HexToAddress("0x1000000000000000000000000000000000000020") // The Bubble Precompiled contract addr for token
 	RestrictingContractAddr    = common.HexToAddress("0x1000000000000000000000000000000000000001") // The Bubble Precompiled contract addr for restricting
 	StakingContractAddr        = common.HexToAddress("0x1000000000000000000000000000000000000002") // The Bubble Precompiled contract addr for staking
 	RewardManagerPoolAddr      = common.HexToAddress("0x1000000000000000000000000000000000000003") // The Bubble Precompiled contract addr for reward

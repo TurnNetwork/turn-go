@@ -131,5 +131,15 @@
 		"NodeIDs": [
 			"db18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974",
 			"1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"]
+	},
+	"P6000":{
+		"AccAsset": {
+			"Account": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
+			"NativeAmount": 1000000000000000000,
+			"TokenAssets": [
+				{"TokenAddr": "0x8A16806861cA61EF5D3Bb99498b94D3367A248bA", "Balance": 10000000},
+				{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
+			]
+		}
 	}
 }
