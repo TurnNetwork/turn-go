@@ -83,6 +83,34 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 	}
 }
 
+// ReadOperatorConfig retrieves the consensus settings based on the given genesis hash.
+func ReadOperatorConfig(db ethdb.KeyValueReader, hash common.Hash) *params.OpConfig {
+	data, _ := db.Get(opConfigKey(hash))
+	if len(data) == 0 {
+		return nil
+	}
+	var opConfig params.OpConfig
+	if err := json.Unmarshal(data, &opConfig); err != nil {
+		log.Error("Invalid Operator config JSON", "hash", hash, "err", err)
+		return nil
+	}
+	return &opConfig
+}
+
+// WriteOperatorConfig writes the operator config settings to the database.
+func WriteOperatorConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.OpConfig) {
+	if cfg == nil {
+		return
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.Crit("Failed to JSON encode operator config", "err", err)
+	}
+	if err := db.Put(opConfigKey(hash), data); err != nil {
+		log.Crit("Failed to store operator config", "err", err)
+	}
+}
+
 // WriteEconomicModel writes the EconomicModel settings to the database.
 func WriteEconomicModel(db ethdb.Writer, hash common.Hash, ec *xcom.EconomicModel) {
 	if ec == nil {

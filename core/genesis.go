@@ -54,6 +54,7 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
 	Config        *params.ChainConfig `json:"config"`
+	OpConfig      *params.OpConfig    `json:"opConfig"`
 	EconomicModel *xcom.EconomicModel `json:"economicModel"`
 	Nonce         []byte              `json:"nonce"`
 	Timestamp     uint64              `json:"timestamp"`
@@ -146,7 +147,7 @@ func (e *GenesisMismatchError) Error() string {
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 
-	if genesis != nil && genesis.Config == nil {
+	if genesis != nil && (genesis.Config == nil || genesis.OpConfig == nil) {
 		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -221,6 +222,13 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		return newcfg, stored, nil
 	}
 
+	// Get the existing Operator configuration
+	opCfg := rawdb.ReadOperatorConfig(db, stored)
+	if opCfg == nil {
+		log.Error("Found genesis block without operator config")
+		return newcfg, stored, errors.New("No operational node information is configured")
+	}
+
 	// Get the existing EconomicModel configuration.
 	ecCfg := rawdb.ReadEconomicModel(db, stored)
 	eceCfg := rawdb.ReadEconomicModelExtend(db, stored)
@@ -289,6 +297,9 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 
 	if nil == g.Config {
 		return errors.New("genesis configuration is missed")
+	}
+	if nil == g.OpConfig {
+		return errors.New("The genesis block configuration is missing operator information configuration.")
 	}
 	if nil == g.Config.Cbft {
 		return errors.New("cbft configuration is missed")
@@ -359,6 +370,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.BubbleFundBalance())
 	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
 
+	// Initialize the balance of the main chain operations account
+	statedb.AddBalance(g.OpConfig.MainChain.OpAddr, g.OpConfig.MainChain.Balance)
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, g.OpConfig.MainChain.Balance)
+
+	// Initialize the account balance
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
@@ -484,6 +500,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 		config = params.AllEthashProtocolChanges
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
+	rawdb.WriteOperatorConfig(db, block.Hash(), g.OpConfig)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
 	rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())

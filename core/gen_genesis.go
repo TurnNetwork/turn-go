@@ -16,6 +16,7 @@ var _ = (*genesisSpecMarshaling)(nil)
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config        *params.ChainConfig               `json:"config"`
+		OpConfig      *params.OpConfig                  `json:"opConfig"`
 		EconomicModel *xcom.EconomicModel               `json:"economicModel"`
 		Nonce         hexutil.Bytes                     `json:"nonce"`
 		Timestamp     math.HexOrDecimal64               `json:"timestamp"`
@@ -29,6 +30,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	}
 	var enc Genesis
 	enc.Config = g.Config
+	enc.OpConfig = g.OpConfig
 	enc.EconomicModel = g.EconomicModel
 	enc.Nonce = g.Nonce
 	enc.Timestamp = math.HexOrDecimal64(g.Timestamp)
@@ -46,6 +48,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config        *params.ChainConfig               `json:"config"`
+		OpConfig      *params.OpConfig                  `json:"opConfig"`
 		EconomicModel *xcom.EconomicModel               `json:"economicModel"`
 		Nonce         *hexutil.Bytes                    `json:"nonce"`
 		Timestamp     *math.HexOrDecimal64              `json:"timestamp"`
@@ -68,6 +71,10 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.EconomicModel != nil {
 		g.EconomicModel = dec.EconomicModel
 	}
+	if dec.OpConfig != nil {
+		g.OpConfig = dec.OpConfig
+	}
+
 	if dec.Nonce != nil {
 		g.Nonce = *dec.Nonce
 	}

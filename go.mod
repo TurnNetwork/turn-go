@@ -7,7 +7,6 @@ require (
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c
-	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/cespare/cp v0.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
@@ -26,7 +25,6 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls v1.30.0
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
