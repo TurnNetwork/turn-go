@@ -47,3 +47,15 @@ func (acc AccountAsset) Hash() (common.Hash, error) {
 	}
 	return crypto.Keccak256Hash(enVal), nil
 }
+
+type SettlementInfo struct {
+	AccAssets []AccountAsset // 所有账户的资产信息
+}
+
+func (s SettlementInfo) Hash() (common.Hash, error) {
+	enVal, err := rlp.EncodeToBytes(s)
+	if err != nil {
+		return common.ZeroHash, err
+	}
+	return crypto.Keccak256Hash(enVal), nil
+}

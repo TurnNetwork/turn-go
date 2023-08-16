@@ -134,7 +134,7 @@
 	},
 	"P6000":{
 		"AccAsset": {
-			"Account": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
+			"Account": "0x6A311b9D42Ea0Cb4F62760383C0EfF06Ac68F1f7",
 			"NativeAmount": 1000000000000000000,
 			"TokenAssets": [
 				{"TokenAddr": "0x8A16806861cA61EF5D3Bb99498b94D3367A248bA", "Balance": 10000000},

@@ -552,6 +552,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			accAsset, _ := rlp.EncodeToBytes(cfg.P6000.AccAsset)
 			params = append(params, accAsset)
 		}
+	case 6001:
+		{
+		}
 	default:
 		{
 			//	panic(fmt.Errorf("funcType:%d is unknown!!!!", funcType))

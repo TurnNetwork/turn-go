@@ -61,7 +61,7 @@ func (tkp *TokenPlugin) AddMintAccInfo(state xcom.StateDB, mintAccInfo token.Min
 
 // GetMintAccInfo Get a list of minting account information
 func (tkp *TokenPlugin) GetMintAccInfo(state xcom.StateDB) (*token.MintAccInfo, error) {
-	return token.GetMintInfo(state)
+	return token.GetMintAccInfo(state)
 }
 
 // BeginBlock implement BasePlugin

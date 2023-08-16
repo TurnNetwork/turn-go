@@ -21,7 +21,6 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/x/xcom"
-	"github.com/status-im/keycard-go/hexutils"
 )
 
 func ExistAccount(state xcom.StateDB, account common.Address) bool {
@@ -36,6 +35,25 @@ func SaveAccount(state xcom.StateDB, account common.Address) error {
 	accBytes, _ := json.Marshal(account)
 	state.SetState(vm.TokenContractAddr, accBytes, []byte{1})
 	return nil
+}
+
+func SaveSettlementHash(state xcom.StateDB, hash common.Hash) error {
+	hashBytes, _ := json.Marshal(hash)
+	state.SetState(vm.TokenContractAddr, KeyPrefixSettlementHash(), hashBytes)
+	return nil
+}
+
+func GetSettlementHash(state xcom.StateDB) (*common.Hash, error) {
+	var hash common.Hash
+	hashBytes := state.GetState(vm.TokenContractAddr, KeyPrefixSettlementHash())
+	if len(hashBytes) > 0 {
+		if err := json.Unmarshal(hashBytes, &hash); err != nil {
+			return nil, err
+		}
+		return &hash, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func SaveMintInfo(state xcom.StateDB, mintAccInfo MintAccInfo) error {
@@ -64,7 +82,7 @@ func SaveMintInfo(state xcom.StateDB, mintAccInfo MintAccInfo) error {
 	}
 
 	if 0 < len(newAccInfo.AccList) || 0 < len(newAccInfo.TokenAddrList) {
-		oldMintAccInfo, err := GetMintInfo(state)
+		oldMintAccInfo, err := GetMintAccInfo(state)
 		if err != nil {
 			return err
 		}
@@ -85,15 +103,15 @@ func SaveMintInfo(state xcom.StateDB, mintAccInfo MintAccInfo) error {
 			saveMintAccInfo.TokenAddrList = append(saveMintAccInfo.TokenAddrList, tokenAddr)
 		}
 		mintAccInfoBytes, _ := json.Marshal(saveMintAccInfo)
-		state.SetState(vm.TokenContractAddr, hexutils.HexToBytes("1122"), mintAccInfoBytes)
+		state.SetState(vm.TokenContractAddr, KeyMintAccInfo(), mintAccInfoBytes)
 	}
 
 	return nil
 }
 
-func GetMintInfo(state xcom.StateDB) (*MintAccInfo, error) {
+func GetMintAccInfo(state xcom.StateDB) (*MintAccInfo, error) {
 	var mintAccInfo MintAccInfo
-	mintAccInfoBytes := state.GetState(vm.TokenContractAddr, hexutils.HexToBytes("1122"))
+	mintAccInfoBytes := state.GetState(vm.TokenContractAddr, KeyMintAccInfo())
 	if len(mintAccInfoBytes) > 0 {
 		if err := json.Unmarshal(mintAccInfoBytes, &mintAccInfo); err != nil {
 			return nil, err

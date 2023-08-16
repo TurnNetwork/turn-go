@@ -164,3 +164,55 @@ func encodeMintFuncCall(to common.Address, amount *big.Int) ([]byte, error) {
 	// fmt.Println(encodedData)
 	return data, nil
 }
+
+// encodeGetBalancesCall: Generate function signatures for the ERC20 batch get account balance interface
+func encodeGetBalancesCall(addrList []common.Address) ([]byte, error) {
+	// Create a contract ABI resolver
+	encodeABI, err := abi.JSON(strings.NewReader(`[
+		{
+			"inputs": [
+				{
+					"internalType": "address[]",
+					"name": "_addrList",
+					"type": "address[]"
+				}
+			],
+			"name": "balanceOf",
+			"type": "function"
+		}
+	]`))
+	if err != nil {
+		return nil, err
+	}
+
+	functionName := "balanceOf"
+	// Encode function call data
+	data, err := encodeABI.Pack(functionName, addrList)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the encoded data to a hexadecimal string
+	// encodedData := common.Bytes2Hex(data)
+	// fmt.Println(encodedData)
+	return data, nil
+}
+
+// 解析字节数组为 uint256 数组
+func parseBytesToUint256Array(bytes []byte) []*big.Int {
+	const Uint256Size = 32 // uint256 的大小为 32 个字节
+	var uint256Array []*big.Int
+
+	for i := 0; i < len(bytes); i += Uint256Size {
+		end := i + Uint256Size
+		if end > len(bytes) {
+			end = len(bytes)
+		}
+		slice := bytes[i:end]
+
+		uint256 := new(big.Int).SetBytes(slice)
+		uint256Array = append(uint256Array, uint256)
+	}
+
+	return uint256Array
+}
