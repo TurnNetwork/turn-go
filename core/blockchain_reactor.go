@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/bubblenet/bubble/x/token"
 	"math/big"
 	"sync"
 
@@ -47,12 +48,13 @@ type BlockChainReactor struct {
 	vh            *handler.VrfHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
-	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
-	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
-	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
-	validatorMode string                    // mode: static, inner, dpos
-	NodeId        discover.NodeID           // The nodeId of current node
-	exitCh        chan chan struct{}        // Used to receive an exit signal
+	settleTaskSub *event.TypeMuxSubscription // Settlement task subscription
+	basePluginMap map[int]plugin.BasePlugin  // xxPlugin container
+	beginRule     []int                      // Order rules for xxPlugins called in BeginBlocker
+	endRule       []int                      // Order rules for xxPlugins called in EndBlocker
+	validatorMode string                     // mode: static, inner, dpos
+	NodeId        discover.NodeID            // The nodeId of current node
+	exitCh        chan chan struct{}         // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
 }
@@ -80,6 +82,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 	if mode == common.DPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
+		bcr.settleTaskSub = bcr.eventMux.Subscribe(token.SettlementInfo{})
 		// start the loop rutine
 		go bcr.loop()
 	}
@@ -121,6 +124,21 @@ func (bcr *BlockChainReactor) loop() {
 				continue
 			}
 			bcr.commit(cbftResult.Block)
+		case settlementInfo := <-bcr.settleTaskSub.Chan():
+			if settlementInfo == nil {
+				continue
+			}
+			settleData, ok := settlementInfo.Data.(token.SettlementInfo)
+			if !ok {
+				log.Error("blockchain_reactor failed to receive settlement data conversion type")
+				continue
+			}
+			// 处理任务
+			if err := plugin.TokenInstance().HandleSettlementTask(&settleData); err != nil {
+				log.Error("blockchain_reactor failed to process settlement task")
+				continue
+			}
+			log.Info("The processing and settlement task succeeded")
 		// stop this routine
 		case done := <-bcr.exitCh:
 			close(bcr.exitCh)
@@ -168,6 +186,7 @@ func (bcr *BlockChainReactor) RegisterPlugin(pluginRule int, plugin plugin.BaseP
 
 func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
+	plugin.TokenInstance().SetEventMux(bcr.eventMux)
 }
 
 func (bcr *BlockChainReactor) setValidatorMode(mode string) {

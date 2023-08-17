@@ -252,6 +252,9 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 	if nil != err {
 		return nil, err
 	}
+	// 写入通道
+	tkc.Plugin.AddSettlementTask(&settlementInfo)
+
 	// 比较hash
 	if lastHash != nil && *lastHash == hash {
 		// bubble网络内没有相关账户产生新的交易，不需要做结算
@@ -259,11 +262,12 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 			"so there is no need for settlement")
 	} else {
 		// 需要结算
-		// 保存hash(或在处理任务的时候保存)
+		// 保存hash
 		token.SaveSettlementHash(state, hash)
 		// 判断当前节点是否是子链运营节点
 		if tkc.Plugin.IsSubOpNode {
-
+			// 写入通道
+			tkc.Plugin.AddSettlementTask(&settlementInfo)
 		}
 	}
 	// 记录Log日志

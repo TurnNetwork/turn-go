@@ -616,14 +616,14 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
-	xplugin.TokenPluginInstance().SetOpConfig(opConfig)
+	xplugin.TokenInstance().SetOpConfig(opConfig)
 	// 设置主链运营地址
-	xplugin.TokenPluginInstance().SetMainOpAddr(opConfig.MainChain.OpAddr)
+	xplugin.TokenInstance().SetMainOpAddr(opConfig.MainChain.OpAddr)
 	if reactor.NodeId == opConfig.SubChain.NodeId {
 		// 设置子链运营节点标识
-		xplugin.TokenPluginInstance().SetSubOpIdentity(true)
+		xplugin.TokenInstance().SetSubOpIdentity(true)
 	}
-	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenPluginInstance())
+	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenInstance())
 
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)

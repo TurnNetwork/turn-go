@@ -70,7 +70,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				return RunPrecompiledContract(vic, input, contract)
 			case *TokenContract:
 				token := &TokenContract{
-					Plugin:   plugin.TokenPluginInstance(),
+					Plugin:   plugin.TokenInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}

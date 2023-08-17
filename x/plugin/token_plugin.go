@@ -17,15 +17,15 @@
 package plugin
 
 import (
-	"github.com/bubblenet/bubble/params"
-	"github.com/bubblenet/bubble/x/token"
-	"sync"
-
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/token"
 	"github.com/bubblenet/bubble/x/xcom"
+	"sync"
 )
 
 var (
@@ -37,14 +37,31 @@ type TokenPlugin struct {
 	MainOpAddr  common.Address // Main chain operator address
 	IsSubOpNode bool           // 是否是子链运营节点
 	OpConfig    *params.OpConfig
+	eventMux    *event.TypeMux
 }
 
-func TokenPluginInstance() *TokenPlugin {
+func TokenInstance() *TokenPlugin {
 	tokenPluginOnce.Do(func() {
 		log.Info("Init Token plugin ...")
 		tkp = &TokenPlugin{}
 	})
 	return tkp
+}
+
+func (tkp *TokenPlugin) SetEventMux(eventMux *event.TypeMux) {
+	tkp.eventMux = eventMux
+}
+
+// AddSettlementTask Add the checkout task to the subscription event
+func (tkp *TokenPlugin) AddSettlementTask(settlementInfo *token.SettlementInfo) {
+	if err := tkp.eventMux.Post(*settlementInfo); nil != err {
+		log.Error("post settlementInfo failed", "err", err)
+	}
+}
+
+//HandleSettlementTask Handle settlement tasks
+func (tkp *TokenPlugin) HandleSettlementTask(settlementInfo *token.SettlementInfo) error {
+	return nil
 }
 
 // SetMainOpAddr Set the main chain operator address
