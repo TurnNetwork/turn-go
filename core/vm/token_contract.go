@@ -140,28 +140,16 @@ func (tkc *TokenContract) mintToken(accAsset token.AccountAsset) ([]byte, error)
 		// 修改成ERC20合约地址
 		contract.self = AccountRef(erc20Addr)
 		contract.SetCallCode(&erc20Addr, tkc.Evm.StateDB.GetCodeHash(erc20Addr), code)
-		for _, interpreter := range tkc.Evm.interpreters {
-			if interpreter.CanRun(contract.Code) {
-				if tkc.Evm.interpreter != interpreter {
-					// Ensure that the interpreter pointer is set back
-					// to its current value upon return.
-					defer func(i Interpreter) {
-						tkc.Evm.interpreter = i
-					}(tkc.Evm.interpreter)
-					tkc.Evm.interpreter = interpreter
-				}
-				// 铸币给指定账户
-				input, err := encodeMintFuncCall(accAsset.Account, tokenAmount)
-				if err != nil {
-					log.Error("Failed to Mint ERC20 Token", "error", err)
-					return nil, err
-				}
-				ret, err := interpreter.Run(contract, input, false)
-				if err != nil {
-					log.Error("Failed to Mint ERC20 Token", "ret", ret, "error", err)
-					return ret, err
-				}
-			}
+		// 铸币给指定账户
+		input, err := encodeMintFuncCall(accAsset.Account, tokenAmount)
+		if err != nil {
+			log.Error("Failed to Mint ERC20 Token", "error", err)
+			return nil, err
+		}
+		_, err = RunEvm(tkc.Evm, contract, input)
+		if err != nil {
+			log.Error("Failed to Mint ERC20 Token", "error", err)
+			return nil, err
 		}
 	}
 
@@ -222,48 +210,34 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 			// 修改成ERC20合约地址
 			contract.self = AccountRef(tokenAddr)
 			contract.SetCallCode(&tokenAddr, tkc.Evm.StateDB.GetCodeHash(tokenAddr), code)
+			input, err := encodeGetBalancesCall(mintAccInfo.AccList)
+			if err != nil {
+				log.Error("Failed to get Address ERC20 Token", "error", err)
+				return nil, err
+			}
 			// 执行EVM
-			for _, interpreter := range tkc.Evm.interpreters {
-				if interpreter.CanRun(contract.Code) {
-					if tkc.Evm.interpreter != interpreter {
-						// Ensure that the interpreter pointer is set back
-						// to its current value upon return.
-						defer func(i Interpreter) {
-							tkc.Evm.interpreter = i
-						}(tkc.Evm.interpreter)
-						tkc.Evm.interpreter = interpreter
-					}
-					// 获取批量账户的余额
-					input, err := encodeGetBalancesCall(mintAccInfo.AccList)
-					if err != nil {
-						log.Error("Failed to get Address ERC20 Token", "error", err)
-						return nil, err
-					}
-					// 执行EVM/WASM
-					ret, err := interpreter.Run(contract, input, false)
-					if err != nil {
-						log.Error("Failed to get Address ERC20 Token", "ret", ret, "error", err)
-						return ret, err
-					}
-					// 解析字节数组为 uint256 数组,前32个字节的值表示用多少个字节存储数组的长度，固定为：32
-					balances := parseBytesToUint256Array(ret[32:])
+			ret, err := RunEvm(tkc.Evm, contract, input)
+			if err != nil {
+				log.Error("Failed to Mint ERC20 Token", "error", err)
+				return nil, err
+			}
+			// 解析字节数组为 uint256 数组,前32个字节的值表示用多少个字节存储数组的长度，固定为：32
+			balances := parseBytesToUint256Array(ret[32:])
 
-					if len(balances) > 0 {
-						// 第一个元素的值表示返回的数组长度
-						elemLen := balances[0].Uint64()
-						if elemLen != uint64(len(mintAccInfo.AccList)) {
-							log.Error("Failed to get Address ERC20 Token", "error",
-								"The length of the number of accounts and the number of balances retrieved are inconsistent")
-							return ret, errors.New("failed to get Address ERC20 Token")
-						}
-						// 组装ERC20 Token结算信息
-						for iAcc, balance := range balances[1:] {
-							var accTokenAsset token.AccTokenAsset
-							accTokenAsset.TokenAddr = tokenAddr
-							accTokenAsset.Balance = balance
-							settlementInfo.AccAssets[iAcc].TokenAssets = append(settlementInfo.AccAssets[iAcc].TokenAssets, accTokenAsset)
-						}
-					}
+			if len(balances) > 0 {
+				// 第一个元素的值表示返回的数组长度
+				elemLen := balances[0].Uint64()
+				if elemLen != uint64(len(mintAccInfo.AccList)) {
+					log.Error("Failed to get Address ERC20 Token", "error",
+						"The length of the number of accounts and the number of balances retrieved are inconsistent")
+					return ret, errors.New("failed to get Address ERC20 Token")
+				}
+				// 组装ERC20 Token结算信息
+				for iAcc, balance := range balances[1:] {
+					var accTokenAsset token.AccTokenAsset
+					accTokenAsset.TokenAddr = tokenAddr
+					accTokenAsset.Balance = balance
+					settlementInfo.AccAssets[iAcc].TokenAssets = append(settlementInfo.AccAssets[iAcc].TokenAssets, accTokenAsset)
 				}
 			}
 		}

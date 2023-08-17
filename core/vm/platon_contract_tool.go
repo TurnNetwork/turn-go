@@ -17,16 +17,16 @@
 package vm
 
 import (
-	"math/big"
-	"reflect"
-	"strconv"
-	"strings"
-
+	"errors"
 	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/x/plugin"
 	"github.com/bubblenet/bubble/x/xcom"
+	"math/big"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 func execBubbleContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
@@ -215,4 +215,34 @@ func parseBytesToUint256Array(bytes []byte) []*big.Int {
 	}
 
 	return uint256Array
+}
+
+// RunEvm 执行EVM合约代码
+func RunEvm(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
+	if nil == evm || nil == contract {
+		log.Error("Run Evm failed", "evm or contract is nil")
+		return nil, errors.New("evm or contract is nil")
+	}
+	for _, interpreter := range evm.interpreters {
+		if interpreter.CanRun(contract.Code) {
+			// 判断并设置当前的虚拟机
+			if evm.interpreter != interpreter {
+				// Ensure that the interpreter pointer is set back
+				// to its current value upon return.
+				defer func(i Interpreter) {
+					evm.interpreter = i
+				}(evm.interpreter)
+				evm.interpreter = interpreter
+			}
+			// 执行虚拟机
+			ret, err := interpreter.Run(contract, input, false)
+			if err != nil {
+				log.Error("Run Evm failed", "ret", ret, "error", err)
+				// return ret, err
+			}
+			// 执行完成EVM或WASM中的一个即返回
+			return ret, err
+		}
+	}
+	return nil, errors.New("there is no executable EVM or WASM interpreter")
 }
