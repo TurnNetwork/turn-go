@@ -17,10 +17,18 @@
 package vm
 
 import (
+	"context"
+	"crypto/ecdsa"
 	"fmt"
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/ethclient"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/token"
 	"github.com/status-im/keycard-go/hexutils"
+	"log"
+	"math/big"
 	"testing"
 )
 
@@ -42,4 +50,63 @@ func TestDecodeSettlementTxLog(t *testing.T) {
 
 	fmt.Printf("settlementInfo: %v\n", settlementInfo)
 	return
+}
+
+// rpc调用
+func TestRpc(t *testing.T) {
+	client, err := ethclient.Dial("http://localhost:1789")
+	if err != nil {
+		t.Error("error", err)
+	}
+	if client != nil {
+		// 发送交易
+		// 构建交易参数
+		priKey := "000000000000cef6621103622f27a31d65c0856a0a66ba2fd03e4663161f1c5b"
+		toAddr := "0x6A311b9D42Ea0Cb4F62760383C0EfF06Ac68F1f7"
+		privateKey, err := crypto.HexToECDSA(priKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		publicKey := privateKey.Public()
+		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+		if !ok {
+			t.Fatal("无法获取公钥")
+		}
+
+		fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+		nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		gasPrice, err := client.SuggestGasPrice(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		toAddress := common.HexToAddress(toAddr)
+		value := big.NewInt(1000000000000000000) // 发送 1 ETH
+		gasLimit := uint64(21000)
+		data := []byte("")
+
+		// 创建交易对象
+		tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+
+		// 使用发送方的私钥进行交易签名
+		chainID, err := client.ChainID(context.Background())
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// 发送交易
+		err = client.SendTransaction(context.Background(), signedTx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		hash := signedTx.Hash().Hex()
+		fmt.Printf("hash:%s\n", hash)
+	}
 }
