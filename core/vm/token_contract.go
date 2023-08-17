@@ -28,9 +28,10 @@ import (
 )
 
 const (
-	TmpERC20Addr = "0x0000000000000000000000000000000000000020" // ERC20 template address
-	TxMintToken  = 6000
-	TxSettlement = 6001
+	TmpERC20Addr     = "0x0000000000000000000000000000000000000020" // ERC20 template address
+	TxMintToken      = 6000
+	TxSettlement     = 6001
+	TxTestSettlement = 6002
 )
 
 type TokenContract struct {
@@ -60,8 +61,9 @@ func (tkc *TokenContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 func (tkc *TokenContract) FnSignsV1() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxMintToken:  tkc.mintToken,
-		TxSettlement: tkc.settlement,
+		TxMintToken:      tkc.mintToken,
+		TxSettlement:     tkc.settlement,
+		TxTestSettlement: tkc.testSettlement,
 
 		// Get
 	}
@@ -156,6 +158,12 @@ func (tkc *TokenContract) mintToken(accAsset token.AccountAsset) ([]byte, error)
 	return txResultHandlerWithRes(vm.TokenContractAddr, tkc.Evm, "",
 		"", TxMintToken, int(common.NoErr.Code), accAsset.Account, accAsset.NativeAmount,
 		accAsset.TokenAssets), nil
+}
+
+// 模拟主链结算接口
+func (tkc *TokenContract) testSettlement(settlementInfo token.SettlementInfo) ([]byte, error) {
+	return txResultHandlerWithRes(vm.TokenContractAddr, tkc.Evm, "",
+		"", TxMintToken, int(common.NoErr.Code)), nil
 }
 
 // 单个账户铸币（主链运营节点调用）

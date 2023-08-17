@@ -143,10 +143,11 @@ type ChainConfig struct {
 // OperatorInfo Includes the operator's node ID, rpc url, operation address,
 // and initial balance (to send the transaction in the child-chain to pay fees).
 type OperatorInfo struct {
-	NodeId  discover.NodeID `json:"nodeId"`
-	Rpc     *string         `json:"rpc"`
-	OpAddr  common.Address  `json:"opAddr"`
-	Balance *big.Int        `json:"balance"`
+	NodeId  discover.NodeID `json:"nodeId"`  // Operator node id
+	Rpc     string          `json:"rpc"`     // Operation node RPC URL
+	SysAddr common.Address  `json:"sysAddr"` // System Contract Address
+	OpAddr  common.Address  `json:"opAddr"`  // Address of operation
+	Balance *big.Int        `json:"balance"` // Operating address balance
 }
 
 // OpConfig is operator profiles, including main-chain operator

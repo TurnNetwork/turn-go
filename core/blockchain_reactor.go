@@ -85,6 +85,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		bcr.settleTaskSub = bcr.eventMux.Subscribe(token.SettlementInfo{})
 		// start the loop rutine
 		go bcr.loop()
+		go bcr.handleTask()
 	}
 }
 
@@ -124,6 +125,20 @@ func (bcr *BlockChainReactor) loop() {
 				continue
 			}
 			bcr.commit(cbftResult.Block)
+		// stop this routine
+		case done := <-bcr.exitCh:
+			close(bcr.exitCh)
+			log.Info("blockChain reactor loop exit")
+			done <- struct{}{}
+			return
+		}
+	}
+}
+
+func (bcr *BlockChainReactor) handleTask() {
+
+	for {
+		select {
 		case settlementInfo := <-bcr.settleTaskSub.Chan():
 			if settlementInfo == nil {
 				continue
@@ -134,20 +149,20 @@ func (bcr *BlockChainReactor) loop() {
 				continue
 			}
 			// 处理任务
-			if err := plugin.TokenInstance().HandleSettlementTask(&settleData); err != nil {
+			hash, err := plugin.TokenInstance().HandleSettlementTask(&settleData)
+			if err != nil {
 				log.Error("blockchain_reactor failed to process settlement task")
 				continue
 			}
-			log.Info("The processing and settlement task succeeded")
+			log.Info("The processing and settlement task succeeded, tx hash:", common.BytesToHash(hash).Hex())
 		// stop this routine
 		case done := <-bcr.exitCh:
 			close(bcr.exitCh)
-			log.Info("blockChain reactor loop exit")
+			log.Info("blockChain reactor handleTask exit")
 			done <- struct{}{}
 			return
 		}
 	}
-
 }
 
 func (bcr *BlockChainReactor) commit(block *types.Block) error {

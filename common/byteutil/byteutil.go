@@ -61,6 +61,7 @@ var Bytes2X_CMD = map[string]interface{}{
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 	"token.AccountAsset":            BytesToAccountAsset,
+	"token.SettlementInfo":          BytesToSettlementInfo,
 }
 
 func BytesToString(curByte []byte) string {
@@ -327,6 +328,14 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return planArr
+}
+
+func BytesToSettlementInfo(curByte []byte) token.SettlementInfo {
+	var settleInfo token.SettlementInfo
+	if err := rlp.DecodeBytes(curByte, &settleInfo); nil != err {
+		panic("BytesToSettlementInfo:" + err.Error())
+	}
+	return settleInfo
 }
 
 func BytesToAccountAsset(curByte []byte) token.AccountAsset {
