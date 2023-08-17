@@ -187,7 +187,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		}
 	}
 
-	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	chainConfig, opConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
 	if err := snapshotBaseDB.Close(); err != nil {
 		return nil, err
 	}
@@ -325,7 +325,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -608,7 +608,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -616,7 +616,13 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
-	xplugin.TokenPluginInstance().SetMainOpAddr(common.HexToAddress("0x86d5b5903b0330d76b47D368bebF5A74dB6251dB"))
+	xplugin.TokenPluginInstance().SetOpConfig(opConfig)
+	// 设置主链运营地址
+	xplugin.TokenPluginInstance().SetMainOpAddr(opConfig.MainChain.OpAddr)
+	if reactor.NodeId == opConfig.SubChain.NodeId {
+		// 设置子链运营节点标识
+		xplugin.TokenPluginInstance().SetSubOpIdentity(true)
+	}
 	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenPluginInstance())
 
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())

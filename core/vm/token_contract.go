@@ -258,8 +258,13 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 		return nil, errors.New("there are no related accounts in the bubble network to generate new transactions, " +
 			"so there is no need for settlement")
 	} else {
+		// 需要结算
 		// 保存hash(或在处理任务的时候保存)
 		token.SaveSettlementHash(state, hash)
+		// 判断当前节点是否是子链运营节点
+		if tkc.Plugin.IsSubOpNode {
+
+		}
 	}
 	// 记录Log日志
 	return txResultHandlerWithRes(vm.TokenContractAddr, tkc.Evm, "",

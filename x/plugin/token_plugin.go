@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/token"
 	"sync"
 
@@ -33,7 +34,9 @@ var (
 )
 
 type TokenPlugin struct {
-	MainOpAddr common.Address // Main chain operator address
+	MainOpAddr  common.Address // Main chain operator address
+	IsSubOpNode bool           // 是否是子链运营节点
+	OpConfig    *params.OpConfig
 }
 
 func TokenPluginInstance() *TokenPlugin {
@@ -47,6 +50,16 @@ func TokenPluginInstance() *TokenPlugin {
 // SetMainOpAddr Set the main chain operator address
 func (tkp *TokenPlugin) SetMainOpAddr(mainOpAddr common.Address) {
 	tkp.MainOpAddr = mainOpAddr
+}
+
+// SetOpConfig Set the main chain operator address
+func (tkp *TokenPlugin) SetOpConfig(opConfig *params.OpConfig) {
+	tkp.OpConfig = opConfig
+}
+
+// SetSubOpIdentity Set the sub-chain operation node identity
+func (tkp *TokenPlugin) SetSubOpIdentity(isSubOpNode bool) {
+	tkp.IsSubOpNode = isSubOpNode
 }
 
 // ExistAccount Add a list of minting account information
