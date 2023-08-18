@@ -164,6 +164,12 @@ const (
 	WithdrewDelegationGas uint64 = 8000  // Gas needed for withdrewDelegate
 	RedeemDelegationGas   uint64 = 6000  // Gas needed for RedeemDelegation
 
+	StakingL2Gas       uint64 = 6000  // Gas needed for precompiled contract: stakingContract
+	CreateStakeL2Gas   uint64 = 32000 // Gas needed for createStaking
+	EditCandidateL2Gas uint64 = 12000 // Gas needed for editCandidate
+	IncStakeL2Gas      uint64 = 20000 // Gas needed for increaseStaking
+	WithdrewStakeL2Gas uint64 = 20000 // Gas needed for withdrewStaking
+
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
 	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
@@ -183,6 +189,10 @@ const (
 	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
 	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
 	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
+
+	BubbleGas        uint64 = 2000
+	CreateBubbleGas  uint64 = 40000
+	ReleaseBubbleGas uint64 = 20000
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations
