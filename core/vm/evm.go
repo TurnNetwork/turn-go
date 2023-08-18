@@ -76,6 +76,20 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunBubblePrecompiledContract(staking, input, contract)
+			case *StakingL2Contract:
+				stakingL2 := &StakingL2Contract{
+					Plugin:   plugin.StakingL2Instance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunBubblePrecompiledContract(stakingL2, input, contract)
+			case *BubbleContract:
+				bubble := &BubbleContract{
+					Plugin:   plugin.BubbleInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunBubblePrecompiledContract(bubble, input, contract)
 			case *RestrictingContract:
 				restricting := &RestrictingContract{
 					Plugin:   plugin.RestrictingInstance(),

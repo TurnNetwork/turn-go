@@ -102,6 +102,8 @@ var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},
+	vm.StakingL2ContractAddr:   &StakingL2Contract{},
+	vm.BubbleContractAddr:      &BubbleContract{},
 	vm.RestrictingContractAddr: &RestrictingContract{},
 	vm.SlashingContractAddr:    &SlashingContract{},
 	vm.GovContractAddr:         &GovContract{},

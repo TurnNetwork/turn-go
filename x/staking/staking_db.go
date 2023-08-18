@@ -73,6 +73,28 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 	return db.db.GetLastKVHash(blockHash)
 }
 
+func (db *StakingDB) GetOperatorArrStore(blockHash common.Hash) ([]*Operator, error) {
+	data, err := db.get(blockHash, OperatorArrKey)
+	if err != nil {
+		return nil, err
+	}
+	var operators []*Operator
+
+	if err := rlp.DecodeBytes(data, operators); err != nil {
+		return nil, err
+	}
+
+	return operators, nil
+}
+
+func (db *StakingDB) SetOperatorArrStore(blockHash common.Hash, operators []*Operator) error {
+	if data, err := rlp.EncodeToBytes(operators); err != nil {
+		return err
+	} else {
+		return db.put(blockHash, OperatorArrKey, data)
+	}
+}
+
 // about candidate ...
 
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.NodeAddress) (*Candidate, error) {

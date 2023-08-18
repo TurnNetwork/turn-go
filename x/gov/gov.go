@@ -74,6 +74,10 @@ const (
 	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 )
 
+const (
+	L2Version = uint32(65536)
+)
+
 func WriteEcExtendHash(state xcom.StateDB) error {
 	if data, err := xcom.EcExtendParams(); nil != err {
 		return err

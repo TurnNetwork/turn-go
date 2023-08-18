@@ -47,12 +47,6 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			"balance: %s, need staking: %s", xcom.CDFAccount().String(), remain.String(), needStaking.String())
 	}
 
-	initQueue := g.Config.Cbft.InitialNodes
-
-	validatorQueue := make(staking.ValidatorQueue, length)
-
-	lastHash := prevHash
-
 	putbasedbFn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
 		if err := snapdb.PutBaseDB(key, val); nil != err {
 			return hash, err
@@ -60,6 +54,34 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		newHash := common.GenerateKVHash(key, val, hash)
 		return newHash, nil
 	}
+	lastHash := prevHash
+
+	initQueue := g.Config.Cbft.InitialNodes
+
+	// 存储代理节点列队
+	Operators := make([]staking.Operator, 0)
+	for _, initNode := range initQueue {
+		if initNode.RPC == "" {
+			break
+		}
+		operator := staking.Operator{
+			NodeId: initNode.Node.ID,
+			RPC:    initNode.RPC,
+		}
+		Operators = append(Operators, operator)
+	}
+
+	if data, err := rlp.EncodeToBytes(Operators); err != nil {
+		return lastHash, fmt.Errorf("Failed to Store Operators Info: rlp encodeing failed. error:%s", err.Error())
+	} else {
+
+		lastHash, err = putbasedbFn(staking.OperatorArrKey, data, lastHash)
+		if err != nil {
+			return lastHash, fmt.Errorf("Failed to Store Operators Info: PutBaseDB failed. error:%s", err.Error())
+		}
+	}
+
+	validatorQueue := make(staking.ValidatorQueue, length)
 
 	for index := 0; index < length; index++ {
 
@@ -91,6 +113,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		mutable := &staking.CandidateMutable{
+			Type:               staking.OperatorNode,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),

@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	OperatorArrKeyStr          = "Operator"
 	CanBasePrefixStr           = "CanBase"
 	CanMutablePrefixStr        = "CanMut"
 	CanPowerPrefixStr          = "Power"
@@ -45,6 +46,7 @@ const (
 )
 
 var (
+	OperatorArrKey          = []byte(OperatorArrKeyStr)
 	CanBaseKeyPrefix        = []byte(CanBasePrefixStr)
 	CanMutableKeyPrefix     = []byte(CanMutablePrefixStr)
 	CanPowerKeyPrefix       = []byte(CanPowerPrefixStr)
