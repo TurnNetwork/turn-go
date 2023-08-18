@@ -133,7 +133,8 @@ type Config struct {
 	// VM options
 	VMWasmType        string
 	VmTimeoutDuration uint64
-
+	// Private key of sub-chain operation address (pledged address of operation node)
+	SubOpPriKey string
 	// Mining options
 	Miner miner.Config
 	// minning conig

@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
-	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/ethclient"
@@ -47,7 +46,6 @@ var (
 type TokenPlugin struct {
 	MainOpAddr  common.Address // Main chain operator address
 	IsSubOpNode bool           // Whether it is a child chain operator node
-	subOpPriKey string         // The child chain operates the private key of the node, which is used to sign and send the transactions of the main chain
 	OpConfig    *params.OpConfig
 	eventMux    *event.TypeMux
 }
@@ -58,10 +56,6 @@ func TokenInstance() *TokenPlugin {
 		tkp = &TokenPlugin{}
 	})
 	return tkp
-}
-
-func (tkp *TokenPlugin) SetSubOpPriKey(subOpPriKey string) {
-	tkp.subOpPriKey = subOpPriKey
 }
 
 func (tkp *TokenPlugin) SetEventMux(eventMux *event.TypeMux) {
@@ -75,11 +69,13 @@ func (tkp *TokenPlugin) AddSettlementTask(settlementInfo *token.SettlementInfo) 
 	}
 }
 
-func genSettleTxRlpData(funcType uint16, settlementInfo *token.SettlementInfo) []byte {
+// 生成主链结算交易的rlp编码
+func genSettleTxRlpData(settlementInfo *token.SettlementInfo) []byte {
 	var params [][]byte
 	params = make([][]byte, 0)
-
-	fnType, _ := rlp.EncodeToBytes(funcType)
+	// 结算函数编码
+	settleFuncType := uint16(6002)
+	fnType, _ := rlp.EncodeToBytes(settleFuncType)
 	params = append(params, fnType)
 
 	accAsset, _ := rlp.EncodeToBytes(settlementInfo)
@@ -87,10 +83,10 @@ func genSettleTxRlpData(funcType uint16, settlementInfo *token.SettlementInfo) [
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		panic(fmt.Errorf("%d encode rlp data fail: %v", funcType, err))
+		panic(fmt.Errorf("%d encode rlp data fail: %v", settleFuncType, err))
 	} else {
 		rlpData := hexutil.Encode(buf.Bytes())
-		fmt.Printf("funcType:%d rlp data = %s\n", funcType, rlpData)
+		fmt.Printf("funcType:%d rlp data = %s\n", settleFuncType, rlpData)
 		return buf.Bytes()
 	}
 	return nil
@@ -98,77 +94,71 @@ func genSettleTxRlpData(funcType uint16, settlementInfo *token.SettlementInfo) [
 
 //HandleSettlementTask Handle settlement tasks
 func (tkp *TokenPlugin) HandleSettlementTask(settlementInfo *token.SettlementInfo) ([]byte, error) {
-	// time.Sleep(20 * time.Second)
 	client, err := ethclient.Dial(tkp.OpConfig.MainChain.Rpc)
 	if err != nil || client == nil {
 		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
 	}
-	// 发送交易
-	// 构建交易参数
-	//priKey := tkp.subOpPriKey
-	priKey := "51b50bc613d2479f1c4bf1447df03c5d64308734567ef4532a0ca5457660c6b7"
-	// 调用主链系统合约结算接口
+	// Construct transaction parameters
+	priKey := tkp.OpConfig.GetSubOpPriKey()
+	// Invokes the main-chain system contract settlement interface
 	toAddr := tkp.OpConfig.MainChain.SysAddr
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("Wrong private key", "err", err)
 		return nil, err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		log.Error("failed connect operator node", "err", "Could not get public key")
-		return nil, errors.New("could not get public key")
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
 	}
 
 	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
-	// 以运营节点的质押地址作为运营节点地址，判断是否是子链运营节点签名交易
+	// The pledge address of the operating node is taken as the address of the operating node
+	// Check whether the transaction is signed by the sub-chain operating node
 	if fromAddr != tkp.OpConfig.SubChain.OpAddr {
-		log.Error("failed connect operator node", "err", err)
-		return nil, err
+		log.Error("The settlement transaction sender is not the sub-chain operation address")
+		return nil, errors.New("the settlement transaction sender is not the sub-chain operation address")
 	}
-	// 获取nonce
+	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err)
 		return nil, err
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("Failed to get gasprice", "err", err)
 		return nil, err
 	}
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
-	// 组装结算接口的data
-	// data := []byte("")
-	// 主链结算接口函数Code
-	settleFuncType := 6002
-	toAddr = vm.TokenContractAddr
-	data := genSettleTxRlpData(uint16(settleFuncType), settlementInfo)
-
-	// 创建交易对象
+	// Generate the Code of the main chain settlement interface function
+	data := genSettleTxRlpData(settlementInfo)
+	// Creating transaction objects
 	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
 
-	// 使用发送方的私钥进行交易签名
+	// The transaction is signed using the sender's private key
 	chainID, err := client.ChainID(context.Background())
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("Signing settlement transaction failed", "err", err)
 		return nil, err
 	}
 
-	// 发送交易
+	// Send the settlement transaction to the main chain
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("Failed to send settlement transaction", "err", err)
 		return nil, err
 	}
 
 	hash := signedTx.Hash()
-	log.Error("hash=========================================", hash.Hex())
+	log.Debug("settlement tx hash=========================================", hash.Hex())
 	return hash.Bytes(), nil
 }
 
@@ -187,19 +177,14 @@ func (tkp *TokenPlugin) SetSubOpIdentity(isSubOpNode bool) {
 	tkp.IsSubOpNode = isSubOpNode
 }
 
-// ExistAccount Add a list of minting account information
-func (tkp *TokenPlugin) ExistAccount(state xcom.StateDB, mintAcc common.Address) bool {
-	return false
-}
-
 // AddMintAccInfo Add a list of minting account information
-func (tkp *TokenPlugin) AddMintAccInfo(state xcom.StateDB, mintAccInfo token.MintAccInfo) error {
-	return token.SaveMintInfo(state, mintAccInfo)
+func (tkp *TokenPlugin) AddMintAccInfo(blockHash common.Hash, mintAccInfo token.MintAccInfo) error {
+	return token.SaveMintInfo(blockHash, mintAccInfo)
 }
 
 // GetMintAccInfo Get a list of minting account information
-func (tkp *TokenPlugin) GetMintAccInfo(state xcom.StateDB) (*token.MintAccInfo, error) {
-	return token.GetMintAccInfo(state)
+func (tkp *TokenPlugin) GetMintAccInfo(blockHash common.Hash) (*token.MintAccInfo, error) {
+	return token.GetMintAccInfo(blockHash)
 }
 
 // BeginBlock implement BasePlugin

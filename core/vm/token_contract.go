@@ -83,8 +83,9 @@ func (tkc *TokenContract) mintToken(accAsset token.AccountAsset) ([]byte, error)
 	txHash := tkc.Evm.StateDB.TxHash()
 	blockNumber := tkc.Evm.Context.BlockNumber
 	state := tkc.Evm.StateDB
+	blockHash := tkc.Evm.Context.BlockHash
 
-	log.Debug("Call mintToken of TokenContract", "txHash", txHash.Hex(),
+	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "caller", from)
 
 	// 计算gas
@@ -107,14 +108,6 @@ func (tkc *TokenContract) mintToken(accAsset token.AccountAsset) ([]byte, error)
 	// 1.1 从系统合约账户向account转账
 	if accAsset.NativeAmount.Cmp(common.Big0) > 0 {
 		state.AddBalance(accAsset.Account, accAsset.NativeAmount)
-	}
-
-	// 保存数据
-	if err := tkc.Plugin.AddMintAccInfo(state, token.MintAccInfo{
-		AccList:       accList,
-		TokenAddrList: tokenAddrList,
-	}); err != nil {
-		return nil, err
 	}
 
 	// 2.铸币ERC20代币（默认精度为6）
@@ -155,6 +148,14 @@ func (tkc *TokenContract) mintToken(accAsset token.AccountAsset) ([]byte, error)
 		}
 	}
 
+	// 保存数据
+	if err := tkc.Plugin.AddMintAccInfo(blockHash, token.MintAccInfo{
+		AccList:       accList,
+		TokenAddrList: tokenAddrList,
+	}); err != nil {
+		return nil, err
+	}
+	
 	return txResultHandlerWithRes(vm.TokenContractAddr, tkc.Evm, "",
 		"", TxMintToken, int(common.NoErr.Code), accAsset.Account, accAsset.NativeAmount,
 		accAsset.TokenAssets), nil
@@ -173,13 +174,12 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 	//if from != tkc.Plugin.MainOpAddr {
 	//	return nil, errors.New("the transaction sender is not the main chain operator address")
 	//}
-
 	txHash := tkc.Evm.StateDB.TxHash()
 	blockNumber := tkc.Evm.Context.BlockNumber
 	state := tkc.Evm.StateDB
-
-	log.Debug("Call mintToken of TokenContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "caller", from)
+	blockHash := tkc.Evm.Context.BlockHash
+	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
 	// 计算gas
 	if !tkc.Contract.UseGas(params.TokenGas) {
@@ -191,7 +191,7 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 	}
 
 	// 获取用户的信息
-	mintAccInfo, err := tkc.Plugin.GetMintAccInfo(state)
+	mintAccInfo, err := tkc.Plugin.GetMintAccInfo(blockHash)
 	if err != nil || nil == mintAccInfo {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 		}
 	}
 	// 获取最近一次的结算hash
-	lastHash, err := token.GetSettlementHash(state)
+	lastHash, err := token.GetSettlementHash(blockHash)
 	if nil != err {
 		return nil, err
 	}
@@ -260,8 +260,6 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 	if nil != err {
 		return nil, err
 	}
-	// 写入通道
-	tkc.Plugin.AddSettlementTask(&settlementInfo)
 
 	// 比较hash
 	if lastHash != nil && *lastHash == hash {
@@ -271,10 +269,10 @@ func (tkc *TokenContract) settlement() ([]byte, error) {
 	} else {
 		// 需要结算
 		// 保存hash
-		token.SaveSettlementHash(state, hash)
+		token.SaveSettlementHash(blockHash, hash)
 		// 判断当前节点是否是子链运营节点
 		if tkc.Plugin.IsSubOpNode {
-			// 写入通道
+			// 发送任务
 			tkc.Plugin.AddSettlementTask(&settlementInfo)
 		}
 	}

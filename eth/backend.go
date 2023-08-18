@@ -325,6 +325,9 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
+			if err := opConfig.SetSubOpPriKey(config.SubOpPriKey); err != nil {
+				return nil, errors.New("failed to set the private key of child-chain operation address")
+			}
 			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig)
 			agency = reactor
 

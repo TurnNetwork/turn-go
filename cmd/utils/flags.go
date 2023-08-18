@@ -634,6 +634,11 @@ var (
 		EnvVar: "",
 		Value:  eth.DefaultConfig.VmTimeoutDuration,
 	}
+
+	OpPriKeyFlag = cli.StringFlag{
+		Name:  "op.prikey",
+		Usage: "Private key of sub-chain operation address (pledged address of operation node)",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1207,6 +1212,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
 	}
 
+	// Private key of sub-chain operation address (pledged address of operation node)
+	if ctx.GlobalIsSet(OpPriKeyFlag.Name) {
+		cfg.SubOpPriKey = ctx.GlobalString(OpPriKeyFlag.Name)
+	}
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {

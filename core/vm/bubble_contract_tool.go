@@ -217,7 +217,7 @@ func parseBytesToUint256Array(bytes []byte) []*big.Int {
 	return uint256Array
 }
 
-// RunEvm 执行EVM合约代码
+// RunEvm Execute the EVM contract code
 func RunEvm(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 	if nil == evm || nil == contract {
 		log.Error("Run Evm failed", "evm or contract is nil")
@@ -225,7 +225,7 @@ func RunEvm(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 	}
 	for _, interpreter := range evm.interpreters {
 		if interpreter.CanRun(contract.Code) {
-			// 判断并设置当前的虚拟机
+			// Determine and set the current virtual machine
 			if evm.interpreter != interpreter {
 				// Ensure that the interpreter pointer is set back
 				// to its current value upon return.
@@ -234,13 +234,13 @@ func RunEvm(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 				}(evm.interpreter)
 				evm.interpreter = interpreter
 			}
-			// 执行虚拟机
+			// Executing the virtual machine
 			ret, err := interpreter.Run(contract, input, false)
 			if err != nil {
 				log.Error("Run Evm failed", "ret", ret, "error", err)
 				// return ret, err
 			}
-			// 执行完成EVM或WASM中的一个即返回
+			// Execution completes one of the EVM or WASM and returns
 			return ret, err
 		}
 	}

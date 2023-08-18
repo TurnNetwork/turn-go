@@ -17,12 +17,12 @@
 package params
 
 import (
+	"errors"
 	"fmt"
-	"math/big"
-
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/p2p/discover"
+	"math/big"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -153,8 +153,25 @@ type OperatorInfo struct {
 // OpConfig is operator profiles, including main-chain operator
 // and sub-chain operator profiles, interact between main-chain and sub-chain through the operator
 type OpConfig struct {
-	MainChain *OperatorInfo `json:"mainChain,omitempty"` // Main chain operator information configuration
-	SubChain  *OperatorInfo `json:"subChain,omitempty"`  // Child chain operator information configuration
+	// Private key of sub-chain operation address (pledged address of operation node)
+	subOpPriKey string
+	MainChain   *OperatorInfo `json:"mainChain,omitempty"` // Main chain operator information configuration
+	SubChain    *OperatorInfo `json:"subChain,omitempty"`  // Child chain operator information configuration
+}
+
+func (opConfig *OpConfig) SetSubOpPriKey(subOpPriKey string) error {
+	if "0x" == subOpPriKey[0:2] || "0X" == subOpPriKey[0:2] {
+		subOpPriKey = subOpPriKey[2:]
+	}
+	if 64 != len(subOpPriKey) {
+		return errors.New("the private key is of the wrong size")
+	}
+	opConfig.subOpPriKey = subOpPriKey
+	return nil
+}
+
+func (opConfig *OpConfig) GetSubOpPriKey() string {
+	return opConfig.subOpPriKey
 }
 
 type CbftNode struct {
