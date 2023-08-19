@@ -299,11 +299,6 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	return nil
 }
 
-func (bp *BubblePlugin) StakingToken(blockHash common.Hash, bubbleID *big.Int, stakingAsset *bubble.AccountAsset) error {
-
-	return nil
-}
-
 // GetAccListOfStakingTokenInBub Gets the list of addresses that pledged tokens in the specified bubble
 func (bp *BubblePlugin) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
 	return bp.db.GetAccListOfStakingTokenInBub(blockHash, bubbleId)

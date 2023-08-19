@@ -272,7 +272,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	log.Debug("Call BubbleContract of withdrewToken", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID)
 
-	if !bc.Contract.UseGas(params.BubbleGas) {
+	if !bc.Contract.UseGas(params.WithdrewTokenGas) {
 		return nil, ErrOutOfGas
 	}
 
@@ -352,29 +352,17 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
 }
 
-// 主链结算接口
-func (bc *BubbleContract) settlementBubble(bubbleId *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
-
-	// 1.根据BubbleID获取Bubble信息
-
-	// 2.根据Bubble信息中的子链运营节点信息中的运营节点地址判断是否有权限调用
-	// from := bc.Contract.CallerAddress
-
-	blockNumber := bc.Evm.Context.BlockNumber
-	// state := bc.Evm.StateDB
-	stHash, err := settlementInfo.Hash()
-	if err != nil {
-		log.Error("Failed to calculate Hash for SettlementInfo", "blockNumber", blockNumber, "blockHash", "err", err)
-		return nil, err
-	}
-	log.Info("SettlementInfo hash:", stHash)
+// settlementBubble Count the account assets in the bubble and record them
+func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
+	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
-
-	//log.Debug("Call withdrewDelegation of withdrewToken", "txHash", txHash.Hex(),
-	//	"blockNumber", blockNumber.Uint64(), "StakingTokenAddr", from, "amount", amount)
+	blockNumber := bc.Evm.Context.BlockNumber
+	blockHash := bc.Evm.Context.BlockHash
+	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
 	// 计算gas
-	if !bc.Contract.UseGas(params.WithdrewDelegationGas) {
+	if !bc.Contract.UseGas(params.SettlementBubbleGas) {
 		return nil, ErrOutOfGas
 	}
 
@@ -382,57 +370,52 @@ func (bc *BubbleContract) settlementBubble(bubbleId *big.Int, settlementInfo bub
 		return nil, nil
 	}
 
-	// 1.铸币原生Token
-	// 1.1 从系统合约账户向account转账
-	//if mintAmount.Cmp(common.Big0) > 0 {
-	//	state.SubBalance(vm.StakingContractAddr, mintAmount)
-	//	state.AddBalance(receiveAccount, mintAmount)
-	//}
-	//
-	//// 2.铸币ERC20代币（默认精度为6）
-	//// 2.1 判断是否ERC20是否存在，不存在则需要部署
-	//code := bc.Evm.StateDB.GetCode(erc20Addr)
-	//contract := bc.Contract
-	//if len(code) == 0 {
-	//	tmpErc20Addr := common.HexToAddress("0x1111000000000000000000000000000000000001")
-	//	tempCode := bc.Evm.StateDB.GetCode(tmpErc20Addr)
-	//	// 部署合约
-	//	code = tempCode
-	//	bc.Evm.StateDB.SetCode(erc20Addr, code)
-	//	// 初始化
-	//}
-	//// 开始铸ERC20 Token币
-	//// 2.修改调用为合约地址（表示合约的调用者，合约交易的发送者）
-	//contract.caller = AccountRef(vm.StakingContractAddr)
-	//contract.CallerAddress = vm.StakingContractAddr
-	//// 修改成ERC20合约地址
-	//contract.self = AccountRef(erc20Addr)
-	//contract.SetCallCode(&erc20Addr, bc.Evm.StateDB.GetCodeHash(erc20Addr), code)
-	//for _, interpreter := range bc.Evm.interpreters {
-	//	if interpreter.CanRun(contract.Code) {
-	//		if bc.Evm.interpreter != interpreter {
-	//			// Ensure that the interpreter pointer is set back
-	//			// to its current value upon return.
-	//			defer func(i Interpreter) {
-	//				bc.Evm.interpreter = i
-	//			}(bc.Evm.interpreter)
-	//			bc.Evm.interpreter = interpreter
-	//		}
-	//		input, err := encodeMintFuncCall(from, mintERC20Amount)
-	//		if err != nil {
-	//			log.Error("Failed to Mint ERC20 Token", "error", err)
-	//			return nil, err
-	//		}
-	//		ret, err := interpreter.Run(contract, input, false)
-	//		if err != nil {
-	//			log.Error("Failed to Mint ERC20 Token", "ret", ret, "error", err)
-	//			return ret, err
-	//		}
-	//		// 保存ERC20代币质押记录
-	//	}
+	// Only the child-chain operating address has the authority to submit settlement transactions
+	//if from != bc.Plugin.SubOpAddr {
+	//	return nil, errors.New("the transaction sender is not the main chain operator address")
 	//}
 
-	//return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-	//	"", TxSettlementBubble, int(common.NoErr.Code), mintAmount), nil
-	return nil, nil
+	// Get Bubble Information
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	if nil != err || nil == bubInfo {
+		return nil, err
+	}
+	// check bubble state
+	if bubInfo.State == bubble.ReleasedStatus {
+		return nil, errors.New("the bubble has been released and cannot be settled")
+	}
+
+	// Get the account address information
+	accList, err := bc.Plugin.GetAccListOfStakingTokenInBub(blockHash, uint32(bubbleID.Uint64()))
+	if len(accList) != len(settlementInfo.AccAssets) {
+		return nil, errors.New("the length of the address participating in the settlement is incorrect")
+	}
+
+	for _, accAsset := range settlementInfo.AccAssets {
+		account := accAsset.Account
+		// Query account assets
+		localAsset, err := bc.Plugin.GetAccAssetOfStakingInBub(blockHash, uint32(bubbleID.Uint64()), account)
+		if nil != err || nil == localAsset {
+			return nil, errors.New("settlement account does not exist in the bubble")
+		}
+		var newAccAsset bubble.AccountAsset
+		newAccAsset.Account = account
+		// modify the amount of Native Token
+		newAccAsset.NativeAmount = accAsset.NativeAmount
+		// modify the ERC20 tokens
+		for _, tokenAsset := range accAsset.TokenAssets {
+			tokenAddr := tokenAsset.TokenAddr
+			amount := tokenAsset.Balance
+			newAccAsset.TokenAssets = append(newAccAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: tokenAddr, Balance: amount})
+		}
+
+		// Update account asset information
+		if err = bc.Plugin.StoreAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &newAccAsset); nil != err {
+			return nil, err
+		}
+	}
+
+	// log record
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
+		"", TxSettlementBubble, int(common.NoErr.Code), settlementInfo), nil
 }
