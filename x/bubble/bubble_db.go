@@ -44,3 +44,57 @@ func (bdb *BubbleDB) DelBubbleStore(blockHash common.Hash, bubbleID uint32) erro
 	}
 	return nil
 }
+
+func (bdb *BubbleDB) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+	data, err := bdb.db.Get(blockHash, StakingTokenAccListKey(bubbleId))
+	if err != nil {
+		return nil, err
+	}
+
+	var accList []common.Address
+	if err := rlp.DecodeBytes(data, &accList); err != nil {
+		return nil, err
+	} else {
+		return accList, nil
+	}
+}
+
+// StoreAccListOfStakingToken Store the pledge token information into the snapshot db
+func (bdb *BubbleDB) StoreAccListOfStakingToken(blockHash common.Hash, bubbleId uint32, accounts []common.Address) error {
+	if data, err := rlp.EncodeToBytes(accounts); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, StakingTokenAccListKey(bubbleId), data)
+	}
+}
+
+func (bdb *BubbleDB) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*AccountAsset, error) {
+	data, err := bdb.db.Get(blockHash, StakingTokenAccAssetKey(bubbleId, account))
+	if err != nil {
+		return nil, err
+	}
+
+	var accAsset AccountAsset
+	if err := rlp.DecodeBytes(data, &accAsset); err != nil {
+		return nil, err
+	} else {
+		return &accAsset, nil
+	}
+}
+
+func (bdb *BubbleDB) StoreAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, accAsset AccountAsset) error {
+	if data, err := rlp.EncodeToBytes(accAsset); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, StakingTokenAccAssetKey(bubbleId, accAsset.Account), data)
+	}
+}
+
+// StoreStakingTokenInfo Store the pledge token information into the snapshot db
+func (bdb *BubbleDB) StoreStakingTokenInfo(blockHash common.Hash, bubbleId uint32, stakingAsset *AccountAsset) error {
+	if data, err := rlp.EncodeToBytes(bubbleId); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, StakingTokenInBubKey(bubbleId), data)
+	}
+}

@@ -18,6 +18,7 @@ package byteutil
 
 import (
 	"encoding/hex"
+	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 
 	"github.com/bubblenet/bubble/crypto/bls"
@@ -59,6 +60,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]bls.SchnorrProofHex": BytesToSchnorrProofHexArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
+	"bubble.AccountAsset":           BytesToAccountAsset,
 }
 
 func BytesToString(curByte []byte) string {
@@ -325,6 +327,14 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return planArr
+}
+
+func BytesToAccountAsset(curByte []byte) bubble.AccountAsset {
+	var accAsset bubble.AccountAsset
+	if err := rlp.DecodeBytes(curByte, &accAsset); nil != err {
+		panic("BytesToAccountAsset:" + err.Error())
+	}
+	return accAsset
 }
 
 func PrintNodeID(nodeID discover.NodeID) string {

@@ -155,7 +155,8 @@ const (
 	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
 
 	// BubblePrecompiled contract gas
-	StakingGas            uint64 = 6000  // Gas needed for precompiled contract: stakingContract
+	StakingGas            uint64 = 6000 // Gas needed for precompiled contract: stakingContract
+	StakingTokenGas       uint64 = 6000
 	CreateStakeGas        uint64 = 32000 // Gas needed for createStaking
 	EditCandidateGas      uint64 = 12000 // Gas needed for editCandidate
 	IncStakeGas           uint64 = 20000 // Gas needed for increaseStaking

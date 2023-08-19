@@ -17,13 +17,16 @@
 package vm
 
 import (
-	"reflect"
-	"strconv"
-
+	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/plugin"
 	"github.com/bubblenet/bubble/x/xcom"
+	"math/big"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 func execBubbleContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
@@ -122,4 +125,75 @@ func checkInputEmpty(input []byte) bool {
 	} else {
 		return false
 	}
+}
+
+// encodeTransferFuncCall Generate functional signatures for smart contract transfer transactions
+func encodeTransferFuncCall(to common.Address, amount *big.Int) ([]byte, error) {
+
+	// 创建合约ABI解析器
+	encodeABI, err := abi.JSON(strings.NewReader(`[
+		{
+			"inputs": [
+				{
+				  "internalType": "address",
+				  "name": "_to",
+				  "type": "address"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "_amount",
+				  "type": "uint256"
+				}
+			],
+			"name": "transfer",
+			"type": "function"
+		}
+	]`))
+	if err != nil {
+		return nil, err
+	}
+
+	// Function name and parameter values
+	functionName := "transfer"
+
+	// Encode function call data
+	data, err := encodeABI.Pack(functionName, to, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the encoded data to a hexadecimal string
+	// encodedData := common.Bytes2Hex(data)
+	// fmt.Println(encodedData)
+	return data, nil
+}
+
+// RunEvm Execute the EVM contract code
+func RunEvm(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
+	if nil == evm || nil == contract {
+		log.Error("Run Evm failed", bubble.ErrEVMOrContractEmpty)
+		return nil, bubble.ErrEVMOrContractEmpty
+	}
+	for _, interpreter := range evm.interpreters {
+		if interpreter.CanRun(contract.Code) {
+			// Determine and set the current virtual machine
+			if evm.interpreter != interpreter {
+				// Ensure that the interpreter pointer is set back
+				// to its current value upon return.
+				defer func(i Interpreter) {
+					evm.interpreter = i
+				}(evm.interpreter)
+				evm.interpreter = interpreter
+			}
+			// Executing the virtual machine
+			ret, err := interpreter.Run(contract, input, false)
+			if err != nil {
+				log.Error("Run Evm failed", "ret", ret, "error", err)
+				// return ret, err
+			}
+			// Execution completes one of the EVM or WASM and returns
+			return ret, err
+		}
+	}
+	return nil, bubble.ErrNoExecutableVM
 }
