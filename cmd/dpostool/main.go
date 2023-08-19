@@ -63,8 +63,6 @@ type ERC20TokenInfo struct {
 type Dpos_0005 struct {
 	BubbleId       *big.Int
 	SettlementInfo bubble.SettlementInfo
-	//NativeAssetInfo map[common.Address]*big.Int
-	//Erc20AssetInfo  []ERC20TokenInfo
 }
 
 // createStaking

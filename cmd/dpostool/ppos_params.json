@@ -16,41 +16,21 @@
 	"P0005": {
 		"BubbleId": 100,
 		"SettlementInfo": {
-			"NativeAssetInfo": [
+			"AccAssets": [
 				{
-					"Address": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
-					"Balance": 100000
-				},
-				{
-					"Address": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
-					"Balance": 200000
-				}
-			],
-			"Erc20AssetInfo": [
-				{
-					"TokenAddr": "0x0000000000000000000000000000000000000020",
-					"AccAssets": [
-						{
-							"Address": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
-							"Balance": 300000
-						},
-						{
-							"Address": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
-							"Balance": 500000
-						}
+					"Account": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
+					"NativeAmount": 1000000000000000000,
+					"TokenAssets": [
+						{"TokenAddr": "0x1000000000000000000000000000000000000020", "Balance": 10000000},
+						{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
 					]
 				},
 				{
-					"TokenAddr": "0x8A16806861cA61EF5D3Bb99498b94D3367A248bA",
-					"AccAssets": [
-						{
-							"Address": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
-							"Balance": 700000
-						},
-						{
-							"Address": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
-							"Balance": 800000
-						}
+					"Account": "0x12c171900f010b17e969702efa044d077e868082",
+					"NativeAmount": 1000000000000000000,
+					"TokenAssets": [
+						{"TokenAddr": "0x1000000000000000000000000000000000000020", "Balance": 10000000},
+						{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
 					]
 				}
 			]
