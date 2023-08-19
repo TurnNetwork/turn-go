@@ -21,7 +21,7 @@ const (
 	//BuildingStatus   = 0
 	ActiveStatus     = 1
 	PreReleaseStatus = 2
-	//ReleasedStatus   = 3
+	ReleasedStatus   = 3
 )
 
 type CandidateQueue []*stakingL2.Candidate

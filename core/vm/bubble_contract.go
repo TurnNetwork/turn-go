@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/x/bubble"
@@ -173,27 +174,32 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 	blockHash := bc.Evm.Context.BlockHash
 	from := bc.Contract.CallerAddress
 	state := bc.Evm.StateDB
-	// Get Bubble Information
-	bubInfo, err := bc.getBubbleInfo(uint32(bubbleID.Uint64()))
-	if nil != err {
-		return nil, err
-	}
-	if from != stakingAsset.Account {
-		return nil, bubble.ErrStakingAccount
-	}
 	nativeAmount := stakingAsset.NativeAmount
 	log.Debug("Call BubbleContract of stakingToken", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "StakingTokenAddr", from, "amount", nativeAmount,
-		"bubbleInfo", bubInfo)
+		"blockNumber", blockNumber.Uint64(), "StakingTokenAddr", from, "amount", nativeAmount)
 
 	// Calculating gas
 	if !bc.Contract.UseGas(params.StakingTokenGas) {
 		return nil, ErrOutOfGas
 	}
-
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
+
+	if from != stakingAsset.Account {
+		return nil, bubble.ErrStakingAccount
+	}
+	// Get Bubble Information
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	if nil != err || nil == bubInfo {
+		return nil, err
+	}
+
+	// check bubble state
+	if bubInfo.State == bubble.ReleasedStatus {
+		return nil, errors.New("the bubble state is release, and the asset cannot be pledged")
+	}
+
 	// staking native tokens
 	// get account balance
 	origin := state.GetBalance(from)
@@ -204,7 +210,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		return nil, bubble.ErrAccountNoEnough
 	}
 
-	if stakingAsset.NativeAmount.Cmp(common.Big0) > 0 {
+	if stakingAsset.NativeAmount.Cmp(big0) > 0 {
 		// Deduct the account's native token
 		state.SubBalance(from, nativeAmount)
 		// The native token of the account is added to the system contract
@@ -242,7 +248,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 	}
 
 	// The assets pledged by the storage account
-	if err := bc.Plugin.StoreAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &stakingAsset); nil != err {
+	if err := bc.Plugin.AddAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &stakingAsset); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
 		} else {
@@ -256,20 +262,16 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 }
 
 // withdrewToken Redeem account tokens, including native tokens and ERC20 tokens
-func (bc *BubbleContract) withdrewToken(bubbleID uint32) ([]byte, error) {
+func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
-	//from := bc.Contract.CallerAddress
-	//state := bc.Evm.StateDB
-	// Get Bubble Information
-	bubInfo, err := bc.getBubbleInfo(bubbleID)
-	if nil != err {
-		return nil, err
-	}
+	from := bc.Contract.CallerAddress
+	state := bc.Evm.StateDB
+	blockHash := bc.Evm.Context.BlockHash
+	// Check the bubble status.Only when the bubble state is release can the account redeem the pledged token
 	log.Debug("Call BubbleContract of withdrewToken", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "bubInfo", bubInfo)
+		"blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID)
 
-	// 计算gas
 	if !bc.Contract.UseGas(params.BubbleGas) {
 		return nil, ErrOutOfGas
 	}
@@ -277,61 +279,77 @@ func (bc *BubbleContract) withdrewToken(bubbleID uint32) ([]byte, error) {
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
-	return nil, nil
-	//// 赎回原生Token
-	//// 1.从DB中获取Bubble内对应账户可提取余额
-	//// 2.从系统地址中转账amount给对应的账户
-	//// origin := state.GetBalance(from)
-	////if origin.Cmp(amount) < 0 {
-	////	log.Error("Failed to Staking Token: the account's balance is not Enough",
-	////		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-	////		"stakeAddr", from, "balance", origin, "stakingAmount", amount)
-	////	return nil, staking.ErrAccountVonNoEnough
-	////}
-	//state.SubBalance(vm.StakingContractAddr, amount)
-	//state.AddBalance(from, amount)
-	//// 更新账户原生代币质押记录为0
-	//
-	//// 赎回ERC20 Token
-	//// 1.从DB中获取Bubble内对应账户可提取的ERC20信息
-	//// 1.1 获取ERC20地址列表
-	//// 2.根据合约地址获取code
-	//code := bc.Evm.StateDB.GetCode(erc20Addr)
-	//if len(code) != 0 {
-	//	contract := bc.Contract
-	//	// 2.修改调用为合约地址（表示合约的调用者，合约交易的发送者，相当于ERC20 Token转出方）
-	//	contract.caller = AccountRef(vm.StakingContractAddr)
-	//	contract.CallerAddress = vm.StakingContractAddr
-	//	// 修改成ERC20合约地址
-	//	contract.self = AccountRef(erc20Addr)
-	//	contract.SetCallCode(&erc20Addr, bc.Evm.StateDB.GetCodeHash(erc20Addr), code)
-	//	for _, interpreter := range bc.Evm.interpreters {
-	//		if interpreter.CanRun(contract.Code) {
-	//			if bc.Evm.interpreter != interpreter {
-	//				// Ensure that the interpreter pointer is set back
-	//				// to its current value upon return.
-	//				defer func(i Interpreter) {
-	//					bc.Evm.interpreter = i
-	//				}(bc.Evm.interpreter)
-	//				bc.Evm.interpreter = interpreter
-	//			}
-	//			input, err := encodeTransferFuncCall(from, transferERC20Amount)
-	//			if err != nil {
-	//				log.Error("Failed to Staking ERC20 Token", "error", err)
-	//				return nil, err
-	//			}
-	//			ret, err := interpreter.Run(contract, input, false)
-	//			if err != nil {
-	//				log.Error("Failed to Staking ERC20 Token", "ret", ret, "error", err)
-	//				return ret, err
-	//			}
-	//			// 保存ERC20代币质押记录
-	//		}
-	//	}
-	//}
-	//
-	//return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-	//	"", TxWithdrewToken, int(common.NoErr.Code), amount), nil
+
+	// Get Bubble Information
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	if nil != err || nil == bubInfo {
+		return nil, err
+	}
+	// check bubble state
+	if bubInfo.State != bubble.ReleasedStatus {
+		return nil, errors.New("the bubble state is not release and the pledged token cannot be redeemed")
+	}
+
+	// Obtain the staking assets of the account
+	accAsset, err := bc.Plugin.GetAccAssetOfStakingInBub(blockHash, uint32(bubbleID.Uint64()), from)
+	if nil != err || nil == accAsset {
+		return nil, err
+	}
+	var resetAsset bubble.AccountAsset
+	resetAsset.Account = from
+	// withdrew native tokens
+	if accAsset.NativeAmount.Cmp(big0) > 0 {
+		// Transfer money from the system address to the corresponding account
+		state.SubBalance(vm.BubbleContractAddr, accAsset.NativeAmount)
+		state.AddBalance(from, accAsset.NativeAmount)
+		resetAsset.NativeAmount = big0
+	}
+
+	// withdrew ERC20 tokens
+	for _, tokenAsset := range accAsset.TokenAssets {
+		// ERC20 Address
+		erc20Addr := tokenAsset.TokenAddr
+		// Token Amount
+		tokenAmount := tokenAsset.Balance
+		// Get code based on contract address
+		// Check whether ERC20 exists, if not, the failure fails
+		code := bc.Evm.StateDB.GetCode(erc20Addr)
+		if 0 == len(code) {
+			return nil, bubble.ErrERC20NoExist
+		}
+		contract := bc.Contract
+		// Change to ERC20 contract address
+		contract.self = AccountRef(erc20Addr)
+		// Change the call to the contract address (represents the caller of the contract,
+		// the sender of the contract transaction, equivalent to the ERC20 Token forwarder)
+		contract.caller = AccountRef(vm.BubbleContractAddr)
+		contract.CallerAddress = vm.BubbleContractAddr
+		contract.SetCallCode(&erc20Addr, bc.Evm.StateDB.GetCodeHash(erc20Addr), code)
+		// Generate data for ERC20 transfer transactions, Transfer from system contract to withdrew account
+		input, err := encodeTransferFuncCall(from, tokenAmount)
+		if err != nil {
+			log.Error("Failed to Withdrew ERC20 Token", "error", err)
+			return nil, err
+		}
+		// Execute EVM
+		_, err = RunEvm(bc.Evm, contract, input)
+		if err != nil {
+			log.Error("Failed to Withdrew ERC20 Token", "error", err)
+			return nil, err
+		}
+		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: big0})
+	}
+	// Update account asset information
+	if err = bc.Plugin.StoreAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &resetAsset); nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
+		} else {
+			log.Error("Failed to withdrewToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
+		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
 }
 
 // 主链结算接口

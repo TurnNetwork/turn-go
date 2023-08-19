@@ -328,6 +328,14 @@ func (bp *BubblePlugin) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleI
 // StoreAccStakingAsset The assets pledged by the storage account
 func (bp *BubblePlugin) StoreAccStakingAsset(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
+		return errors.New("null pointer")
+	}
+	return bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *stakingAsset)
+}
+
+// AddAccStakingAsset Add account pledged assets to bubble
+func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+	if nil == stakingAsset {
 		return errors.New("the pledge information is empty")
 	}
 	// Check if a bubble exists. You cannot pledge assets to a bubble that does not exist
