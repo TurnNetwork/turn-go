@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 	"os"
 	"strconv"
@@ -40,6 +41,31 @@ var (
 	jsonFlag      = flag.String("json", "", "Json file path for contract parameters")
 	funcTypesFlag = flag.String("funcTypes", "", "A collection of contract interface types")
 )
+
+// stakingToken
+type Dpos_0003 struct {
+	BubbleID *big.Int
+	AccAsset bubble.AccountAsset
+}
+
+// withdrewToken
+type Dpos_0004 struct {
+	BubbleID *big.Int
+}
+
+// settlementToken
+type ERC20TokenInfo struct {
+	TokenAddr common.Address `json:"tokenAddr"` // ERC20 Token合约地址
+	//AddrToAmount map[common.Address]*big.Int `json:"addrToAmount"` // 账户的资产，key为账户地址，value为Token数量
+	AddrToAmount []map[common.Address]*big.Int `json:"addrToAmount"` // 账户的资产，key为账户地址，value为Token数量
+}
+
+type Dpos_0005 struct {
+	BubbleId       *big.Int
+	SettlementInfo bubble.SettlementInfo
+	//NativeAssetInfo map[common.Address]*big.Int
+	//Erc20AssetInfo  []ERC20TokenInfo
+}
 
 // createStaking
 type Dpos_1000 struct {
@@ -228,6 +254,9 @@ type Dpos_5100 struct {
 }
 
 type decDataConfig struct {
+	P0003 Dpos_0003
+	P0004 Dpos_0004
+	P0005 Dpos_0005
 	P1000 Dpos_1000
 	P1001 Dpos_1001
 	P1002 Dpos_1002
@@ -286,6 +315,25 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	params = append(params, fnType)
 
 	switch funcType {
+	case 0003:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P0003.BubbleID)
+			accAsset, _ := rlp.EncodeToBytes(cfg.P0003.AccAsset)
+			params = append(params, bubId)
+			params = append(params, accAsset)
+		}
+	case 0004:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P0004.BubbleID)
+			params = append(params, bubId)
+		}
+	case 0005:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P0005.BubbleId)
+			settlementInfo, _ := rlp.EncodeToBytes(cfg.P0005.SettlementInfo)
+			params = append(params, bubbleId)
+			params = append(params, settlementInfo)
+		}
 	case 1000:
 		{
 			typ, _ := rlp.EncodeToBytes(cfg.P1000.Typ)

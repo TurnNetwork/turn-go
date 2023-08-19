@@ -299,6 +299,90 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	return nil
 }
 
+func (bp *BubblePlugin) StakingToken(blockHash common.Hash, bubbleID *big.Int, stakingAsset *bubble.AccountAsset) error {
+
+	return nil
+}
+
+// GetAccListOfStakingTokenInBub Gets the list of addresses that pledged tokens in the specified bubble
+func (bp *BubblePlugin) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+	return bp.db.GetAccListOfStakingTokenInBub(blockHash, bubbleId)
+}
+
+// AddAccOfStakingTokenInBub Add the pledge Token account to bubble
+func (bp *BubblePlugin) AddAccOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32, account common.Address) error {
+	accList, err := bp.GetAccListOfStakingTokenInBub(blockHash, bubbleId)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return err
+	}
+
+	accList = append(accList, account)
+	return bp.db.StoreAccListOfStakingToken(blockHash, bubbleId, accList)
+}
+
+// GetAccAssetOfStakingInBub Get the pledged assets of the account in the bubble
+func (bp *BubblePlugin) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*bubble.AccountAsset, error) {
+	return bp.db.GetAccAssetOfStakingInBub(blockHash, bubbleId, account)
+}
+
+// StoreAccStakingAsset The assets pledged by the storage account
+func (bp *BubblePlugin) StoreAccStakingAsset(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+	if nil == stakingAsset {
+		return errors.New("the pledge information is empty")
+	}
+	// Check if a bubble exists. You cannot pledge assets to a bubble that does not exist
+	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleId)
+	if nil != err {
+		return err
+	}
+	if nil == bubInfo {
+		return errors.New("the bubble information does not exist, You cannot pledge assets to a bubble that does not exist")
+	}
+	// Determine whether the account has a history of pledging tokens within the bubble
+	accAsset, err := bp.GetAccAssetOfStakingInBub(blockHash, bubbleId, stakingAsset.Account)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return err
+	}
+	// New staking account
+	if nil == accAsset {
+		// Store a list of accounts
+		if err := bp.AddAccOfStakingTokenInBub(blockHash, bubbleId, stakingAsset.Account); nil != err {
+			return err
+		}
+		// Store new account assets
+		if err = bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *stakingAsset); nil != err {
+			return err
+		}
+	} else {
+		// Update account assets
+		// Update native token
+		accAsset.NativeAmount = new(big.Int).Add(accAsset.NativeAmount, stakingAsset.NativeAmount)
+		// Update ERC20(add new asset to old asset)
+		for _, newAsset := range stakingAsset.TokenAssets {
+			tokenAddr := newAsset.TokenAddr
+			amount := newAsset.Balance
+			isFind := false
+			for i, oldAsset := range accAsset.TokenAssets {
+				// The currency already exists
+				if tokenAddr == oldAsset.TokenAddr {
+					accAsset.TokenAssets[i].Balance = new(big.Int).Add(accAsset.TokenAssets[i].Balance, amount)
+					isFind = true
+					break
+				}
+			}
+			// New currency species： New ERC20 Token
+			if !isFind {
+				accAsset.TokenAssets = append(accAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: tokenAddr, Balance: amount})
+			}
+		}
+		// Update account asset information
+		if err = bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *accAsset); nil != err {
+			return err
+		}
+	}
+	return nil
+}
+
 // VRFItem is the element of the VRFQueue
 type VRFItem struct {
 	v interface{}

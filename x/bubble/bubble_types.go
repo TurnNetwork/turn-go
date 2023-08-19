@@ -2,6 +2,8 @@ package bubble
 
 import (
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/staking"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"math/big"
@@ -51,4 +53,12 @@ type AccountAsset struct {
 
 type SettlementInfo struct {
 	AccAssets []AccountAsset // 所有账户的资产信息
+}
+
+func (s SettlementInfo) Hash() (common.Hash, error) {
+	enVal, err := rlp.EncodeToBytes(s)
+	if err != nil {
+		return common.ZeroHash, err
+	}
+	return crypto.Keccak256Hash(enVal), nil
 }
