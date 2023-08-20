@@ -45,8 +45,8 @@ func (bdb *BubbleDB) DelBubbleStore(blockHash common.Hash, bubbleID uint32) erro
 	return nil
 }
 
-func (bdb *BubbleDB) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
-	data, err := bdb.db.Get(blockHash, StakingTokenAccListKey(bubbleId))
+func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+	data, err := bdb.db.Get(blockHash, AccListByBubKey(bubbleId))
 	if err != nil {
 		return nil, err
 	}
@@ -59,17 +59,17 @@ func (bdb *BubbleDB) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubble
 	}
 }
 
-// StoreAccListOfStakingToken Store the pledge token information into the snapshot db
-func (bdb *BubbleDB) StoreAccListOfStakingToken(blockHash common.Hash, bubbleId uint32, accounts []common.Address) error {
+// StoreAccListOfBub Store the staking tokens accounts into the snapshot db
+func (bdb *BubbleDB) StoreAccListOfBub(blockHash common.Hash, bubbleId uint32, accounts []common.Address) error {
 	if data, err := rlp.EncodeToBytes(accounts); err != nil {
 		return err
 	} else {
-		return bdb.db.Put(blockHash, StakingTokenAccListKey(bubbleId), data)
+		return bdb.db.Put(blockHash, AccListByBubKey(bubbleId), data)
 	}
 }
 
-func (bdb *BubbleDB) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*AccountAsset, error) {
-	data, err := bdb.db.Get(blockHash, StakingTokenAccAssetKey(bubbleId, account))
+func (bdb *BubbleDB) GetAccAssetOfBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*AccountAsset, error) {
+	data, err := bdb.db.Get(blockHash, AccAssetByBubKey(bubbleId, account))
 	if err != nil {
 		return nil, err
 	}
@@ -82,19 +82,10 @@ func (bdb *BubbleDB) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleId u
 	}
 }
 
-func (bdb *BubbleDB) StoreAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, accAsset AccountAsset) error {
+func (bdb *BubbleDB) StoreAccAssetToBub(blockHash common.Hash, bubbleId uint32, accAsset AccountAsset) error {
 	if data, err := rlp.EncodeToBytes(accAsset); err != nil {
 		return err
 	} else {
-		return bdb.db.Put(blockHash, StakingTokenAccAssetKey(bubbleId, accAsset.Account), data)
-	}
-}
-
-// StoreStakingTokenInfo Store the pledge token information into the snapshot db
-func (bdb *BubbleDB) StoreStakingTokenInfo(blockHash common.Hash, bubbleId uint32, stakingAsset *AccountAsset) error {
-	if data, err := rlp.EncodeToBytes(bubbleId); err != nil {
-		return err
-	} else {
-		return bdb.db.Put(blockHash, StakingTokenInBubKey(bubbleId), data)
+		return bdb.db.Put(blockHash, AccAssetByBubKey(bubbleId, accAsset.Account), data)
 	}
 }

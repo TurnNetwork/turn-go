@@ -247,8 +247,8 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		}
 	}
 
-	// The assets pledged by the storage account
-	if err := bc.Plugin.AddAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &stakingAsset); nil != err {
+	// The assets staking by the storage account
+	if err := bc.Plugin.AddAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &stakingAsset); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
 		} else {
@@ -264,7 +264,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		var mintTokenTask bubble.MintTokenTask
 		mintTokenTask.BubbleID = bubbleID
 		mintTokenTask.AccAsset = &stakingAsset
-		if err := bc.Plugin.PostMintTokenTask(&mintTokenTask); err != nil {
+		if err := bc.Plugin.PostMintTokenEvent(&mintTokenTask); err != nil {
 			return nil, err
 		}
 	}
@@ -303,7 +303,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	// Obtain the staking assets of the account
-	accAsset, err := bc.Plugin.GetAccAssetOfStakingInBub(blockHash, uint32(bubbleID.Uint64()), from)
+	accAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, uint32(bubbleID.Uint64()), from)
 	if nil != err || nil == accAsset {
 		return nil, err
 	}
@@ -351,8 +351,8 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		}
 		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: big0})
 	}
-	// Update account asset information
-	if err = bc.Plugin.StoreAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &resetAsset); nil != err {
+	// Store the latest information about the staking assets of the account into bubble
+	if err = bc.Plugin.StoreAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &resetAsset); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
 		} else {
@@ -398,7 +398,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	//}
 
 	// Get the account address information
-	accList, err := bc.Plugin.GetAccListOfStakingTokenInBub(blockHash, uint32(bubbleID.Uint64()))
+	accList, err := bc.Plugin.GetAccListOfBub(blockHash, uint32(bubbleID.Uint64()))
 	if len(accList) != len(settlementInfo.AccAssets) {
 		return nil, errors.New("the length of the address participating in the settlement is incorrect")
 	}
@@ -406,7 +406,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	for _, accAsset := range settlementInfo.AccAssets {
 		account := accAsset.Account
 		// Query account assets
-		localAsset, err := bc.Plugin.GetAccAssetOfStakingInBub(blockHash, uint32(bubbleID.Uint64()), account)
+		localAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, uint32(bubbleID.Uint64()), account)
 		if nil != err || nil == localAsset {
 			return nil, errors.New("settlement account does not exist in the bubble")
 		}
@@ -421,8 +421,8 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 			newAccAsset.TokenAssets = append(newAccAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: tokenAddr, Balance: amount})
 		}
 
-		// Update account asset information
-		if err = bc.Plugin.StoreAccStakingAsset(blockHash, uint32(bubbleID.Uint64()), &newAccAsset); nil != err {
+		// Store the latest information about the staking assets of the account into bubble
+		if err = bc.Plugin.StoreAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &newAccAsset); nil != err {
 			return nil, err
 		}
 	}
