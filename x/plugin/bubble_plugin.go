@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"bytes"
+	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -9,7 +11,12 @@ import (
 	"github.com/bubblenet/bubble/common/math"
 	"github.com/bubblenet/bubble/common/sort"
 	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/crypto"
+	"github.com/bubblenet/bubble/ethclient"
+	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/handler"
@@ -35,6 +42,9 @@ type BubblePlugin struct {
 	stkPlugin  *StakingPlugin
 	stk2Plugin *StakingL2Plugin
 	db         *bubble.BubbleDB
+	NodeID     discover.NodeID
+	eventMux   *event.TypeMux
+	opPriKey   string // Main chain operation address private key
 }
 
 // BubbleInstance instance a global BubblePlugin
@@ -46,6 +56,25 @@ func BubbleInstance() *BubblePlugin {
 		}
 	})
 	return bubblePlugin
+}
+
+func (bp *BubblePlugin) SetCurrentNodeID(nodeId discover.NodeID) {
+	bp.NodeID = nodeId
+}
+
+func (bp *BubblePlugin) SetEventMux(eventMux *event.TypeMux) {
+	bp.eventMux = eventMux
+}
+
+func (bp *BubblePlugin) SetOpPriKey(opPriKey string) error {
+	if "0x" == opPriKey[0:2] || "0X" == opPriKey[0:2] {
+		opPriKey = opPriKey[2:]
+	}
+	if 64 != len(opPriKey) {
+		return errors.New("the private key is of the wrong size")
+	}
+	bp.opPriKey = opPriKey
+	return nil
 }
 
 // GetBubbleInfo return the bubble information by bubble ID
@@ -336,10 +365,10 @@ func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint3
 	// Check if a bubble exists. You cannot pledge assets to a bubble that does not exist
 	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleId)
 	if nil != err {
-		return err
+		//	return err
 	}
 	if nil == bubInfo {
-		return errors.New("the bubble information does not exist, You cannot pledge assets to a bubble that does not exist")
+		//	return errors.New("the bubble information does not exist, You cannot pledge assets to a bubble that does not exist")
 	}
 	// Determine whether the account has a history of pledging tokens within the bubble
 	accAsset, err := bp.GetAccAssetOfStakingInBub(blockHash, bubbleId, stakingAsset.Account)
@@ -384,6 +413,114 @@ func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint3
 		}
 	}
 	return nil
+}
+
+// PostMintTokenTask Add the minting task corresponding to the account pledge token
+func (bp *BubblePlugin) PostMintTokenTask(mintTokenTask *bubble.MintTokenTask) error {
+	if err := bp.eventMux.Post(*mintTokenTask); nil != err {
+		log.Error("post mintToken task failed", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+// Generate the rlp encoding of the sub-chain minting transaction
+func genMintTokenRlpData(accAsset bubble.AccountAsset) []byte {
+	var params [][]byte
+	params = make([][]byte, 0)
+	// sub-chain mintToken function coding
+	mintTokenType := uint16(6000)
+	fnType, _ := rlp.EncodeToBytes(mintTokenType)
+	params = append(params, fnType)
+
+	accAssetRLP, _ := rlp.EncodeToBytes(accAsset)
+	params = append(params, accAssetRLP)
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		return nil
+	}
+	// rlpData := hexutil.Encode(buf.Bytes())
+	// fmt.Printf("funcType:%d rlp data = %s\n", mintTokenType, rlpData)
+	return buf.Bytes()
+}
+
+//HandleMintTokenTask Handle MintToken task
+func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]byte, error) {
+	log.Info("failed connect operator node", mintToken)
+	if nil == mintToken || nil == mintToken.AccAsset {
+		return nil, errors.New("mintToken task information is empty")
+	}
+	client, err := ethclient.Dial(mintToken.RPC)
+	if err != nil || client == nil {
+		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
+	}
+	// Construct transaction parameters
+	priKey := bp.opPriKey
+	// Call the child-chain system contract MintToken interface
+	toAddr := common.HexToAddress("0x1000000000000000000000000000000000000020")
+	privateKey, err := crypto.HexToECDSA(priKey)
+	if err != nil {
+		log.Error("Wrong private key", "err", err)
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
+	}
+
+	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
+	// The staking address of the operation node is taken as the operation node address
+	// It is determined whether the main chain operation node signs the transaction
+	//if fromAddr != bubInfo.MainChain.OpAddr {
+	//	log.Error("The mintToken transaction sender is not the main-chain operation address")
+	//	return nil, errors.New("the mintToken transaction sender is not the main-chain operation address")
+	//}
+	// get account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
+	if err != nil {
+		log.Error("Failed to obtain the account nonce", "err", err)
+		return nil, err
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Error("Failed to get gasPrice", "err", err)
+		return nil, err
+	}
+	value := big.NewInt(0)
+	gasLimit := uint64(300000)
+	// Assemble the data of the minting interface
+	data := genMintTokenRlpData(*mintToken.AccAsset)
+	if nil == data {
+		return nil, errors.New("genMintTokenRlpData failed")
+	}
+	// Creating transaction objects
+	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
+
+	// The sender's private key is used to sign the transaction
+	chainID, err := client.ChainID(context.Background())
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Error("Signing mintToken transaction failed", "err", err)
+		return nil, err
+	}
+
+	// Sending transactions
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Error("Failed to send mintToken transaction", "err", err)
+		return nil, err
+	}
+
+	hash := signedTx.Hash()
+	log.Debug("mintToken tx hash=========================================", hash.Hex())
+	return hash.Bytes(), nil
 }
 
 // VRFItem is the element of the VRFQueue

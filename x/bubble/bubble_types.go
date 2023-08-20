@@ -51,6 +51,12 @@ type AccountAsset struct {
 	TokenAssets  []AccTokenAsset // Token资产
 }
 
+type MintTokenTask struct {
+	BubbleID *big.Int
+	RPC      string // Bubble The bubble sub-chain operates the node rpc
+	AccAsset *AccountAsset
+}
+
 type SettlementInfo struct {
 	AccAssets []AccountAsset // 所有账户的资产信息
 }
