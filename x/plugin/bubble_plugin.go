@@ -328,39 +328,40 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	return nil
 }
 
-// GetAccListOfStakingTokenInBub Gets the list of addresses that pledged tokens in the specified bubble
-func (bp *BubblePlugin) GetAccListOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
-	return bp.db.GetAccListOfStakingTokenInBub(blockHash, bubbleId)
+// GetAccListOfBub Get the list of accounts inside bubble
+// An account is activated within a bubble by staking tokens with a specified bubbleId
+func (bp *BubblePlugin) GetAccListOfBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+	return bp.db.GetAccListOfBub(blockHash, bubbleId)
 }
 
-// AddAccOfStakingTokenInBub Add the pledge Token account to bubble
-func (bp *BubblePlugin) AddAccOfStakingTokenInBub(blockHash common.Hash, bubbleId uint32, account common.Address) error {
-	accList, err := bp.GetAccListOfStakingTokenInBub(blockHash, bubbleId)
+// AddAccToBub Add the account address of the staking tokens to bubble
+func (bp *BubblePlugin) AddAccToBub(blockHash common.Hash, bubbleId uint32, account common.Address) error {
+	accList, err := bp.GetAccListOfBub(blockHash, bubbleId)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
-
+	// Store it in a list of accounts in bubble
 	accList = append(accList, account)
-	return bp.db.StoreAccListOfStakingToken(blockHash, bubbleId, accList)
+	return bp.db.StoreAccListOfBub(blockHash, bubbleId, accList)
 }
 
-// GetAccAssetOfStakingInBub Get the pledged assets of the account in the bubble
-func (bp *BubblePlugin) GetAccAssetOfStakingInBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*bubble.AccountAsset, error) {
-	return bp.db.GetAccAssetOfStakingInBub(blockHash, bubbleId, account)
+// GetAccAssetOfBub Get the assets staking by the account within the specified bubble
+func (bp *BubblePlugin) GetAccAssetOfBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*bubble.AccountAsset, error) {
+	return bp.db.GetAccAssetOfBub(blockHash, bubbleId, account)
 }
 
-// StoreAccStakingAsset The assets pledged by the storage account
-func (bp *BubblePlugin) StoreAccStakingAsset(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+// StoreAccAssetToBub Store the information of the staking assets of the account into bubble
+func (bp *BubblePlugin) StoreAccAssetToBub(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
 		return errors.New("null pointer")
 	}
-	return bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *stakingAsset)
+	return bp.db.StoreAccAssetToBub(blockHash, bubbleId, *stakingAsset)
 }
 
-// AddAccStakingAsset Add account pledged assets to bubble
-func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+// AddAccAssetToBub Add account staking assets to bubble
+func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
-		return errors.New("the pledge information is empty")
+		return errors.New("the staking tokens information is empty")
 	}
 	// Check if a bubble exists. You cannot pledge assets to a bubble that does not exist
 	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleId)
@@ -371,18 +372,18 @@ func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint3
 		//	return errors.New("the bubble information does not exist, You cannot pledge assets to a bubble that does not exist")
 	}
 	// Determine whether the account has a history of pledging tokens within the bubble
-	accAsset, err := bp.GetAccAssetOfStakingInBub(blockHash, bubbleId, stakingAsset.Account)
+	accAsset, err := bp.GetAccAssetOfBub(blockHash, bubbleId, stakingAsset.Account)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 	// New staking account
 	if nil == accAsset {
-		// Store a list of accounts
-		if err := bp.AddAccOfStakingTokenInBub(blockHash, bubbleId, stakingAsset.Account); nil != err {
+		// Store the staking tokens account in bubble
+		if err := bp.AddAccToBub(blockHash, bubbleId, stakingAsset.Account); nil != err {
 			return err
 		}
 		// Store new account assets
-		if err = bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *stakingAsset); nil != err {
+		if err = bp.db.StoreAccAssetToBub(blockHash, bubbleId, *stakingAsset); nil != err {
 			return err
 		}
 	} else {
@@ -408,15 +409,15 @@ func (bp *BubblePlugin) AddAccStakingAsset(blockHash common.Hash, bubbleId uint3
 			}
 		}
 		// Update account asset information
-		if err = bp.db.StoreAccAssetOfStakingInBub(blockHash, bubbleId, *accAsset); nil != err {
+		if err = bp.db.StoreAccAssetToBub(blockHash, bubbleId, *accAsset); nil != err {
 			return err
 		}
 	}
 	return nil
 }
 
-// PostMintTokenTask Add the minting task corresponding to the account pledge token
-func (bp *BubblePlugin) PostMintTokenTask(mintTokenTask *bubble.MintTokenTask) error {
+// PostMintTokenEvent Send the coin mint event and wait for the coin mint task to be processed
+func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) error {
 	if err := bp.eventMux.Post(*mintTokenTask); nil != err {
 		log.Error("post mintToken task failed", "err", err)
 		return err
