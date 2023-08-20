@@ -325,7 +325,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, config.OpPriKey)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -608,7 +608,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opPrikey string) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -625,6 +625,8 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
+	xplugin.BubbleInstance().SetCurrentNodeID(reactor.NodeId)
+	xplugin.BubbleInstance().SetOpPriKey(opPrikey)
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})

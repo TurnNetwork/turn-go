@@ -257,6 +257,18 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		}
 	}
 
+	// Send the corresponding minting task
+	// Only bubble's main-chain operator node needs to handle this task
+	// if bc.Plugin.NodeID == bubInfo.OperatorsL1[0].NodeId
+	{
+		var mintTokenTask bubble.MintTokenTask
+		mintTokenTask.BubbleID = bubbleID
+		mintTokenTask.AccAsset = &stakingAsset
+		if err := bc.Plugin.PostMintTokenTask(&mintTokenTask); err != nil {
+			return nil, err
+		}
+	}
+
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
 		"", TxStakingToken, int(common.NoErr.Code), stakingAsset), nil
 }
@@ -370,11 +382,6 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 		return nil, nil
 	}
 
-	// Only the child-chain operating address has the authority to submit settlement transactions
-	//if from != bc.Plugin.SubOpAddr {
-	//	return nil, errors.New("the transaction sender is not the main chain operator address")
-	//}
-
 	// Get Bubble Information
 	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
 	if nil != err || nil == bubInfo {
@@ -384,6 +391,11 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	if bubInfo.State == bubble.ReleasedStatus {
 		return nil, errors.New("the bubble has been released and cannot be settled")
 	}
+
+	// Only the child-chain operating address has the authority to submit settlement transactions
+	//if from != bubInfo.subChain.opAddr {
+	//	return nil, errors.New("the transaction sender is not the main chain operator address")
+	//}
 
 	// Get the account address information
 	accList, err := bc.Plugin.GetAccListOfStakingTokenInBub(blockHash, uint32(bubbleID.Uint64()))
