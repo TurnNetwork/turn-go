@@ -4,6 +4,7 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/rlp"
+	"math/big"
 )
 
 type BubbleDB struct {
@@ -16,7 +17,7 @@ func NewBubbleDB() *BubbleDB {
 	}
 }
 
-func (bdb *BubbleDB) GetBubbleStore(blockHash common.Hash, bubbleID uint32) (*Bubble, error) {
+func (bdb *BubbleDB) GetBubbleStore(blockHash common.Hash, bubbleID *big.Int) (*Bubble, error) {
 	data, err := bdb.db.Get(blockHash, GetBubbleKey(bubbleID))
 	if err != nil {
 		return nil, err
@@ -38,14 +39,14 @@ func (bdb *BubbleDB) SetBubbleStore(blockHash common.Hash, bubble *Bubble) error
 	}
 }
 
-func (bdb *BubbleDB) DelBubbleStore(blockHash common.Hash, bubbleID uint32) error {
+func (bdb *BubbleDB) DelBubbleStore(blockHash common.Hash, bubbleID *big.Int) error {
 	if err := bdb.db.Del(blockHash, GetBubbleKey(bubbleID)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {
 	data, err := bdb.db.Get(blockHash, AccListByBubKey(bubbleId))
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId uint32) ([]
 }
 
 // StoreAccListOfBub Store the staking tokens accounts into the snapshot db
-func (bdb *BubbleDB) StoreAccListOfBub(blockHash common.Hash, bubbleId uint32, accounts []common.Address) error {
+func (bdb *BubbleDB) StoreAccListOfBub(blockHash common.Hash, bubbleId *big.Int, accounts []common.Address) error {
 	if data, err := rlp.EncodeToBytes(accounts); err != nil {
 		return err
 	} else {
@@ -68,7 +69,7 @@ func (bdb *BubbleDB) StoreAccListOfBub(blockHash common.Hash, bubbleId uint32, a
 	}
 }
 
-func (bdb *BubbleDB) GetAccAssetOfBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*AccountAsset, error) {
+func (bdb *BubbleDB) GetAccAssetOfBub(blockHash common.Hash, bubbleId *big.Int, account common.Address) (*AccountAsset, error) {
 	data, err := bdb.db.Get(blockHash, AccAssetByBubKey(bubbleId, account))
 	if err != nil {
 		return nil, err
@@ -82,7 +83,7 @@ func (bdb *BubbleDB) GetAccAssetOfBub(blockHash common.Hash, bubbleId uint32, ac
 	}
 }
 
-func (bdb *BubbleDB) StoreAccAssetToBub(blockHash common.Hash, bubbleId uint32, accAsset AccountAsset) error {
+func (bdb *BubbleDB) StoreAccAssetToBub(blockHash common.Hash, bubbleId *big.Int, accAsset AccountAsset) error {
 	if data, err := rlp.EncodeToBytes(accAsset); err != nil {
 		return err
 	} else {

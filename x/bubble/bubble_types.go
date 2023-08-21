@@ -29,7 +29,7 @@ type ValidatorQueue []*stakingL2.Candidate
 type CommitteeQueue []*stakingL2.Candidate
 
 type Bubble struct {
-	BubbleId    uint32
+	BubbleId    *big.Int
 	Creator     common.Address
 	State       int // unused
 	InitBlock   uint64
