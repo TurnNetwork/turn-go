@@ -90,3 +90,25 @@ func (bdb *BubbleDB) StoreAccAssetToBub(blockHash common.Hash, bubbleId *big.Int
 		return bdb.db.Put(blockHash, AccAssetByBubKey(bubbleId, accAsset.Account), data)
 	}
 }
+
+func (bdb *BubbleDB) StoreL2HashToL1Hash(blockHash common.Hash, bubbleID *big.Int, L1TxHash common.Hash, L2TxHash common.Hash) error {
+	if data, err := rlp.EncodeToBytes(L1TxHash); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, TxHashByBubKey(bubbleID, L2TxHash), data)
+	}
+}
+
+func (bdb *BubbleDB) GetL1HashByL2Hash(blockHash common.Hash, bubbleID *big.Int, L2TxHash common.Hash) (*common.Hash, error) {
+	data, err := bdb.db.Get(blockHash, TxHashByBubKey(bubbleID, L2TxHash))
+	if err != nil {
+		return nil, err
+	}
+
+	var L1TxHash common.Hash
+	if err := rlp.DecodeBytes(data, &L1TxHash); err != nil {
+		return nil, err
+	} else {
+		return &L1TxHash, nil
+	}
+}
