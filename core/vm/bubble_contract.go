@@ -33,7 +33,7 @@ const (
 	TxReleaseBubble       = 0002
 	TxStakingToken        = 0003
 	TxWithdrewToken       = 0004
-	TxSettlementBubble    = 0005
+	TxSettleBubble        = 0005
 	CallGetBubbleInfo     = 1001
 	CallGetL1HashByL2Hash = 1002
 )
@@ -61,11 +61,11 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxCreateBubble:     bc.createBubble,
-		TxReleaseBubble:    bc.releaseBubble,
-		TxStakingToken:     bc.stakingToken,
-		TxWithdrewToken:    bc.withdrewToken,
-		TxSettlementBubble: bc.settlementBubble,
+		TxCreateBubble:  bc.createBubble,
+		TxReleaseBubble: bc.releaseBubble,
+		TxStakingToken:  bc.stakingToken,
+		TxWithdrewToken: bc.withdrewToken,
+		TxSettleBubble:  bc.settleBubble,
 		// Get
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
@@ -165,16 +165,16 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
 }
 
-// getL1HashByL2Hash return the bubble information by bubble ID
+// getL1HashByL2Hash The settlement transaction hash of the main chain is obtained according to the sub-chain settlement transaction hash
 func (bc *BubbleContract) getL1HashByL2Hash(bubbleID *big.Int, L2TxHash common.Hash) ([]byte, error) {
 	blockHash := bc.Evm.Context.BlockHash
 
-	bub, err := bc.Plugin.GetL1HashByL2Hash(blockHash, bubbleID, L2TxHash)
+	txHash, err := bc.Plugin.GetL1HashByL2Hash(blockHash, bubbleID, L2TxHash)
 	if err != nil {
-		return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, bubble.ErrBubbleNotExist), err
+		return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID), txHash, bubble.ErrGetL1HashByL2Hash), err
 	}
 
-	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
+	return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID), txHash, nil), nil
 }
 
 // stakingToken The account pledges the token to the system contract
@@ -240,11 +240,11 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
 }
 
-// settlementBubble Count the account assets in the bubble and record them
+// settleBubble Count the account assets in the bubble and record them
 // The mapping relationship between the sub-chain settlement transaction hash and the main chain settlement transaction hash is stored,
 // The transaction receipt can be queried through the returned main-chain settlement transaction hash,
 // and the actual settlement information can be obtained by parsing the log in the transaction receipt
-func (bc *BubbleContract) settlementBubble(L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
+func (bc *BubbleContract) settleBubble(L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
 	//from := bc.Contract.CallerAddress
@@ -253,7 +253,7 @@ func (bc *BubbleContract) settlementBubble(L2SettleTxHash common.Hash, bubbleID 
 	//	"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
 	// Calculating gas
-	if !bc.Contract.UseGas(params.SettlementBubbleGas) {
+	if !bc.Contract.UseGas(params.SettleBubbleGas) {
 		return nil, ErrOutOfGas
 	}
 
@@ -262,18 +262,18 @@ func (bc *BubbleContract) settlementBubble(L2SettleTxHash common.Hash, bubbleID 
 	}
 
 	// Call handling logic
-	_, err := SettlementBubble(bc, L2SettleTxHash, bubbleID, settlementInfo)
+	_, err := SettleBubble(bc, L2SettleTxHash, bubbleID, settlementInfo)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "settlementBubble", bizErr.Error(), TxSettlementBubble, bizErr)
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "settleBubble", bizErr.Error(), TxSettleBubble, bizErr)
 		} else {
-			log.Error("Failed to settlementBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to settleBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
 	}
 	// log record
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxSettlementBubble, int(common.NoErr.Code), L2SettleTxHash, settlementInfo), nil
+		"", TxSettleBubble, int(common.NoErr.Code), L2SettleTxHash, settlementInfo), nil
 }
 
 // StakingToken The processing logic of stakingToken's trading interface
@@ -439,8 +439,8 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	return &resetAsset, nil
 }
 
-// SettlementBubble The processing logic of settlementBubble's trading interface
-func SettlementBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
+// SettleBubble The processing logic of settleBubble's trading interface
+func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
 	bp := bc.Plugin
 	blockHash := bc.Evm.Context.BlockHash
 	// Get Bubble Information

@@ -33,6 +33,10 @@ import (
 	"sync"
 )
 
+const (
+	SubChainSysAddr = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
+)
+
 var (
 	bubblePluginOnce sync.Once
 	bubblePlugin     *BubblePlugin
@@ -470,9 +474,8 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	}
 	// Construct transaction parameters
 	priKey := bp.opPriKey
-	// Call the child-chain system contract MintToken interface
-	subChainSysAddr := "0x1000000000000000000000000000000000000020"
-	toAddr := common.HexToAddress(subChainSysAddr)
+	// Call the sub-chain system contract MintToken interface
+	toAddr := common.HexToAddress(SubChainSysAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)

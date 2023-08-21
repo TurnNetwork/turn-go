@@ -41,14 +41,14 @@ type Bubble struct {
 }
 
 type AccTokenAsset struct {
-	TokenAddr common.Address // ERC20 Token合约地址
-	Balance   *big.Int       // Token余额
+	TokenAddr common.Address // ERC20 Token contract address
+	Balance   *big.Int       // Token balance
 }
 
 type AccountAsset struct {
-	Account      common.Address  // 账户地址
-	NativeAmount *big.Int        // 原生代币余额
-	TokenAssets  []AccTokenAsset // Token资产
+	Account      common.Address  // Account address
+	NativeAmount *big.Int        // Native token balances
+	TokenAssets  []AccTokenAsset // Token assets
 }
 
 type MintTokenTask struct {
@@ -59,7 +59,7 @@ type MintTokenTask struct {
 }
 
 type SettlementInfo struct {
-	AccAssets []AccountAsset // 所有账户的资产信息
+	AccAssets []AccountAsset // Keep asset information for all accounts
 }
 
 func (s SettlementInfo) Hash() (common.Hash, error) {

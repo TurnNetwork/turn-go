@@ -155,12 +155,6 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
-		// stop this routine
-		case done := <-bcr.exitCh:
-			close(bcr.exitCh)
-			log.Info("blockChain reactor handleTask exit")
-			done <- struct{}{}
-			return
 		}
 	}
 }
