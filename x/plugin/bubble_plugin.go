@@ -358,6 +358,16 @@ func (bp *BubblePlugin) StoreAccAssetToBub(blockHash common.Hash, bubbleId *big.
 	return bp.db.StoreAccAssetToBub(blockHash, bubbleId, *stakingAsset)
 }
 
+// GetL1HashByL2Hash The transaction hash of the main chain is queried according to the transaction hash of the child chain
+func (bp *BubblePlugin) GetL1HashByL2Hash(blockHash common.Hash, bubbleID *big.Int, L2TxHash common.Hash) (*common.Hash, error) {
+	return bp.db.GetL1HashByL2Hash(blockHash, bubbleID, L2TxHash)
+}
+
+// StoreL2HashToL1Hash The mapping relationship between the sub-chain transaction hash and the main chain transaction hash is stored
+func (bp *BubblePlugin) StoreL2HashToL1Hash(blockHash common.Hash, bubbleID *big.Int, L1TxHash common.Hash, L2TxHash common.Hash) error {
+	return bp.db.StoreL2HashToL1Hash(blockHash, bubbleID, L1TxHash, L2TxHash)
+}
+
 // AddAccAssetToBub Add account staking assets to bubble
 func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.Int, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
@@ -365,12 +375,10 @@ func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.In
 	}
 	// Check if a bubble exists. You cannot pledge assets to a bubble that does not exist
 	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleId)
-	if nil != err {
-		//	return err
+	if nil != err || nil == bubInfo {
+		return bubble.ErrBubbleNotExist
 	}
-	if nil == bubInfo {
-		//	return errors.New("the bubble information does not exist, You cannot pledge assets to a bubble that does not exist")
-	}
+
 	// Determine whether the account has a history of pledging tokens within the bubble
 	accAsset, err := bp.GetAccAssetOfBub(blockHash, bubbleId, stakingAsset.Account)
 	if snapshotdb.NonDbNotFoundErr(err) {

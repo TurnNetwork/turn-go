@@ -17,26 +17,25 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/core/snapshotdb"
-	"github.com/bubblenet/bubble/x/bubble"
-	"math/big"
-
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/plugin"
+	"math/big"
 )
 
 const (
-	TxCreateBubble     = 0001
-	TxReleaseBubble    = 0002
-	TxStakingToken     = 0003
-	TxWithdrewToken    = 0004
-	TxSettlementBubble = 0005
-	CallGetBubbleInfo  = 1001
+	TxCreateBubble        = 0001
+	TxReleaseBubble       = 0002
+	TxStakingToken        = 0003
+	TxWithdrewToken       = 0004
+	TxSettlementBubble    = 0005
+	CallGetBubbleInfo     = 1001
+	CallGetL1HashByL2Hash = 1002
 )
 
 type BubbleContract struct {
@@ -68,7 +67,8 @@ func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 		TxWithdrewToken:    bc.withdrewToken,
 		TxSettlementBubble: bc.settlementBubble,
 		// Get
-		CallGetBubbleInfo: bc.getBubbleInfo,
+		CallGetBubbleInfo:     bc.getBubbleInfo,
+		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
 	}
 }
 
@@ -165,18 +165,27 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
 }
 
+// getL1HashByL2Hash return the bubble information by bubble ID
+func (bc *BubbleContract) getL1HashByL2Hash(bubbleID *big.Int, L2TxHash common.Hash) ([]byte, error) {
+	blockHash := bc.Evm.Context.BlockHash
+
+	bub, err := bc.Plugin.GetL1HashByL2Hash(blockHash, bubbleID, L2TxHash)
+	if err != nil {
+		return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, bubble.ErrBubbleNotExist), err
+	}
+
+	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
+}
+
 // stakingToken The account pledges the token to the system contract
 // Supports native and ERC20 tokens
 // Specifies the bubbleID, and the pledged assets are minted in the specified bubble in the same currency and the same amount
 func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.AccountAsset) ([]byte, error) {
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
-	blockHash := bc.Evm.Context.BlockHash
 	from := bc.Contract.CallerAddress
-	state := bc.Evm.StateDB
-	nativeAmount := stakingAsset.NativeAmount
 	log.Debug("Call BubbleContract of stakingToken", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "StakingTokenAddr", from, "amount", nativeAmount)
+		"blockNumber", blockNumber.Uint64(), "StakingTokenAddr", from)
 
 	// Calculating gas
 	if !bc.Contract.UseGas(params.StakingTokenGas) {
@@ -186,22 +195,111 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		return nil, nil
 	}
 
+	// Call handling logic
+	_, err := StakingToken(bc, bubbleID, stakingAsset)
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
+		} else {
+			log.Error("Failed to stakingToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
+		"", TxStakingToken, int(common.NoErr.Code), stakingAsset), nil
+}
+
+// withdrewToken Redeem account tokens, including native tokens and ERC20 tokens
+func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
+	txHash := bc.Evm.StateDB.TxHash()
+	blockNumber := bc.Evm.Context.BlockNumber
+	// Check the bubble status.Only when the bubble state is release can the account redeem the pledged token
+	log.Debug("Call BubbleContract of withdrewToken", "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID)
+
+	if !bc.Contract.UseGas(params.WithdrewTokenGas) {
+		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+	// Call handling logic
+	accAsset, err := WithdrewToken(bc, bubbleID)
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
+		} else {
+			log.Error("Failed to withdrewToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
+		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
+}
+
+// settlementBubble Count the account assets in the bubble and record them
+// The mapping relationship between the sub-chain settlement transaction hash and the main chain settlement transaction hash is stored,
+// The transaction receipt can be queried through the returned main-chain settlement transaction hash,
+// and the actual settlement information can be obtained by parsing the log in the transaction receipt
+func (bc *BubbleContract) settlementBubble(L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
+	txHash := bc.Evm.StateDB.TxHash()
+	blockNumber := bc.Evm.Context.BlockNumber
+	//from := bc.Contract.CallerAddress
+	//blockHash := bc.Evm.Context.BlockHash
+	//log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+	//	"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
+
+	// Calculating gas
+	if !bc.Contract.UseGas(params.SettlementBubbleGas) {
+		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
+	// Call handling logic
+	_, err := SettlementBubble(bc, L2SettleTxHash, bubbleID, settlementInfo)
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "settlementBubble", bizErr.Error(), TxSettlementBubble, bizErr)
+		} else {
+			log.Error("Failed to settlementBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+	// log record
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
+		"", TxSettlementBubble, int(common.NoErr.Code), L2SettleTxHash, settlementInfo), nil
+}
+
+// StakingToken The processing logic of stakingToken's trading interface
+func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.AccountAsset) ([]byte, error) {
+	blockHash := bc.Evm.Context.BlockHash
+	state := bc.Evm.StateDB
+	from := bc.Contract.CallerAddress
+	blockNumber := bc.Evm.Context.BlockNumber
+	bp := bc.Plugin
 	if from != stakingAsset.Account {
 		return nil, bubble.ErrStakingAccount
 	}
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
-		return nil, err
+		return nil, bubble.ErrBubbleNotExist
 	}
 
 	// check bubble state
 	if bubInfo.State == bubble.ReleasedStatus {
-		return nil, errors.New("the bubble state is release, and the asset cannot be pledged")
+		return nil, bubble.ErrBubbleIsRelease
 	}
 
 	// staking native tokens
 	// get account balance
+	nativeAmount := stakingAsset.NativeAmount
 	origin := state.GetBalance(from)
 	if origin.Cmp(nativeAmount) < 0 {
 		log.Error("Failed to Staking Token: the account's balance is not Enough",
@@ -210,7 +308,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		return nil, bubble.ErrAccountNoEnough
 	}
 
-	if stakingAsset.NativeAmount.Cmp(big0) > 0 {
+	if stakingAsset.NativeAmount.Cmp(common.Big0) > 0 {
 		// Deduct the account's native token
 		state.SubBalance(from, nativeAmount)
 		// The native token of the account is added to the system contract
@@ -237,24 +335,19 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		input, err := encodeTransferFuncCall(vm.BubbleContractAddr, tokenAmount)
 		if err != nil {
 			log.Error("Failed to Staking ERC20 Token", "error", err)
-			return nil, err
+			return nil, bubble.ErrEncodeTransferData
 		}
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
 			log.Error("Failed to Staking ERC20 Token", "error", err)
-			return nil, err
+			return nil, bubble.ErrEVMExecERC20
 		}
 	}
 
 	// The assets staking by the storage account
-	if err := bc.Plugin.AddAccAssetToBub(blockHash, bubbleID, &stakingAsset); nil != err {
-		if bizErr, ok := err.(*common.BizError); ok {
-			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
-		} else {
-			log.Error("Failed to stakingToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-			return nil, err
-		}
+	if err := bp.AddAccAssetToBub(blockHash, bubbleID, &stakingAsset); nil != err {
+		return nil, err
 	}
 
 	// Send the corresponding minting task
@@ -264,57 +357,43 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		var mintTokenTask bubble.MintTokenTask
 		mintTokenTask.BubbleID = bubbleID
 		mintTokenTask.AccAsset = &stakingAsset
-		if err := bc.Plugin.PostMintTokenEvent(&mintTokenTask); err != nil {
+		if err := bp.PostMintTokenEvent(&mintTokenTask); err != nil {
 			return nil, err
 		}
 	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxStakingToken, int(common.NoErr.Code), stakingAsset), nil
+	return nil, nil
 }
 
-// withdrewToken Redeem account tokens, including native tokens and ERC20 tokens
-func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
-	txHash := bc.Evm.StateDB.TxHash()
-	blockNumber := bc.Evm.Context.BlockNumber
-	from := bc.Contract.CallerAddress
-	state := bc.Evm.StateDB
+// WithdrewToken The processing logic of withdrewToken's trading interface
+func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset, error) {
+	bp := bc.Plugin
 	blockHash := bc.Evm.Context.BlockHash
-	// Check the bubble status.Only when the bubble state is release can the account redeem the pledged token
-	log.Debug("Call BubbleContract of withdrewToken", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID)
-
-	if !bc.Contract.UseGas(params.WithdrewTokenGas) {
-		return nil, ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
+	state := bc.Evm.StateDB
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
 		return nil, err
 	}
 	// check bubble state
 	if bubInfo.State != bubble.ReleasedStatus {
-		return nil, errors.New("the bubble state is not release and the pledged token cannot be redeemed")
+		return nil, bubble.ErrBubbleIsNotRelease
 	}
 
+	from := bc.Contract.CallerAddress
 	// Obtain the staking assets of the account
-	accAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, bubbleID, from)
+	accAsset, err := bp.GetAccAssetOfBub(blockHash, bubbleID, from)
 	if nil != err || nil == accAsset {
 		return nil, err
 	}
 	var resetAsset bubble.AccountAsset
 	resetAsset.Account = from
 	// withdrew native tokens
-	if accAsset.NativeAmount.Cmp(big0) > 0 {
+	if accAsset.NativeAmount.Cmp(common.Big0) > 0 {
 		// Transfer money from the system address to the corresponding account
 		state.SubBalance(vm.BubbleContractAddr, accAsset.NativeAmount)
 		state.AddBalance(from, accAsset.NativeAmount)
-		resetAsset.NativeAmount = big0
+		resetAsset.NativeAmount = common.Big0
 	}
 
 	// withdrew ERC20 tokens
@@ -330,6 +409,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 			return nil, bubble.ErrERC20NoExist
 		}
 		contract := bc.Contract
+
 		// Change to ERC20 contract address
 		contract.self = AccountRef(erc20Addr)
 		// Change the call to the contract address (represents the caller of the contract,
@@ -341,74 +421,54 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		input, err := encodeTransferFuncCall(from, tokenAmount)
 		if err != nil {
 			log.Error("Failed to Withdrew ERC20 Token", "error", err)
-			return nil, err
+			return nil, bubble.ErrEncodeTransferData
 		}
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
 			log.Error("Failed to Withdrew ERC20 Token", "error", err)
-			return nil, err
+			return nil, bubble.ErrEVMExecERC20
 		}
-		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: big0})
+		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: common.Big0})
 	}
 	// Store the latest information about the staking assets of the account into bubble
-	if err = bc.Plugin.StoreAccAssetToBub(blockHash, bubbleID, &resetAsset); nil != err {
-		if bizErr, ok := err.(*common.BizError); ok {
-			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
-		} else {
-			log.Error("Failed to withdrewToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-			return nil, err
-		}
+	if err = bp.StoreAccAssetToBub(blockHash, bubbleID, &resetAsset); nil != err {
+		return nil, bubble.ErrStoreAccAsset
 	}
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
+	return &resetAsset, nil
 }
 
-// settlementBubble Count the account assets in the bubble and record them
-func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
-	from := bc.Contract.CallerAddress
-	txHash := bc.Evm.StateDB.TxHash()
-	blockNumber := bc.Evm.Context.BlockNumber
+// SettlementBubble The processing logic of settlementBubble's trading interface
+func SettlementBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
+	bp := bc.Plugin
 	blockHash := bc.Evm.Context.BlockHash
-	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
-
-	// Calculating gas
-	if !bc.Contract.UseGas(params.SettlementBubbleGas) {
-		return nil, ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
-		return nil, err
+		return nil, bubble.ErrBubbleNotExist
 	}
 	// check bubble state
 	if bubInfo.State == bubble.ReleasedStatus {
-		return nil, errors.New("the bubble has been released and cannot be settled")
+		return nil, bubble.ErrCannotSettled
 	}
 
 	// Only the child-chain operating address has the authority to submit settlement transactions
 	//if from != bubInfo.subChain.opAddr {
-	//	return nil, errors.New("the transaction sender is not the main chain operator address")
+	//	return nil, ErrIsNotSubChainOpAddr
 	//}
 
 	// Get the account address information
-	accList, err := bc.Plugin.GetAccListOfBub(blockHash, bubbleID)
+	accList, err := bp.GetAccListOfBub(blockHash, bubbleID)
 	if len(accList) != len(settlementInfo.AccAssets) {
-		return nil, errors.New("the length of the address participating in the settlement is incorrect")
+		return nil, bubble.ErrSettleAccListIncLength
 	}
 
 	for _, accAsset := range settlementInfo.AccAssets {
 		account := accAsset.Account
 		// Query account assets
-		localAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, bubbleID, account)
+		localAsset, err := bp.GetAccAssetOfBub(blockHash, bubbleID, account)
 		if nil != err || nil == localAsset {
-			return nil, errors.New("settlement account does not exist in the bubble")
+			return nil, bubble.ErrSettleAccNoExist
 		}
 		var newAccAsset bubble.AccountAsset
 		newAccAsset.Account = account
@@ -422,12 +482,14 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 		}
 
 		// Store the latest information about the staking assets of the account into bubble
-		if err = bc.Plugin.StoreAccAssetToBub(blockHash, bubbleID, &newAccAsset); nil != err {
-			return nil, err
+		if err = bp.StoreAccAssetToBub(blockHash, bubbleID, &newAccAsset); nil != err {
+			return nil, bubble.ErrStoreAccAssetToBub
 		}
 	}
 
-	// log record
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxSettlementBubble, int(common.NoErr.Code), settlementInfo), nil
+	// The mapping relationship between the sub-chain settlement transaction hash and the main chain settlement transaction hash is stored
+	if err = bp.StoreL2HashToL1Hash(blockHash, bubbleID, bc.Evm.StateDB.TxHash(), L2SettleTxHash); nil != err {
+		return nil, bubble.ErrStoreL2HashToL1Hash
+	}
+	return nil, nil
 }
