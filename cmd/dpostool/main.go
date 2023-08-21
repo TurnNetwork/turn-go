@@ -230,10 +230,13 @@ type Dpos_5100 struct {
 
 // Dpos_6000 mintToken
 type Dpos_6000 struct {
-	//Account      common.Address       // 账户地址
-	//NativeAmount *big.Int             // 原生代币余额
-	//TokenAssets  []token.AccountAsset // Token资产
+	L1TxHash common.Hash
 	AccAsset token.AccountAsset
+}
+
+// Dpos_6100 getL2HashByL1Hash
+type Dpos_6100 struct {
+	L1TxHash common.Hash
 }
 
 type decDataConfig struct {
@@ -265,6 +268,7 @@ type decDataConfig struct {
 	P4100 Dpos_4100
 	P5100 Dpos_5100
 	P6000 Dpos_6000
+	P6100 Dpos_6100
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
@@ -542,18 +546,18 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 6000:
 		{
-			//account, _ := rlp.EncodeToBytes(cfg.P6000.Account)
-			//nativeAmount, _ := rlp.EncodeToBytes(cfg.P6000.NativeAmount)
-			//tokenAssets, _ := rlp.EncodeToBytes(cfg.P6000.TokenAssets)
-			//params = append(params, account)
-			//params = append(params, nativeAmount)
-			//params = append(params, tokenAssets)
-
+			txHash, _ := rlp.EncodeToBytes(cfg.P6000.L1TxHash)
 			accAsset, _ := rlp.EncodeToBytes(cfg.P6000.AccAsset)
+			params = append(params, txHash)
 			params = append(params, accAsset)
 		}
 	case 6001:
 		{
+		}
+	case 6100:
+		{
+			txHash, _ := rlp.EncodeToBytes(cfg.P6100.L1TxHash)
+			params = append(params, txHash)
 		}
 	default:
 		{

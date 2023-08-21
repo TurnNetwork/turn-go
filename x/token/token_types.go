@@ -24,32 +24,28 @@ import (
 )
 
 type AccTokenAsset struct {
-	TokenAddr common.Address // ERC20 Token合约地址
-	Balance   *big.Int       // Token余额
+	TokenAddr common.Address // ERC20 Token contract address
+	Balance   *big.Int       // Token balance
 }
 type AccountAsset struct {
-	Account      common.Address  // 账户地址
-	NativeAmount *big.Int        // 原生代币余额
-	TokenAssets  []AccTokenAsset // Token资产
+	Account      common.Address  // Account address
+	NativeAmount *big.Int        // Native token balances
+	TokenAssets  []AccTokenAsset // Token assets
 }
 
-// MintAccInfo 铸币账户信息
+// MintAccInfo Minting account information
 type MintAccInfo struct {
-	AccList       []common.Address // 铸币地址列表
-	TokenAddrList []common.Address // ERC20 Token合约地址列表
-}
-
-// Hash Calculating the hash of the AccountAsset.
-func (acc AccountAsset) Hash() (common.Hash, error) {
-	enVal, err := rlp.EncodeToBytes(acc)
-	if err != nil {
-		return common.ZeroHash, err
-	}
-	return crypto.Keccak256Hash(enVal), nil
+	AccList       []common.Address // List of minting addresses
+	TokenAddrList []common.Address // List of ERC20 Token contract addresses
 }
 
 type SettlementInfo struct {
-	AccAssets []AccountAsset // 所有账户的资产信息
+	AccAssets []AccountAsset // Asset information for all accounts
+}
+
+type SettleTask struct {
+	TxHash     common.Hash    // The transaction hash of the staking Token transaction
+	SettleInfo SettlementInfo // Asset information for all accounts
 }
 
 func (s SettlementInfo) Hash() (common.Hash, error) {

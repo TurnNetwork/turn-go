@@ -143,11 +143,11 @@ type ChainConfig struct {
 // OperatorInfo Includes the operator's node ID, rpc url, operation address,
 // and initial balance (to send the transaction in the child-chain to pay fees).
 type OperatorInfo struct {
-	NodeId  discover.NodeID `json:"nodeId"`  // Operator node id
-	Rpc     string          `json:"rpc"`     // Operation node RPC URL
-	SysAddr common.Address  `json:"sysAddr"` // System Contract Address
-	OpAddr  common.Address  `json:"opAddr"`  // Address of operation
-	Balance *big.Int        `json:"balance"` // Operating address balance
+	NodeId discover.NodeID `json:"nodeId"` // Operator node id
+	Rpc    string          `json:"rpc"`    // Operation node RPC URL
+	// SysAddr common.Address  `json:"sysAddr"` // System Contract Address
+	OpAddr  common.Address `json:"opAddr"`  // Address of operation
+	Balance *big.Int       `json:"balance"` // Operating address balance
 }
 
 // OpConfig is operator profiles, including main-chain operator
@@ -160,6 +160,9 @@ type OpConfig struct {
 }
 
 func (opConfig *OpConfig) SetSubOpPriKey(subOpPriKey string) error {
+	if "" == subOpPriKey {
+		return nil
+	}
 	if "0x" == subOpPriKey[0:2] || "0X" == subOpPriKey[0:2] {
 		subOpPriKey = subOpPriKey[2:]
 	}

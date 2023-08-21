@@ -38,7 +38,7 @@ func del(blockHash common.Hash, key []byte) error {
 	return snapshotdb.Instance().Del(blockHash, key)
 }
 
-func existAccount(blockHash common.Hash, account common.Address) bool {
+func ExistAccount(blockHash common.Hash, account common.Address) bool {
 	accBytes, _ := rlp.EncodeToBytes(account)
 	_, err := get(blockHash, accBytes)
 	if nil != err {
@@ -48,12 +48,12 @@ func existAccount(blockHash common.Hash, account common.Address) bool {
 	return true
 }
 
-func saveAccount(blockHash common.Hash, account common.Address) error {
+func StoreAccount(blockHash common.Hash, account common.Address) error {
 	accBytes, _ := rlp.EncodeToBytes(account)
 	return put(blockHash, accBytes, []byte{1})
 }
 
-func SaveSettlementHash(blockHash common.Hash, hash common.Hash) error {
+func StoreSettlementHash(blockHash common.Hash, hash common.Hash) error {
 	return put(blockHash, KeyPrefixSettlementHash(), hash)
 }
 
@@ -73,56 +73,8 @@ func GetSettlementHash(blockHash common.Hash) (*common.Hash, error) {
 	return nil, err
 }
 
-func SaveMintInfo(blockHash common.Hash, mintAccInfo MintAccInfo) error {
-	// 判断是否需要存储
-	if 0 == len(mintAccInfo.AccList) && 0 == len(mintAccInfo.TokenAddrList) {
-		return nil
-	}
-	// 过滤已存储的信息
-	var newAccInfo MintAccInfo
-	for _, acc := range mintAccInfo.AccList {
-		// 判断地址是否已经存储
-		if !existAccount(blockHash, acc) {
-			newAccInfo.AccList = append(newAccInfo.AccList, acc)
-			// 存储地址
-			saveAccount(blockHash, acc)
-		}
-	}
-
-	for _, tokenAddr := range mintAccInfo.TokenAddrList {
-		// 判断地址是否已经存储
-		if !existAccount(blockHash, tokenAddr) {
-			newAccInfo.TokenAddrList = append(newAccInfo.TokenAddrList, tokenAddr)
-			// 存储地址
-			saveAccount(blockHash, tokenAddr)
-		}
-	}
-
-	if 0 < len(newAccInfo.AccList) || 0 < len(newAccInfo.TokenAddrList) {
-		oldMintAccInfo, err := GetMintAccInfo(blockHash)
-		if err != nil {
-			return err
-		}
-
-		var saveMintAccInfo MintAccInfo
-		if nil != oldMintAccInfo && oldMintAccInfo.AccList != nil {
-			saveMintAccInfo.AccList = oldMintAccInfo.AccList
-		}
-		if nil != oldMintAccInfo && oldMintAccInfo.TokenAddrList != nil {
-			saveMintAccInfo.TokenAddrList = oldMintAccInfo.TokenAddrList
-		}
-
-		for _, acc := range newAccInfo.AccList {
-			saveMintAccInfo.AccList = append(saveMintAccInfo.AccList, acc)
-		}
-
-		for _, tokenAddr := range newAccInfo.TokenAddrList {
-			saveMintAccInfo.TokenAddrList = append(saveMintAccInfo.TokenAddrList, tokenAddr)
-		}
-		put(blockHash, KeyMintAccInfo(), saveMintAccInfo)
-	}
-
-	return nil
+func StoreMintInfo(blockHash common.Hash, mintAccInfo MintAccInfo) error {
+	return put(blockHash, KeyMintAccInfo(), mintAccInfo)
 }
 
 func GetMintAccInfo(blockHash common.Hash) (*MintAccInfo, error) {
@@ -139,4 +91,26 @@ func GetMintAccInfo(blockHash common.Hash) (*MintAccInfo, error) {
 		return &mintAccInfo, nil
 	}
 	return nil, err
+}
+
+func StoreL1HashToL2Hash(blockHash common.Hash, L1TxHash common.Hash, L2TxHash common.Hash) error {
+	if data, err := rlp.EncodeToBytes(L2TxHash); err != nil {
+		return err
+	} else {
+		return put(blockHash, L1TxHash.Bytes(), data)
+	}
+}
+
+func GetL2HashByL1Hash(blockHash common.Hash, L1TxHash common.Hash) (*common.Hash, error) {
+	data, err := get(blockHash, L1TxHash.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	var L2TxHash common.Hash
+	if err := rlp.DecodeBytes(data, &L2TxHash); err != nil {
+		return nil, err
+	} else {
+		return &L2TxHash, nil
+	}
 }

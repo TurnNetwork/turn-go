@@ -82,7 +82,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 	if mode == common.DPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
-		bcr.settleTaskSub = bcr.eventMux.Subscribe(token.SettlementInfo{})
+		bcr.settleTaskSub = bcr.eventMux.Subscribe(token.SettleTask{})
 		// start the loop rutine
 		go bcr.loop()
 		go bcr.handleTask()
@@ -139,28 +139,22 @@ func (bcr *BlockChainReactor) handleTask() {
 
 	for {
 		select {
-		case settlementInfo := <-bcr.settleTaskSub.Chan():
-			if settlementInfo == nil {
+		case settleInfo := <-bcr.settleTaskSub.Chan():
+			if settleInfo == nil {
 				continue
 			}
-			settleData, ok := settlementInfo.Data.(token.SettlementInfo)
+			settleData, ok := settleInfo.Data.(token.SettleTask)
 			if !ok {
 				log.Error("blockchain_reactor failed to receive settlement data conversion type")
 				continue
 			}
-			// 处理任务
-			hash, err := plugin.TokenInstance().HandleSettlementTask(&settleData)
+			// handle task
+			hash, err := plugin.TokenInstance().HandleSettleTask(&settleData)
 			if err != nil {
 				log.Error("blockchain_reactor failed to process settlement task")
 				continue
 			}
 			log.Info("The processing and settlement task succeeded, tx hash:", common.BytesToHash(hash).Hex())
-		// stop this routine
-		case done := <-bcr.exitCh:
-			close(bcr.exitCh)
-			log.Info("blockChain reactor handleTask exit")
-			done <- struct{}{}
-			return
 		}
 	}
 }

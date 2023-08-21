@@ -156,6 +156,7 @@ const (
 
 	// BubblePrecompiled contract gas
 	TokenGas              uint64 = 6000  // Gas needed for precompiled contract: TokenContract
+	MintTokenGas          uint64 = 6000  // Gas needed for precompiled contract: TokenContract
 	StakingGas            uint64 = 6000  // Gas needed for precompiled contract: stakingContract
 	CreateStakeGas        uint64 = 32000 // Gas needed for createStaking
 	EditCandidateGas      uint64 = 12000 // Gas needed for editCandidate
