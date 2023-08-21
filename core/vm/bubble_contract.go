@@ -356,6 +356,7 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	{
 		var mintTokenTask bubble.MintTokenTask
 		mintTokenTask.BubbleID = bubbleID
+		mintTokenTask.TxHash = state.TxHash()
 		mintTokenTask.AccAsset = &stakingAsset
 		if err := bp.PostMintTokenEvent(&mintTokenTask); err != nil {
 			return nil, err
