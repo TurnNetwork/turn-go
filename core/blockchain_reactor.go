@@ -125,12 +125,6 @@ func (bcr *BlockChainReactor) loop() {
 				continue
 			}
 			bcr.commit(cbftResult.Block)
-		// stop this routine
-		case done := <-bcr.exitCh:
-			close(bcr.exitCh)
-			log.Info("blockChain reactor loop exit")
-			done <- struct{}{}
-			return
 		}
 	}
 }
