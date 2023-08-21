@@ -158,7 +158,7 @@ const (
 	StakingGas            uint64 = 6000 // Gas needed for precompiled contract: stakingContract
 	StakingTokenGas       uint64 = 6000
 	WithdrewTokenGas      uint64 = 6000
-	SettlementBubbleGas   uint64 = 6000
+	SettleBubbleGas       uint64 = 6000
 	CreateStakeGas        uint64 = 32000 // Gas needed for createStaking
 	EditCandidateGas      uint64 = 12000 // Gas needed for editCandidate
 	IncStakeGas           uint64 = 20000 // Gas needed for increaseStaking
