@@ -110,7 +110,7 @@ func (bc *BubbleContract) createBubble(genesisData [][]byte) ([]byte, error) {
 }
 
 // releaseBubble release the node resources of a bubble chain and delete it`s information
-func (bc *BubbleContract) releaseBubble(bubbleID uint32) ([]byte, error) {
+func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
@@ -154,7 +154,7 @@ func (bc *BubbleContract) releaseBubble(bubbleID uint32) ([]byte, error) {
 }
 
 // getBubbleInfo return the bubble information by bubble ID
-func (bc *BubbleContract) getBubbleInfo(bubbleID uint32) ([]byte, error) {
+func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	blockHash := bc.Evm.Context.BlockHash
 
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
@@ -190,7 +190,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		return nil, bubble.ErrStakingAccount
 	}
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 	}
 
 	// The assets staking by the storage account
-	if err := bc.Plugin.AddAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &stakingAsset); nil != err {
+	if err := bc.Plugin.AddAccAssetToBub(blockHash, bubbleID, &stakingAsset); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
 		} else {
@@ -293,7 +293,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
 		return nil, err
 	}
@@ -303,7 +303,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	// Obtain the staking assets of the account
-	accAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, uint32(bubbleID.Uint64()), from)
+	accAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, bubbleID, from)
 	if nil != err || nil == accAsset {
 		return nil, err
 	}
@@ -352,7 +352,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: big0})
 	}
 	// Store the latest information about the staking assets of the account into bubble
-	if err = bc.Plugin.StoreAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &resetAsset); nil != err {
+	if err = bc.Plugin.StoreAccAssetToBub(blockHash, bubbleID, &resetAsset); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
 		} else {
@@ -373,7 +373,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
-	// 计算gas
+	// Calculating gas
 	if !bc.Contract.UseGas(params.SettlementBubbleGas) {
 		return nil, ErrOutOfGas
 	}
@@ -383,7 +383,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	}
 
 	// Get Bubble Information
-	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, uint32(bubbleID.Uint64()))
+	bubInfo, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == bubInfo {
 		return nil, err
 	}
@@ -398,7 +398,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	//}
 
 	// Get the account address information
-	accList, err := bc.Plugin.GetAccListOfBub(blockHash, uint32(bubbleID.Uint64()))
+	accList, err := bc.Plugin.GetAccListOfBub(blockHash, bubbleID)
 	if len(accList) != len(settlementInfo.AccAssets) {
 		return nil, errors.New("the length of the address participating in the settlement is incorrect")
 	}
@@ -406,7 +406,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 	for _, accAsset := range settlementInfo.AccAssets {
 		account := accAsset.Account
 		// Query account assets
-		localAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, uint32(bubbleID.Uint64()), account)
+		localAsset, err := bc.Plugin.GetAccAssetOfBub(blockHash, bubbleID, account)
 		if nil != err || nil == localAsset {
 			return nil, errors.New("settlement account does not exist in the bubble")
 		}
@@ -422,7 +422,7 @@ func (bc *BubbleContract) settlementBubble(bubbleID *big.Int, settlementInfo bub
 		}
 
 		// Store the latest information about the staking assets of the account into bubble
-		if err = bc.Plugin.StoreAccAssetToBub(blockHash, uint32(bubbleID.Uint64()), &newAccAsset); nil != err {
+		if err = bc.Plugin.StoreAccAssetToBub(blockHash, bubbleID, &newAccAsset); nil != err {
 			return nil, err
 		}
 	}

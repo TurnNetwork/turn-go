@@ -78,16 +78,16 @@ func (bp *BubblePlugin) SetOpPriKey(opPriKey string) error {
 }
 
 // GetBubbleInfo return the bubble information by bubble ID
-func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID uint32) (*bubble.Bubble, error) {
+func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.Bubble, error) {
 	return bp.db.GetBubbleStore(blockHash, bubbleID)
 }
 
 // CreateBubble run the non-business logic to create bubble
-func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentHash common.Hash) (uint32, error) {
+func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentHash common.Hash) (*big.Int, error) {
 	// get the nonces of the historical block
 	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	maxLen := int(gomath.Max(gomath.Max(bubble.OperatorL1Size, bubble.OperatorL2Size), bubble.CommitteeSize))
 	if len(preNonces) < maxLen {
@@ -98,23 +98,23 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	// elect the operators and committees by VRF
 	OperatorsL1, err := bp.ElectOperatorL1(blockHash, bubble.OperatorL1Size, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	OperatorsL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	committees, err := bp.ElectBubbleCommittees(blockHash, blockNumber, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	// build the infos of the bubble chain
 	bubbleID, err := bp.generateBubbleID(from, big.NewInt(int64(nonce)), committees)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if data, _ := bp.GetBubbleInfo(blockHash, bubbleID); data != nil {
-		return 0, errors.New(fmt.Sprintf("bubble %d already exist", bubbleID))
+		return nil, errors.New(fmt.Sprintf("bubble %d already exist", bubbleID))
 	}
 	bub := &bubble.Bubble{
 		BubbleId:    bubbleID,
@@ -131,22 +131,22 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	if err := bp.db.SetBubbleStore(blockHash, bub); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err)
-		return 0, err
+		return nil, err
 	}
 
 	return bub.BubbleId, nil
 }
 
 // generateBubbleID generate bubble ID use sha3 algorithm by bubble info
-func (bp *BubblePlugin) generateBubbleID(creator common.Address, nonce *big.Int, committer bubble.CandidateQueue) (uint32, error) {
+func (bp *BubblePlugin) generateBubbleID(creator common.Address, nonce *big.Int, committer bubble.CandidateQueue) (*big.Int, error) {
 	committerData, err := rlp.EncodeToBytes(committer)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	data := bytes.Join([][]byte{creator.Bytes(), nonce.Bytes(), committerData}, []byte(""))
 	hash := sha3.Sum256(data)
 
-	return common.BytesToUint32(hash[:]), nil
+	return new(big.Int).SetBytes(hash[:4]), nil
 }
 
 // ElectOperatorL1 Elect the Layer1 Operator nodes for the bubble chain by VRF
@@ -281,7 +281,7 @@ func (bp *BubblePlugin) ElectBubbleCommittees(blockHash common.Hash, blockNumber
 func (bp *BubblePlugin) SetAsset() {}
 
 // ReleaseBubble run the non-business logic to release the bubble
-func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.Int, bubbleID uint32) error {
+func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.Int, bubbleID *big.Int) error {
 	bub, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
 		return err
@@ -330,12 +330,12 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 // GetAccListOfBub Get the list of accounts inside bubble
 // An account is activated within a bubble by staking tokens with a specified bubbleId
-func (bp *BubblePlugin) GetAccListOfBub(blockHash common.Hash, bubbleId uint32) ([]common.Address, error) {
+func (bp *BubblePlugin) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {
 	return bp.db.GetAccListOfBub(blockHash, bubbleId)
 }
 
 // AddAccToBub Add the account address of the staking tokens to bubble
-func (bp *BubblePlugin) AddAccToBub(blockHash common.Hash, bubbleId uint32, account common.Address) error {
+func (bp *BubblePlugin) AddAccToBub(blockHash common.Hash, bubbleId *big.Int, account common.Address) error {
 	accList, err := bp.GetAccListOfBub(blockHash, bubbleId)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
@@ -346,12 +346,12 @@ func (bp *BubblePlugin) AddAccToBub(blockHash common.Hash, bubbleId uint32, acco
 }
 
 // GetAccAssetOfBub Get the assets staking by the account within the specified bubble
-func (bp *BubblePlugin) GetAccAssetOfBub(blockHash common.Hash, bubbleId uint32, account common.Address) (*bubble.AccountAsset, error) {
+func (bp *BubblePlugin) GetAccAssetOfBub(blockHash common.Hash, bubbleId *big.Int, account common.Address) (*bubble.AccountAsset, error) {
 	return bp.db.GetAccAssetOfBub(blockHash, bubbleId, account)
 }
 
 // StoreAccAssetToBub Store the information of the staking assets of the account into bubble
-func (bp *BubblePlugin) StoreAccAssetToBub(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+func (bp *BubblePlugin) StoreAccAssetToBub(blockHash common.Hash, bubbleId *big.Int, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
 		return errors.New("null pointer")
 	}
@@ -359,7 +359,7 @@ func (bp *BubblePlugin) StoreAccAssetToBub(blockHash common.Hash, bubbleId uint3
 }
 
 // AddAccAssetToBub Add account staking assets to bubble
-func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId uint32, stakingAsset *bubble.AccountAsset) error {
+func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.Int, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
 		return errors.New("the staking tokens information is empty")
 	}
