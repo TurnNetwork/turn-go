@@ -53,7 +53,8 @@ type AccountAsset struct {
 
 type MintTokenTask struct {
 	BubbleID *big.Int
-	RPC      string // Bubble The bubble sub-chain operates the node rpc
+	TxHash   common.Hash // The transaction hash of the staking Token transaction
+	RPC      string      // Bubble The bubble sub-chain operates the node rpc
 	AccAsset *AccountAsset
 }
 

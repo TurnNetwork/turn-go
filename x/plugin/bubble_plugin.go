@@ -435,7 +435,7 @@ func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) 
 }
 
 // Generate the rlp encoding of the sub-chain minting transaction
-func genMintTokenRlpData(accAsset bubble.AccountAsset) []byte {
+func genMintTokenRlpData(mintToken bubble.MintTokenTask) []byte {
 	var params [][]byte
 	params = make([][]byte, 0)
 	// sub-chain mintToken function coding
@@ -443,8 +443,10 @@ func genMintTokenRlpData(accAsset bubble.AccountAsset) []byte {
 	fnType, _ := rlp.EncodeToBytes(mintTokenType)
 	params = append(params, fnType)
 
-	accAssetRLP, _ := rlp.EncodeToBytes(accAsset)
-	params = append(params, accAssetRLP)
+	txHash, _ := rlp.EncodeToBytes(mintToken.TxHash)
+	accAsset, _ := rlp.EncodeToBytes(mintToken.AccAsset)
+	params = append(params, txHash)
+	params = append(params, accAsset)
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
@@ -469,7 +471,8 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the child-chain system contract MintToken interface
-	toAddr := common.HexToAddress("0x1000000000000000000000000000000000000020")
+	subChainSysAddr := "0x1000000000000000000000000000000000000020"
+	toAddr := common.HexToAddress(subChainSysAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -505,7 +508,7 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
 	// Assemble the data of the minting interface
-	data := genMintTokenRlpData(*mintToken.AccAsset)
+	data := genMintTokenRlpData(*mintToken)
 	if nil == data {
 		return nil, errors.New("genMintTokenRlpData failed")
 	}
