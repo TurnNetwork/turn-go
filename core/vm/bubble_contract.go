@@ -129,22 +129,22 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to releaseBubble by GetBubbleInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", bub.BubbleId, "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", bub.Basics.BubbleId, "err", err)
 		return nil, err
 	}
 	if bub == nil {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-			fmt.Sprintf("bubble %d is not exist", bub.BubbleId), TxReleaseBubble, bubble.ErrBubbleNotExist)
+			fmt.Sprintf("bubble %d is not exist", bub.Basics.BubbleId), TxReleaseBubble, bubble.ErrBubbleNotExist)
 	}
 
-	if from != bub.Creator {
+	if from != bub.Basics.Creator {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-			fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
+			fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Basics.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
 	}
 
 	// TODO: can release the bubble chain in the building state？
 	if bub.State != bubble.PreReleaseStatus {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d unable to release ", bub.BubbleId),
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d unable to release ", bub.Basics.BubbleId),
 			TxReleaseBubble, bubble.ErrBubbleUnableRelease)
 	}
 
@@ -301,14 +301,18 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	if from != stakingAsset.Account {
 		return nil, bubble.ErrStakingAccount
 	}
-	// Get Bubble Information
-	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
-	if nil != err || nil == bubInfo {
+	// Get Bubble Basics
+	basics, err := bp.GetBubBasics(blockHash, bubbleID)
+	if nil != err || nil == basics {
 		return nil, bubble.ErrBubbleNotExist
 	}
 
 	// check bubble state
-	if bubInfo.State == bubble.ReleasedStatus {
+	bubState, err := bp.GetBubState(blockHash, bubbleID)
+	if nil != err || nil == bubState {
+		return nil, bubble.ErrBubbleNotExist
+	}
+	if *bubState == bubble.ReleasedStatus {
 		return nil, bubble.ErrBubbleIsRelease
 	}
 
@@ -371,12 +375,15 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	}
 	// Send the corresponding minting task
 	// Only bubble's main-chain operator node needs to handle this task
-	// if bc.Plugin.NodeID == bubInfo.OperatorsL1[0].NodeId
-	{
-		var mintTokenTask bubble.MintTokenTask
-		mintTokenTask.BubbleID = bubbleID
-		mintTokenTask.TxHash = state.TxHash()
-		mintTokenTask.AccAsset = &stakingAsset
+	if bc.Plugin.NodeID == basics.OperatorsL1[0].NodeId {
+		mintTokenTask := bubble.MintTokenTask{
+			BubbleID: bubbleID,
+			TxHash:   state.TxHash(),
+			RPC:      basics.OperatorsL2[0].RPC,
+			OpAddr:   basics.OperatorsL1[0].OpAddr,
+			AccAsset: &stakingAsset,
+		}
+
 		if err := bp.PostMintTokenEvent(&mintTokenTask); err != nil {
 			return nil, err
 		}
@@ -466,20 +473,27 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.Int, settlementInfo bubble.SettlementInfo) ([]byte, error) {
 	bp := bc.Plugin
 	blockHash := bc.Evm.Context.BlockHash
-	// Get Bubble Information
-	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
-	if nil != err || nil == bubInfo {
+	from := bc.Contract.CallerAddress
+
+	// Get Bubble Basics
+	basics, err := bp.GetBubBasics(blockHash, bubbleID)
+	if nil != err || nil == basics {
 		return nil, bubble.ErrBubbleNotExist
 	}
+
 	// check bubble state
-	if bubInfo.State == bubble.ReleasedStatus {
-		return nil, bubble.ErrCannotSettled
+	bubState, err := bp.GetBubState(blockHash, bubbleID)
+	if nil != err || nil == bubState {
+		return nil, bubble.ErrBubbleNotExist
+	}
+	if *bubState == bubble.ReleasedStatus {
+		return nil, bubble.ErrBubbleIsRelease
 	}
 
-	// Only the child-chain operating address has the authority to submit settlement transactions
-	//if from != bubInfo.subChain.opAddr {
-	//	return nil, ErrIsNotSubChainOpAddr
-	//}
+	// Only the sub-chain operating address has the authority to submit settlement transactions
+	if from != basics.OperatorsL2[0].OpAddr {
+		return nil, bubble.ErrIsNotSubChainOpAddr
+	}
 
 	// Get the account address information
 	accList, err := bp.GetAccListOfBub(blockHash, bubbleID)

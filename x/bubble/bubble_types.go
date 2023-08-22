@@ -16,12 +16,14 @@ const (
 	OperatorL2Size = 1
 )
 
-// bubble chain status
+// BubState bubble chain status
+type BubState uint8
+
 const (
 	//BuildingStatus   = 0
-	ActiveStatus     = 1
-	PreReleaseStatus = 2
-	ReleasedStatus   = 3
+	ActiveStatus     BubState = 1
+	PreReleaseStatus          = 2
+	ReleasedStatus            = 3
 )
 
 // BubTxType Define the Bubble's trade type
@@ -37,15 +39,21 @@ type CandidateQueue []*stakingL2.Candidate
 type ValidatorQueue []*stakingL2.Candidate
 type CommitteeQueue []*stakingL2.Candidate
 
+// BubBasics bubble's underlying information type
+// It stores the basic information when the bubble network is created,
+// and the data will not be updated and changed during the operation of the bubble network
+type BubBasics struct {
+	BubbleId    *big.Int
+	Creator     common.Address
+	CreateBlock uint64
+	OperatorsL1 []*Operator
+	OperatorsL2 []*Operator
+	MicroNodes  CandidateQueue
+}
+
 type Bubble struct {
-	BubbleId                *big.Int
-	Creator                 common.Address
-	CreateBlock             uint64
-	State                   int // unused
-	Member                  SettlementInfo
-	OperatorsL1             []*Operator
-	OperatorsL2             []*Operator
-	MicroNodes              CandidateQueue
+	Basics                  *BubBasics // Bubble Basics
+	State                   BubState
 	StakingTokenTxHashList  []common.Hash // List of stakingToken transaction hashes
 	WithdrewTokenTxHashList []common.Hash // List of withdrewToken transaction hashes
 	SettleBubbleTxHashList  []common.Hash // List of settleBubble transaction hashes
@@ -91,8 +99,9 @@ type AccountAsset struct {
 
 type MintTokenTask struct {
 	BubbleID *big.Int
-	TxHash   common.Hash // The transaction hash of the staking Token transaction
-	RPC      string      // Bubble The bubble sub-chain operates the node rpc
+	TxHash   common.Hash    // The transaction hash of the staking Token transaction
+	RPC      string         // Bubble The bubble sub-chain operates the node rpc
+	OpAddr   common.Address // Bubble The bubble main-chain operates address
 	AccAsset *AccountAsset
 }
 
