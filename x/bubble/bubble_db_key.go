@@ -12,6 +12,8 @@ var (
 	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
 	TxHashKeyPrefix     = []byte("TxHash")
 	TxHashListKeyPrefix = []byte("TxHashList") // The key prefix of the transaction hash list
+	BubBasicsKeyPrefix  = []byte("BubBasics")  // The key prefix of the bubble basics
+	BubStateKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
 )
 
 func GetBubbleKey(bubbleID *big.Int) []byte {
@@ -20,6 +22,24 @@ func GetBubbleKey(bubbleID *big.Int) []byte {
 		return nil
 	}
 	return append(bubbleKeyPrefix, bid...)
+}
+
+// BasicsByBubKey bubble basics that press bubbleId key
+func BasicsByBubKey(bubbleID *big.Int) []byte {
+	bid, err := rlp.EncodeToBytes(bubbleID)
+	if nil != err {
+		return nil
+	}
+	return append(BubBasicsKeyPrefix, bid...)
+}
+
+// StateByBubKey bubble state that press bubbleId key
+func StateByBubKey(bubbleID *big.Int) []byte {
+	bid, err := rlp.EncodeToBytes(bubbleID)
+	if nil != err {
+		return nil
+	}
+	return append(BubStateKeyPrefix, bid...)
 }
 
 // AccListByBubKey List of accounts that press bubble's key

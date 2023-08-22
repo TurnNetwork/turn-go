@@ -35,7 +35,49 @@ func (bdb *BubbleDB) SetBubbleStore(blockHash common.Hash, bubble *Bubble) error
 	if data, err := rlp.EncodeToBytes(bubble); err != nil {
 		return err
 	} else {
-		return bdb.db.Put(blockHash, GetBubbleKey(bubble.BubbleId), data)
+		return bdb.db.Put(blockHash, GetBubbleKey(bubble.Basics.BubbleId), data)
+	}
+}
+
+func (bdb *BubbleDB) StoreBubBasics(blockHash common.Hash, bubbleId *big.Int, basics *BubBasics) error {
+	if data, err := rlp.EncodeToBytes(basics); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, BasicsByBubKey(bubbleId), data)
+	}
+}
+
+func (bdb *BubbleDB) GetBubBasics(blockHash common.Hash, bubbleId *big.Int) (*BubBasics, error) {
+	data, err := bdb.db.Get(blockHash, BasicsByBubKey(bubbleId))
+	if err != nil {
+		return nil, err
+	}
+	var basics BubBasics
+	if err := rlp.DecodeBytes(data, &basics); err != nil {
+		return nil, err
+	} else {
+		return &basics, nil
+	}
+}
+
+func (bdb *BubbleDB) StoreBubState(blockHash common.Hash, bubbleId *big.Int, state BubState) error {
+	if data, err := rlp.EncodeToBytes(state); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, StateByBubKey(bubbleId), data)
+	}
+}
+
+func (bdb *BubbleDB) GetBubState(blockHash common.Hash, bubbleId *big.Int) (*BubState, error) {
+	data, err := bdb.db.Get(blockHash, StateByBubKey(bubbleId))
+	if err != nil {
+		return nil, err
+	}
+	var state BubState
+	if err := rlp.DecodeBytes(data, &state); err != nil {
+		return nil, err
+	} else {
+		return &state, nil
 	}
 }
 

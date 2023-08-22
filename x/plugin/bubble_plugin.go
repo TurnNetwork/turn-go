@@ -82,7 +82,53 @@ func (bp *BubblePlugin) SetOpPriKey(opPriKey string) error {
 
 // GetBubbleInfo return the bubble information by bubble ID
 func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.Bubble, error) {
-	return bp.db.GetBubbleStore(blockHash, bubbleID)
+	// return bp.db.GetBubbleStore(blockHash, bubbleID)
+	// get bubble basics
+	basics, err := bp.GetBubBasics(blockHash, bubbleID)
+	if nil == basics || err != nil {
+		return nil, errors.New("failed to get bubble basics information")
+	}
+	var bub bubble.Bubble
+	bub.Basics = basics
+	// get bubble state
+	state, err := bp.GetBubState(blockHash, bubbleID)
+	if nil == state || err != nil {
+		return nil, errors.New("failed to get bubble state")
+	}
+	bub.State = *state
+	// get bubble txHashList
+	// get StakingToken Hash List
+	stTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.StakingToken)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, errors.New("failed to get bubble StakingToken transaction hash list")
+	}
+	bub.StakingTokenTxHashList = stTxHashList
+
+	// get WithdrewToken Hash List
+	wdTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.WithdrewToken)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, errors.New("failed to get bubble WithdrewToken transaction hash list")
+	}
+	bub.WithdrewTokenTxHashList = wdTxHashList
+
+	// get SettleBubble Hash List
+	sbTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.SettleBubble)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, errors.New("failed to get bubble SettleBubble transaction hash list")
+	}
+	bub.SettleBubbleTxHashList = sbTxHashList
+
+	return &bub, nil
+}
+
+// GetBubBasics return the bubble basics by bubble ID
+func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (*bubble.BubBasics, error) {
+	return bp.db.GetBubBasics(blockHash, bubbleID)
+}
+
+// GetBubState return the bubble state by bubble ID
+func (bp *BubblePlugin) GetBubState(blockHash common.Hash, bubbleID *big.Int) (*bubble.BubState, error) {
+	return bp.db.GetBubState(blockHash, bubbleID)
 }
 
 // CreateBubble run the non-business logic to create bubble
@@ -136,25 +182,41 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	if data, _ := bp.GetBubbleInfo(blockHash, bubbleID); data != nil {
 		return nil, errors.New(fmt.Sprintf("bubble %d already exist", bubbleID))
 	}
-	bub := &bubble.Bubble{
+	basics := &bubble.BubBasics{
 		BubbleId:    bubbleID,
 		Creator:     from,
 		CreateBlock: blockNumber.Uint64(),
-		State:       bubble.ActiveStatus,
-		Member:      bubble.SettlementInfo{},
 		OperatorsL1: OperatorsL1,
 		OperatorsL2: OperatorsL2,
 		MicroNodes:  microNodes,
 	}
 
+	bub := &bubble.Bubble{
+		Basics: basics,
+		State:  bubble.ActiveStatus,
+	}
+
 	// store bubble data
-	if err := bp.db.SetBubbleStore(blockHash, bub); err != nil {
-		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err)
+	//if err := bp.db.SetBubbleStore(blockHash, bub); err != nil {
+	//	log.Error("Failed to CreateBubble on bubblePlugin: Store bubble failed",
+	//		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.Basics.BubbleId, "err", err)
+	//	return nil, err
+	//}
+
+	// store bubble basics
+	if err := bp.db.StoreBubBasics(blockHash, basics.BubbleId, basics); err != nil {
+		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble basics failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
+		return nil, err
+	}
+	// store bubble state
+	if err := bp.db.StoreBubState(blockHash, basics.BubbleId, bub.State); err != nil {
+		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble state failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
 		return nil, err
 	}
 
-	return bub.BubbleId, nil
+	return bub.Basics.BubbleId, nil
 }
 
 // generateBubbleID generate bubble ID use sha3 algorithm by bubble info
@@ -305,7 +367,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 	// release the operator nodes of the L2 to the database
-	for _, operator := range bub.OperatorsL2 {
+	for _, operator := range bub.Basics.OperatorsL2 {
 		addr, err := xutil.NodeId2Addr(operator.NodeId)
 		if err != nil {
 			return err
@@ -322,7 +384,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		}
 	}
 	// release the candidate nodes of the L2 to the database
-	for _, candidate := range bub.MicroNodes {
+	for _, candidate := range bub.Basics.MicroNodes {
 		addr, err := xutil.NodeId2Addr(candidate.NodeId)
 		if err != nil {
 			return err
@@ -530,10 +592,10 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
 	// The staking address of the operation node is taken as the operation node address
 	// It is determined whether the main chain operation node signs the transaction
-	//if fromAddr != bubInfo.MainChain.OpAddr {
-	//	log.Error("The mintToken transaction sender is not the main-chain operation address")
-	//	return nil, errors.New("the mintToken transaction sender is not the main-chain operation address")
-	//}
+	if fromAddr != mintToken.OpAddr {
+		log.Error("The mintToken transaction sender is not the main-chain operation address")
+		return nil, errors.New("the mintToken transaction sender is not the main-chain operation address")
+	}
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
