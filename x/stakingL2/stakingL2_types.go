@@ -35,23 +35,9 @@ const (
 	DuplicateSign                             // 1000: The Duplicate package or Duplicate sign
 	LowRatioDel                               // 0001,0000: The lowRatio AND must delete
 	Withdrew                                  // 0010,0000: The Active withdrew
-	InBubble
-	Valided  = 0       // 0000: The current candidate is in force
-	NotExist = 1 << 31 // 1000,xxxx,... : The candidate is not exist
+	Valided       = 0                         // 0000: The current candidate is in force
+	NotExist      = 1 << 31                   // 1000,xxxx,... : The candidate is not exist
 )
-
-const (
-	OperatorNode = 1
-)
-
-type Operator struct {
-	NodeId discover.NodeID
-	RPC    string
-}
-
-func (op Operator) string() string {
-	return fmt.Sprintf("%s@%s:%s", op.NodeId, op.RPC)
-}
 
 type CandidateStatus uint32
 
@@ -140,7 +126,7 @@ type Candidate struct {
 func (can *Candidate) String() string {
 	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s",
 						"StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,
-						"Shares": %d,"Released": %d,"ReleasedHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+						"Shares": %d,"Released": %d,"ReleasedHes": %d,"Name": "%s","Detail": "%s","ElectronURI": "%s","P2PURI": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -155,10 +141,10 @@ func (can *Candidate) String() string {
 		can.ReleasedHes,
 		//can.RestrictingPlan,
 		//can.RestrictingPlanHes,
-		can.ExternalId,
-		can.NodeName,
-		can.Website,
-		can.Details)
+		can.Name,
+		can.Detail,
+		can.ElectronURI,
+		can.P2PURI)
 }
 
 func (can *Candidate) IsNotEmpty() bool {
@@ -191,7 +177,8 @@ type CandidateBase struct {
 }
 
 func (can *CandidateBase) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,
+						"StakingBlockNum": %d,"Name": "%s","Detail": "%s","ElectronURI": "%s","P2PURI": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -199,10 +186,10 @@ func (can *CandidateBase) String() string {
 		can.StakingTxIndex,
 		can.ProgramVersion,
 		can.StakingBlockNum,
-		can.ExternalId,
-		can.NodeName,
-		can.Website,
-		can.Details)
+		can.Name,
+		can.Detail,
+		can.ElectronURI,
+		can.P2PURI)
 }
 
 func (can *CandidateBase) IsNotEmpty() bool {
@@ -229,8 +216,6 @@ type CandidateMutable struct {
 	//RestrictingPlan *big.Int
 	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
 	//RestrictingPlanHes *big.Int
-	// Internet accessible RPC link
-	RPC string
 }
 
 func (can *CandidateMutable) String() string {
@@ -378,7 +363,7 @@ type CandidateHex struct {
 func (can *CandidateHex) String() string {
 	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s",
 						"StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,
-						"Shares": "%s","Released": "%s","ReleasedHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+						"Shares": "%s","Released": "%s","ReleasedHes": "%s","Name": "%s","Detail": "%s","ElectronURI": "%s","P2PURI": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -393,10 +378,10 @@ func (can *CandidateHex) String() string {
 		can.ReleasedHes,
 		//can.RestrictingPlan,
 		//can.RestrictingPlanHes,
-		can.ExternalId,
-		can.NodeName,
-		can.Website,
-		can.Details)
+		can.Name,
+		can.Detail,
+		can.ElectronURI,
+		can.P2PURI)
 }
 
 func (can *CandidateHex) IsNotEmpty() bool {
@@ -422,37 +407,31 @@ func (can *CandidateHex) IsEmpty() bool {
 //}
 
 const (
-	MaxExternalIdLen = 70
-	MaxNodeNameLen   = 30
-	MaxWebsiteLen    = 140
-	MaxDetailsLen    = 280
+	MaxNodeNameLen    = 30
+	MaxDetailLen      = 280
+	MaxElectronURILen = 200
+	MaxP2PURILen      = 70
 )
 
 type Description struct {
-	// External Id for the third party to pull the node description (with length limit)
-	ExternalId string
-	// The Candidate Node's Name  (with a length limit)
-	NodeName string
-	// The third-party home page of the node (with a length limit)
-	Website string
-	RPC     string
-	// Description of the node (with a length limit)
-	Details string
+	Name        string
+	Detail      string
+	ElectronURI string
+	P2PURI      string
 }
 
 func (desc *Description) CheckLength() error {
-
-	if len(desc.ExternalId) > MaxExternalIdLen {
-		return fmt.Errorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
+	if len(desc.Name) > MaxNodeNameLen {
+		return fmt.Errorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.Name), MaxNodeNameLen)
 	}
-	if len(desc.NodeName) > MaxNodeNameLen {
-		return fmt.Errorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
+	if len(desc.Detail) > MaxDetailLen {
+		return fmt.Errorf("Details overflow, got len is: %d, max len is: %d", len(desc.Detail), MaxDetailLen)
 	}
-	if len(desc.Website) > MaxWebsiteLen {
-		return fmt.Errorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
+	if len(desc.ElectronURI) > MaxElectronURILen {
+		return fmt.Errorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ElectronURI), MaxElectronURILen)
 	}
-	if len(desc.Details) > MaxDetailsLen {
-		return fmt.Errorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
+	if len(desc.P2PURI) > MaxP2PURILen {
+		return fmt.Errorf("Website overflow, got len is: %d, max len is: %d", len(desc.P2PURI), MaxP2PURILen)
 	}
 	return nil
 }

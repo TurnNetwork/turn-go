@@ -17,6 +17,7 @@
 package plugin
 
 import (
+	"github.com/bubblenet/bubble/params"
 	"math/big"
 	"sync"
 
@@ -33,6 +34,10 @@ import (
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
+)
+
+var (
+	StakeThresholdL2 = new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(200))
 )
 
 type StakingL2Plugin struct {
@@ -689,6 +694,10 @@ func (sk *StakingL2Plugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash 
 		return err
 	}
 	return nil
+}
+
+func (sk *StakingL2Plugin) CheckStakeThresholdL2(amount *big.Int) bool {
+	return amount.Cmp(StakeThresholdL2) >= 0
 }
 
 func buildL2CanHex(can *stakingL2.Candidate) *stakingL2.CandidateHex {

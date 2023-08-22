@@ -92,8 +92,8 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.Int, benefitAddress common.Address, externalId, nodeName,
-	website, RPC, details string, programVersion uint32, programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex,
+func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.Int, benefitAddress common.Address, name, detail,
+	electronURI, p2pURI string, programVersion uint32, programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex,
 	blsProof bls.SchnorrProofHex, isOperator bool) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
@@ -103,9 +103,9 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	from := stk.Contract.CallerAddress
 	state := stk.Evm.StateDB
 	log.Debug("Call createStaking of StakingL2Contract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(),
-		"blockHash", blockHash.Hex(), "benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
-		"nodeName", nodeName, "website", website, "details", details, "amount", amount, "programVersion", programVersion,
-		"programVersionSign", programVersionSign.Hex(), "from", from, "blsPubKey", blsPubKey, "blsProof", blsProof)
+		"blockHash", blockHash.Hex(), "benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "name", name, "detail", detail,
+		"amount", amount, "programVersion", programVersion, "programVersionSign", programVersionSign.Hex(), "from", from, "blsPubKey", blsPubKey,
+		"blsProof", blsProof)
 	if !stk.Contract.UseGas(params.CreateStakeL2Gas) {
 		return nil, ErrOutOfGas
 	}
@@ -126,17 +126,16 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
 			TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
 	}
-	if ok, threshold := plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount),
+	if stk.Plugin.CheckStakeThresholdL2(amount) {
+		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", plugin.StakeThresholdL2, amount),
 			TxCreateStakingL2, stakingL2.ErrStakeVonTooLow)
 	}
 	// check Description length
 	desc := &stakingL2.Description{
-		NodeName:   nodeName,
-		ExternalId: externalId,
-		Website:    website,
-		RPC:        RPC,
-		Details:    details,
+		Name:        name,
+		Detail:      detail,
+		ElectronURI: electronURI,
+		P2PURI:      p2pURI,
 	}
 	if err := desc.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
@@ -208,8 +207,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "", "", TxCreateStakingL2, common.NoErr)
 }
 
-func (stk *StakingL2Contract) editCandidate(benefitAddress *common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details *string) ([]byte, error) {
+func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail string) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	blockNumber := stk.Evm.Context.BlockNumber
@@ -217,10 +215,8 @@ func (stk *StakingL2Contract) editCandidate(benefitAddress *common.Address, node
 	from := stk.Contract.CallerAddress
 
 	log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-		"benefitAddress", benefitAddress, "nodeId", nodeId.String(), "rewardPer",
-		"externalId", externalId, "nodeName", nodeName, "website", website,
-		"details", details, "from", from)
+		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
+		"name", name, "detail", detail)
 
 	if !stk.Contract.UseGas(params.EditCandidateL2Gas) {
 		return nil, ErrOutOfGas
@@ -262,17 +258,11 @@ func (stk *StakingL2Contract) editCandidate(benefitAddress *common.Address, node
 	if benefitAddress != nil && canOld.BenefitAddress != vm.RewardManagerPoolAddr {
 		canOld.BenefitAddress = *benefitAddress
 	}
-	if nodeName != nil {
-		canOld.Description.NodeName = *nodeName
+	if name != "" {
+		canOld.Description.Name = name
 	}
-	if externalId != nil {
-		canOld.Description.ExternalId = *externalId
-	}
-	if website != nil {
-		canOld.Description.Website = *website
-	}
-	if details != nil {
-		canOld.Description.Details = *details
+	if detail != "" {
+		canOld.Description.Detail = detail
 	}
 	if err := canOld.Description.CheckLength(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",

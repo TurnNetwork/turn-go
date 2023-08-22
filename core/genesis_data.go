@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 
 	"github.com/bubblenet/bubble/crypto/bls"
@@ -59,12 +60,12 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	initQueue := g.Config.Cbft.InitialNodes
 
 	// 存储代理节点列队
-	Operators := make([]staking.Operator, 0)
+	Operators := make([]bubble.Operator, 0)
 	for _, initNode := range initQueue {
 		if initNode.RPC == "" {
 			break
 		}
-		operator := staking.Operator{
+		operator := bubble.Operator{
 			NodeId: initNode.Node.ID,
 			RPC:    initNode.RPC,
 		}
@@ -113,7 +114,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		mutable := &staking.CandidateMutable{
-			Type:               staking.OperatorNode,
+			Type:               bubble.OperatorNode,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
