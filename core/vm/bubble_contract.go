@@ -34,8 +34,9 @@ const (
 	TxStakingToken        = 0003
 	TxWithdrewToken       = 0004
 	TxSettleBubble        = 0005
-	CallGetBubbleInfo     = 1001
-	CallGetL1HashByL2Hash = 1002
+	CallGetBubbleInfo     = 0100
+	CallGetL1HashByL2Hash = 0101
+	CallGetBubTxHashList  = 102
 )
 
 type BubbleContract struct {
@@ -69,6 +70,7 @@ func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 		// Get
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
+		CallGetBubTxHashList:  bc.getBubTxHashList,
 	}
 }
 
@@ -175,6 +177,19 @@ func (bc *BubbleContract) getL1HashByL2Hash(bubbleID *big.Int, L2TxHash common.H
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID), txHash, nil), nil
+}
+
+// getBubTxHashList Specify BubbleID and transaction type to get a list of bubble's transaction hashes
+// Transaction types include: StakingToken, WithdrewToken, SettleBubble
+func (bc *BubbleContract) getBubTxHashList(bubbleID *big.Int, txType bubble.BubTxType) ([]byte, error) {
+	blockHash := bc.Evm.Context.BlockHash
+
+	txHashList, err := bc.Plugin.GetTxHashListByBub(blockHash, bubbleID, txType)
+	if err != nil {
+		return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList, bubble.ErrGetTxHashListByBub), err
+	}
+
+	return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList, nil), nil
 }
 
 // stakingToken The account pledges the token to the system contract
@@ -350,6 +365,10 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		return nil, err
 	}
 
+	// Store the stakingToken transaction hash
+	if err := bp.StoreTxHashToBub(blockHash, bubbleID, state.TxHash(), bubble.StakingToken); nil != err {
+		return nil, err
+	}
 	// Send the corresponding minting task
 	// Only bubble's main-chain operator node needs to handle this task
 	// if bc.Plugin.NodeID == bubInfo.OperatorsL1[0].NodeId
@@ -436,6 +455,10 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	if err = bp.StoreAccAssetToBub(blockHash, bubbleID, &resetAsset); nil != err {
 		return nil, bubble.ErrStoreAccAsset
 	}
+	// Store the withdrewToken transaction hash
+	if err := bp.StoreTxHashToBub(blockHash, bubbleID, state.TxHash(), bubble.WithdrewToken); nil != err {
+		return nil, err
+	}
 	return &resetAsset, nil
 }
 
@@ -491,6 +514,11 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 	// The mapping relationship between the sub-chain settlement transaction hash and the main chain settlement transaction hash is stored
 	if err = bp.StoreL2HashToL1Hash(blockHash, bubbleID, bc.Evm.StateDB.TxHash(), L2SettleTxHash); nil != err {
 		return nil, bubble.ErrStoreL2HashToL1Hash
+	}
+
+	// Store the settleBubble transaction hash
+	if err := bp.StoreTxHashToBub(blockHash, bubbleID, bc.Evm.StateDB.TxHash(), bubble.SettleBubble); nil != err {
+		return nil, err
 	}
 	return nil, nil
 }

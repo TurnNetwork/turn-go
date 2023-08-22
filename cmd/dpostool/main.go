@@ -53,16 +53,16 @@ type Dpos_0004 struct {
 	BubbleID *big.Int
 }
 
-// settlementToken
-type ERC20TokenInfo struct {
-	TokenAddr common.Address `json:"tokenAddr"` // ERC20 Token合约地址
-	//AddrToAmount map[common.Address]*big.Int `json:"addrToAmount"` // 账户的资产，key为账户地址，value为Token数量
-	AddrToAmount []map[common.Address]*big.Int `json:"addrToAmount"` // 账户的资产，key为账户地址，value为Token数量
-}
-
+// settleBubble
 type Dpos_0005 struct {
+	L2TxHash       common.Hash
 	BubbleId       *big.Int
 	SettlementInfo bubble.SettlementInfo
+}
+
+type Dpos_0102 struct {
+	TxType   bubble.BubTxType
+	BubbleId *big.Int
 }
 
 // createStaking
@@ -255,6 +255,7 @@ type decDataConfig struct {
 	P0003 Dpos_0003
 	P0004 Dpos_0004
 	P0005 Dpos_0005
+	P0102 Dpos_0102
 	P1000 Dpos_1000
 	P1001 Dpos_1001
 	P1002 Dpos_1002
@@ -327,10 +328,19 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 0005:
 		{
+			txHash, _ := rlp.EncodeToBytes(cfg.P0005.L2TxHash)
 			bubbleId, _ := rlp.EncodeToBytes(cfg.P0005.BubbleId)
 			settlementInfo, _ := rlp.EncodeToBytes(cfg.P0005.SettlementInfo)
+			params = append(params, txHash)
 			params = append(params, bubbleId)
 			params = append(params, settlementInfo)
+		}
+	case 102:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P0102.BubbleId)
+			txType, _ := rlp.EncodeToBytes(cfg.P0102.TxType)
+			params = append(params, bubbleId)
+			params = append(params, txType)
 		}
 	case 1000:
 		{

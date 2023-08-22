@@ -14,6 +14,7 @@
 		"BubbleID": 100
 	},
 	"P0005": {
+		"L2TxHash": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e",
 		"BubbleId": 100,
 		"SettlementInfo": {
 			"AccAssets": [
@@ -35,6 +36,10 @@
 				}
 			]
 		}
+	},
+	"P0102": {
+		"BubbleId": 100,
+		"TxType": 0
 	},
 	"P1000":{
 		"Typ":0,

@@ -372,6 +372,30 @@ func (bp *BubblePlugin) StoreL2HashToL1Hash(blockHash common.Hash, bubbleID *big
 	return bp.db.StoreL2HashToL1Hash(blockHash, bubbleID, L1TxHash, L2TxHash)
 }
 
+// GetTxHashListByBub The mapping relationship between the sub-chain transaction hash and the main chain transaction hash is stored
+func (bp *BubblePlugin) GetTxHashListByBub(blockHash common.Hash, bubbleID *big.Int, txType bubble.BubTxType) ([]common.Hash, error) {
+	txHashList, err := bp.db.GetTxHashListByBub(blockHash, bubbleID, txType)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, err
+	}
+	if nil == txHashList {
+		return []common.Hash{}, err
+	}
+	return *txHashList, err
+}
+
+// StoreTxHashToBub The mapping relationship between the sub-chain transaction hash and the main chain transaction hash is stored
+func (bp *BubblePlugin) StoreTxHashToBub(blockHash common.Hash, bubbleID *big.Int, txHash common.Hash, txType bubble.BubTxType) error {
+	// get hash list
+	txHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, txType)
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return err
+	}
+	// add new tx hash
+	txHashList = append(txHashList, txHash)
+	return bp.db.StoreTxHashListToBub(blockHash, bubbleID, txHashList, txType)
+}
+
 // AddAccAssetToBub Add account staking assets to bubble
 func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.Int, stakingAsset *bubble.AccountAsset) error {
 	if nil == stakingAsset {
