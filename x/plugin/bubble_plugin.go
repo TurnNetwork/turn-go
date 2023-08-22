@@ -237,6 +237,9 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
+	if len(operators) == 0 {
+		return nil, bubble.ErrOperatorL1IsInsufficient
+	}
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operators, func(item interface{}) *VRFItem {
 		return &VRFItem{
@@ -270,6 +273,9 @@ func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber u
 	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash, blockNumber.Uint64())
 	if err != nil {
 		return nil, err
+	}
+	if len(operatorQueue) == 0 {
+		return nil, bubble.ErrOperatorL2IsInsufficient
 	}
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operatorQueue, func(item interface{}) *VRFItem {
@@ -318,6 +324,9 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 	candidateQueue, err := bp.stk2Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if err != nil {
 		return nil, err
+	}
+	if len(candidateQueue) == 0 {
+		return nil, bubble.ErrMicroNodeIsInsufficient
 	}
 	// wrap the candidates to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(candidateQueue, func(item interface{}) *VRFItem {
