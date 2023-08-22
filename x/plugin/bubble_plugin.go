@@ -20,7 +20,6 @@ import (
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/handler"
-	"github.com/bubblenet/bubble/x/staking"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -88,6 +87,7 @@ func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) 
 
 // CreateBubble run the non-business logic to create bubble
 func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentHash common.Hash) (*big.Int, error) {
+
 	// get the nonces of the historical block
 	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if err != nil {
@@ -99,21 +99,37 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		newNonces = append(newNonces, preNonces...)
 		preNonces = newNonces
 	}
-	// elect the operators and committees by VRF
+
+	// elect the operatorsL1 by VRF
 	OperatorsL1, err := bp.ElectOperatorL1(blockHash, bubble.OperatorL1Size, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
-	OperatorsL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
+
+	// elect the operatorsL2 by VRF
+	candidateL2, err := bp.ElectCandidateL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
-	committees, err := bp.ElectBubbleCommittees(blockHash, blockNumber, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
+	var OperatorsL2 []*bubble.Operator
+	for _, can := range candidateL2 {
+		operator := &bubble.Operator{
+			NodeId: can.NodeId,
+			RPC:    can.ElectronURI,
+			OpAddr: can.StakingAddress,
+		}
+		OperatorsL2 = append(OperatorsL2, operator)
+	}
+
+	// // elect the microNodesL2 by VRF
+	microNodes, err := bp.ElectBubbleMicroNodes(blockHash, blockNumber, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
-	// build the infos of the bubble chain
-	bubbleID, err := bp.generateBubbleID(from, big.NewInt(int64(nonce)), committees)
+	microNodes = append(microNodes, candidateL2...)
+
+	// build bubble infos
+	bubbleID, err := bp.generateBubbleID(from, big.NewInt(int64(nonce)), microNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -123,15 +139,15 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	bub := &bubble.Bubble{
 		BubbleId:    bubbleID,
 		Creator:     from,
+		CreateBlock: blockNumber.Uint64(),
 		State:       bubble.ActiveStatus,
-		InitBlock:   blockNumber.Uint64(),
-		SettleBlock: blockNumber.Uint64(),
 		Member:      bubble.SettlementInfo{},
 		OperatorsL1: OperatorsL1,
 		OperatorsL2: OperatorsL2,
-		Committees:  committees,
+		MicroNodes:  microNodes,
 	}
-	// store the data of the bubble chain
+
+	// store bubble data
 	if err := bp.db.SetBubbleStore(blockHash, bub); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err)
@@ -154,7 +170,7 @@ func (bp *BubblePlugin) generateBubbleID(creator common.Address, nonce *big.Int,
 }
 
 // ElectOperatorL1 Elect the Layer1 Operator nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber uint, curNonce []byte, preNonces [][]byte) ([]*staking.Operator, error) {
+func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber uint, curNonce []byte, preNonces [][]byte) ([]*bubble.Operator, error) {
 	operators, err := bp.stkPlugin.db.GetOperatorArrStore(blockHash)
 	if err != nil {
 		return nil, err
@@ -175,9 +191,9 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 		return nil, err
 	}
 	// unwrap the VRF able queue
-	electedOperators := make([]*staking.Operator, 0)
+	electedOperators := make([]*bubble.Operator, 0)
 	for _, item := range electedVrfQueue {
-		if operator, ok := (item.v).(*staking.Operator); ok {
+		if operator, ok := (item.v).(*bubble.Operator); ok {
 			electedOperators = append(electedOperators, operator)
 		} else {
 			return nil, errors.New("type error")
@@ -187,8 +203,8 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	return electedOperators, nil
 }
 
-// ElectOperatorL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, blockNumber *big.Int, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+// ElectCandidateL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
+func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber uint, blockNumber *big.Int, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
 	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash, blockNumber.Uint64())
 	if err != nil {
 		return nil, err
@@ -235,8 +251,8 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 	return electedOperators, nil
 }
 
-// ElectBubbleCommittees Elect the Committee nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectBubbleCommittees(blockHash common.Hash, blockNumber *big.Int, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+// ElectBubbleMicroNodes Elect the Committee nodes for the bubble chain by VRF
+func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber *big.Int, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
 	candidateQueue, err := bp.stk2Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if err != nil {
 		return nil, err
@@ -282,8 +298,6 @@ func (bp *BubblePlugin) ElectBubbleCommittees(blockHash common.Hash, blockNumber
 	return committees, nil
 }
 
-func (bp *BubblePlugin) SetAsset() {}
-
 // ReleaseBubble run the non-business logic to release the bubble
 func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.Int, bubbleID *big.Int) error {
 	bub, err := bp.GetBubbleInfo(blockHash, bubbleID)
@@ -297,25 +311,25 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 			return err
 		}
 		// check whether the node has been withdrawn
-		r, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if r != nil || err == snapshotdb.ErrNotFound {
+		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
+		if can != nil || err == snapshotdb.ErrNotFound {
 			break
 		}
-		if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, operator); nil != err {
+		if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SetOperatorStore on ReleaseBubble: Store Operator info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", operator.NodeId.String(), "err", err)
 			return err
 		}
 	}
 	// release the candidate nodes of the L2 to the database
-	for _, candidate := range bub.Committees {
+	for _, candidate := range bub.MicroNodes {
 		addr, err := xutil.NodeId2Addr(candidate.NodeId)
 		if err != nil {
 			return err
 		}
 		// check whether the node has been withdrawn
-		r, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if r != nil || err == snapshotdb.ErrNotFound {
+		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
+		if can != nil || err == snapshotdb.ErrNotFound {
 			break
 		}
 		if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, candidate); nil != err {
@@ -485,7 +499,7 @@ func genMintTokenRlpData(mintToken bubble.MintTokenTask) []byte {
 	return buf.Bytes()
 }
 
-//HandleMintTokenTask Handle MintToken task
+// HandleMintTokenTask Handle MintToken task
 func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]byte, error) {
 	log.Info("failed connect operator node", mintToken)
 	if nil == mintToken || nil == mintToken.AccAsset {
@@ -611,7 +625,7 @@ func VRFQueueWrapper(slice interface{}, wrapper func(interface{}) *VRFItem) (VRF
 // VRF randomly pick number of elements from vrfQueue, it achieves randomness through the nonces
 func VRF(vrfQueue VRFQueue, number uint, curNonce []byte, preNonces [][]byte) (VRFQueue, error) {
 	// check params
-	if len(curNonce) == 0 || len(preNonces) == 0 || len(vrfQueue) != len(preNonces) || int(number) > len(vrfQueue) {
+	if len(curNonce) == 0 || len(preNonces) == 0 || len(vrfQueue) != len(preNonces) {
 		log.Error("Failed to VRF", "vrfQueue Size", len(vrfQueue), "curNonceSize", len(curNonce), "preNoncesSize", len(preNonces))
 		return nil, errors.New("vrf param is invalid")
 	}

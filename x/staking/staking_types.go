@@ -49,19 +49,6 @@ const (
 	NotExist      = 1 << 31                   // 1000,xxxx,... : The candidate is not exist
 )
 
-const (
-	OperatorNode = 1
-)
-
-type Operator struct {
-	NodeId discover.NodeID
-	RPC    string
-}
-
-func (op Operator) string() string {
-	return fmt.Sprintf("%s@%s:%s", op.NodeId, op.RPC)
-}
-
 type CandidateStatus uint32
 
 func (status CandidateStatus) IsValid() bool {
