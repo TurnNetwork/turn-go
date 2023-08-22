@@ -65,6 +65,22 @@ type Dpos_0102 struct {
 	BubbleId *big.Int
 }
 
+// L2_Dpos_2000 L2 createStaking
+type Dpos_2000 struct {
+	NodeId             discover.NodeID
+	Amount             *big.Int
+	BenefitAddress     common.Address
+	Name               string
+	Detail             string
+	ElectronURI        string
+	P2pURI             string
+	ProgramVersion     uint32
+	ProgramVersionSign common.VersionSign
+	BlsPubKey          bls.PublicKeyHex
+	BlsProof           bls.SchnorrProofHex
+	IsOperator         bool
+}
+
 // createStaking
 type Dpos_1000 struct {
 	Typ                uint16
@@ -137,10 +153,10 @@ type Dpos_1105 struct {
 }
 
 // submitText
-type Dpos_2000 struct {
-	Verifier discover.NodeID
-	PIPID    string
-}
+//type Dpos_2000 struct {
+//	Verifier discover.NodeID
+//	PIPID    string
+//}
 
 // submitVersion
 type Dpos_2001 struct {
@@ -456,10 +472,33 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 1202:
 	case 2000:
 		{
-			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
-			params = append(params, verifier)
-			params = append(params, pipID)
+			nodeId, _ := rlp.EncodeToBytes(cfg.P2000.NodeId)
+			amount, _ := rlp.EncodeToBytes(cfg.P2000.Amount)
+			benefitAddress, _ := rlp.EncodeToBytes(cfg.P2000.BenefitAddress.Bytes())
+			name, _ := rlp.EncodeToBytes(cfg.P2000.Name)
+			details, _ := rlp.EncodeToBytes(cfg.P2000.Detail)
+			electronURI, _ := rlp.EncodeToBytes(cfg.P2000.ElectronURI)
+			P2pURI, _ := rlp.EncodeToBytes(cfg.P2000.P2pURI)
+
+			programVersion, _ := rlp.EncodeToBytes(cfg.P2000.ProgramVersion)
+			programVersionSign, _ := rlp.EncodeToBytes(cfg.P2000.ProgramVersionSign)
+			blsPubKey, _ := rlp.EncodeToBytes(cfg.P2000.BlsPubKey)
+			blsProof, _ := rlp.EncodeToBytes(cfg.P2000.BlsProof)
+			isOperator, _ := rlp.EncodeToBytes(cfg.P2000.IsOperator)
+
+			params = append(params, nodeId)
+			params = append(params, amount)
+			params = append(params, benefitAddress)
+			params = append(params, name)
+			params = append(params, details)
+			params = append(params, electronURI)
+			params = append(params, P2pURI)
+			params = append(params, programVersion)
+			params = append(params, programVersionSign)
+			params = append(params, blsPubKey)
+			params = append(params, blsProof)
+			params = append(params, isOperator)
+
 		}
 	case 2001:
 		{
