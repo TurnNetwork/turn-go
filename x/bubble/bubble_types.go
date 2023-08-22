@@ -24,20 +24,32 @@ const (
 	ReleasedStatus   = 3
 )
 
+// BubTxType Define the Bubble's trade type
+type BubTxType uint
+
+const (
+	StakingToken  BubTxType = iota // StakingToken transaction type
+	WithdrewToken                  // WithdrewToken transaction type
+	SettleBubble                   // SettleBubble transaction type
+)
+
 type CandidateQueue []*stakingL2.Candidate
 type ValidatorQueue []*stakingL2.Candidate
 type CommitteeQueue []*stakingL2.Candidate
 
 type Bubble struct {
-	BubbleId    *big.Int
-	Creator     common.Address
-	State       int // unused
-	InitBlock   uint64
-	SettleBlock uint64 // unused
-	Member      SettlementInfo
-	OperatorsL1 []*staking.Operator
-	OperatorsL2 []*stakingL2.Candidate
-	Committees  CandidateQueue
+	BubbleId                *big.Int
+	Creator                 common.Address
+	State                   int // unused
+	InitBlock               uint64
+	SettleBlock             uint64 // unused
+	Member                  SettlementInfo
+	OperatorsL1             []*staking.Operator
+	OperatorsL2             []*stakingL2.Candidate
+	Committees              CandidateQueue
+	StakingTokenTxHashList  []common.Hash // List of stakingToken transaction hashes
+	WithdrewTokenTxHashList []common.Hash // List of withdrewToken transaction hashes
+	SettleBubbleTxHashList  []common.Hash // List of settleBubble transaction hashes
 }
 
 type AccTokenAsset struct {

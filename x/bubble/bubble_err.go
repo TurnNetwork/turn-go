@@ -23,4 +23,5 @@ var (
 	ErrEVMExecERC20           = common.NewBizError(330014, "evm fails to execute erc20 contract transfer interface")
 	ErrStoreAccAsset          = common.NewBizError(330015, "failure to save account asset information to the specified bubble")
 	ErrBubbleIsRelease        = common.NewBizError(330016, "bubble has released, Can not StakingToken token to the bubble")
+	ErrGetTxHashListByBub     = common.NewBizError(330017, "failed to get bubble's transaction hash list")
 )

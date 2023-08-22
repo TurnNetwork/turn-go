@@ -91,6 +91,28 @@ func (bdb *BubbleDB) StoreAccAssetToBub(blockHash common.Hash, bubbleId *big.Int
 	}
 }
 
+func (bdb *BubbleDB) StoreTxHashListToBub(blockHash common.Hash, bubbleID *big.Int, txHashList []common.Hash, txType BubTxType) error {
+	if data, err := rlp.EncodeToBytes(txHashList); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, TxHashListByBubKey(bubbleID, txType), data)
+	}
+}
+
+func (bdb *BubbleDB) GetTxHashListByBub(blockHash common.Hash, bubbleID *big.Int, txType BubTxType) (*[]common.Hash, error) {
+	data, err := bdb.db.Get(blockHash, TxHashListByBubKey(bubbleID, txType))
+	if err != nil {
+		return nil, err
+	}
+
+	var txHashList []common.Hash
+	if err := rlp.DecodeBytes(data, &txHashList); err != nil {
+		return nil, err
+	} else {
+		return &txHashList, nil
+	}
+}
+
 func (bdb *BubbleDB) StoreL2HashToL1Hash(blockHash common.Hash, bubbleID *big.Int, L1TxHash common.Hash, L2TxHash common.Hash) error {
 	if data, err := rlp.EncodeToBytes(L1TxHash); err != nil {
 		return err
