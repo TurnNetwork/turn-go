@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	StakeThresholdL2 = big.NewInt(params.BUB * 200)
+	StakeThresholdL2 = new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(200))
 )
 
 type StakingL2Plugin struct {
