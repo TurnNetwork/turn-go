@@ -37,6 +37,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[32]byte": BytesTo32Bytes,
 	"[64]byte": BytesTo64Bytes,
 
+	"bool":    BytesToBool,
 	"uint8":   BytesToUint8,
 	"uint16":  BytesToUint16,
 	"*uint16": BytesToUint16Point,
@@ -45,6 +46,7 @@ var Bytes2X_CMD = map[string]interface{}{
 
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
+	"[][]uint8":             BytesToUint8Arr,
 	"discover.NodeID":       BytesToNodeId,
 	"[]discover.NodeID":     BytesToNodeIdArr,
 	"common.Hash":           BytesToHash,
@@ -123,6 +125,14 @@ func BytesTo64Bytes(curByte []byte) [64]byte {
 	return arr
 }
 
+func BytesToBool(b []byte) bool {
+	var x bool
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToBool:" + err.Error())
+	}
+	return x
+}
+
 func BytesToUint8(b []byte) uint8 {
 	var x uint8
 	if err := rlp.DecodeBytes(b, &x); nil != err {
@@ -185,6 +195,14 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 	var arr []*big.Int
 	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
 		panic("BytesToBigIntArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToUint8Arr(curByte []byte) [][]uint8 {
+	var arr [][]uint8
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesToBytesArr:" + err.Error())
 	}
 	return arr
 }
