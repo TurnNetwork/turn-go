@@ -30,9 +30,7 @@ import (
 	gomath "math"
 	"math/big"
 	"math/rand"
-	"net"
 	"net/rpc"
-	"net/rpc/jsonrpc"
 	"reflect"
 	"strconv"
 	"sync"
@@ -732,23 +730,22 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 	}
 
 	for _, operator := range bub.Basics.OperatorsL2 {
-		conn, err := net.Dial("http", operator.RPC)
+		client, err := rpc.DialHTTP("tcp", operator.RPC)
 		if err != nil {
 			log.Warn(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
 		}
-		client := rpc.NewClientWithCodec(jsonrpc.NewClientCodec(conn))
 
 		// TODO: asynchronous process and check whether the network is built
-		var result string
-		err = client.Call("", args, result)
+		var reply string
+		err = client.Call("", args, reply)
 		if err != nil {
 			log.Warn(fmt.Sprintf("failed to call remote function: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to call remote function: %s", err.Error()))
 		}
-		if result != "" {
-			log.Warn(fmt.Sprintf("call remote function result error: %s", result))
-			return errors.New(fmt.Sprintf("call remote function result error: %s", result))
+		if reply != "" {
+			log.Warn(fmt.Sprintf("call remote function result error: %s", reply))
+			return errors.New(fmt.Sprintf("call remote function result error: %s", reply))
 		}
 	}
 	return nil
@@ -767,12 +764,11 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 	}
 
 	for _, operator := range bub.Basics.OperatorsL2 {
-		conn, err := net.Dial("http", operator.RPC)
+		client, err := rpc.DialHTTP("tcp", operator.RPC)
 		if err != nil {
 			log.Warn(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
 		}
-		client := rpc.NewClientWithCodec(jsonrpc.NewClientCodec(conn))
 		args := bub.Basics.BubbleId
 
 		// TODO: asynchronous process and check whether the network is built
