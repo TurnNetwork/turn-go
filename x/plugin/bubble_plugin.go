@@ -11,7 +11,6 @@ import (
 	"github.com/bubblenet/bubble/common/math"
 	"github.com/bubblenet/bubble/common/sort"
 	"github.com/bubblenet/bubble/common/vm"
-	"github.com/bubblenet/bubble/core"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
@@ -663,11 +662,11 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	}
 
 	hash := signedTx.Hash()
-	log.Debug("mintToken tx hash=========================================", hash.Hex())
+	log.Debug("mintToken tx hash", hash.Hex())
 	return hash.Bytes(), nil
 }
 
-func makeGenesisL2(bub *bubble.Bubble) *core.GenesisL2 {
+func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 	var initNodes []params.InitNode
 	for _, node := range bub.Basics.MicroNodes {
@@ -681,7 +680,7 @@ func makeGenesisL2(bub *bubble.Bubble) *core.GenesisL2 {
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
-	genesisL2 := &core.GenesisL2{
+	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
 			ChainID: bub.Basics.BubbleId,
 			Cbft: &params.CbftConfig{
@@ -702,7 +701,7 @@ func makeGenesisL2(bub *bubble.Bubble) *core.GenesisL2 {
 		ExtraData:     []byte{},
 		GasLimit:      math.HexOrDecimal64(params.GenesisGasLimit),
 		Coinbase:      common.ZeroAddr,
-		Alloc: core.GenesisAlloc{
+		Alloc: bubble.GenesisAlloc{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
 		},
