@@ -66,24 +66,18 @@ const (
 // Operator Includes the operator's node ID, rpc url, operation address,
 // and initial balance (to send the transaction in the child-chain to pay fees).
 type Operator struct {
-	NodeId  discover.NodeID `json:"nodeId"`  // Operator node id
-	RPC     string          `json:"rpc"`     // Operation node RPC URL
-	OpAddr  common.Address  `json:"opAddr"`  // Address of operation
-	Balance *big.Int        `json:"balance"` // Operating address balance
+	NodeId      discover.NodeID `json:"nodeId"` // Operator node id
+	ElectronRPC string          `json:"ElectronRPC"`
+	RPC         string          `json:"rpc"`     // Operation node RPC URL
+	OpAddr      common.Address  `json:"opAddr"`  // Address of operation
+	Balance     *big.Int        `json:"balance"` // Operating address balance
 }
 
-// OptConfig is operator profiles, including main-chain operator
+// OpConfig is operator profiles, including main-chain operator
 // and sub-chain operator profiles, interact between main-chain and sub-chain through the operator
-type OptConfig struct {
-	// Private key of sub-chain operation address (pledged address of operation node)
-	subOpPriKey string
-	MainChain   *Operator `json:"mainChain,omitempty"` // Main chain operator information configuration
-	SubChain    *Operator `json:"subChain,omitempty"`  // Child chain operator information configuration
-}
-
-type CreateBubbleTask struct {
-	BubbleID *big.Int
-	RPCs     string // Bubble The bubble sub-chain operates the node rpc
+type OpConfig struct {
+	MainChain *Operator `json:"mainChain,omitempty"` // Main chain operator information configuration
+	SubChain  *Operator `json:"subChain,omitempty"`  // Child chain operator information configuration
 }
 
 type AccTokenAsset struct {
@@ -103,6 +97,16 @@ type MintTokenTask struct {
 	RPC      string         // Bubble The bubble sub-chain operates the node rpc
 	OpAddr   common.Address // Bubble The bubble main-chain operates address
 	AccAsset *AccountAsset
+}
+
+type CreateBubbleTask struct {
+	BubbleID *big.Int
+	TxHash   common.Hash // The transaction hash of the createBubbleTask
+}
+
+type ReleaseBubbleTask struct {
+	BubbleID *big.Int
+	TxHash   common.Hash // The transaction hash of the releaseBubbleTask
 }
 
 type SettlementInfo struct {

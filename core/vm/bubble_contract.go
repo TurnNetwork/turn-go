@@ -79,7 +79,7 @@ func (bc *BubbleContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 }
 
 // createBubble create a Bubble chain using operator nodes and candidate nodes
-func (bc *BubbleContract) createBubble(genesisData [][]byte) ([]byte, error) {
+func (bc *BubbleContract) createBubble() ([]byte, error) {
 
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
@@ -95,7 +95,7 @@ func (bc *BubbleContract) createBubble(genesisData [][]byte) ([]byte, error) {
 		return nil, ErrOutOfGas
 	}
 
-	bubbleID, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
+	bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "createBubble", bizErr.Error(), TxCreateBubble, bizErr)
@@ -105,10 +105,21 @@ func (bc *BubbleContract) createBubble(genesisData [][]byte) ([]byte, error) {
 		}
 	}
 
-	// TODO: store genesisData and return the index for DApp reuse
-	// TODO: store genesisData by a other interface
+	// operators send create bubble event to blockchain Mxu
+	task := &bubble.CreateBubbleTask{
+		BubbleID: bub.Basics.BubbleId,
+		TxHash:   txHash,
+	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxCreateBubble, int(common.NoErr.Code), bubbleID), nil
+	for _, operators := range bub.Basics.OperatorsL1 {
+		if operators.NodeId == bc.Plugin.NodeID {
+			if err := bc.Plugin.PostCreateBubbleEvent(task); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxCreateBubble, int(common.NoErr.Code), bub.Basics.BubbleId), nil
 }
 
 // releaseBubble release the node resources of a bubble chain and delete it`s information
@@ -142,14 +153,27 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 			fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Basics.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
 	}
 
-	// TODO: can release the bubble chain in the building state？
-	if bub.State != bubble.PreReleaseStatus {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d unable to release ", bub.Basics.BubbleId),
+	if bub.State == bubble.ReleasedStatus {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d is released ", bub.Basics.BubbleId),
 			TxReleaseBubble, bubble.ErrBubbleUnableRelease)
 	}
 
 	if err := bc.Plugin.ReleaseBubble(blockHash, blockNumber, bubbleID); err != nil {
 		return nil, err
+	}
+
+	// operators send release bubble event to blockchain Mxu
+	task := &bubble.ReleaseBubbleTask{
+		BubbleID: bub.Basics.BubbleId,
+		TxHash:   txHash,
+	}
+
+	for _, operators := range bub.Basics.OperatorsL1 {
+		if operators.NodeId == bc.Plugin.NodeID {
+			if err := bc.Plugin.PostReleaseBubbleEvent(task); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxReleaseBubble, common.NoErr)

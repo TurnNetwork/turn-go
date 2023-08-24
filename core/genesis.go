@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bubblenet/bubble/x/bubble"
 	"io"
 	"math/big"
 	"os"
@@ -67,6 +68,31 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+}
+
+// GenesisL2 specifies the header fields, state of a layer2 genesis block. It also defines hard
+// fork switch-over blocks through the chain configuration.
+type GenesisL2 struct {
+	Config        *params.ChainConfig `json:"config"`
+	OpConfig      *bubble.OpConfig    `json:"opConfig"`
+	EconomicModel *xcom.EconomicModel `json:"economicModel"`
+	Nonce         hexutil.Bytes       `json:"nonce"`
+	Timestamp     math.HexOrDecimal64 `json:"timestamp"`
+	ExtraData     hexutil.Bytes       `json:"extraData"`
+	GasLimit      math.HexOrDecimal64 `json:"gasLimit"   gencodec:"required"`
+	Coinbase      common.Address      `json:"coinbase"`
+	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
+
+	// These fields are used for consensus tests. Please don't use them
+	// in actual genesis blocks.
+	Number     math.HexOrDecimal64 `json:"number"`
+	GasUsed    math.HexOrDecimal64 `json:"gasUsed"`
+	ParentHash common.Hash         `json:"parentHash"`
+}
+
+// MarshalJSON marshals GenesisL2 to JSON.
+func (g *GenesisL2) MarshalJSON() ([]byte, error) {
+	return json.Marshal(g)
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -520,7 +546,7 @@ func DefaultGenesisBlock() *Genesis {
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 1682870400000,
+		Timestamp: params.MainNetGenesisTimestamp,
 		ExtraData: []byte(manifesto),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{

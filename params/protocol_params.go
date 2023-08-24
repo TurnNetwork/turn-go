@@ -25,6 +25,8 @@ const (
 	DefaultMinerGasCeil  uint64 = 21000 * 8000 * 1.2 // 201600000
 	MaxGasCeil           uint64 = 300000000
 
+	MainNetGenesisTimestamp = 1682870400000
+
 	MaximumExtraDataSize uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas           uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
 	SloadGas             uint64 = 50    // Multiplied by the number of 32-byte words that are copied (round up) for any *COPY operation and added.
