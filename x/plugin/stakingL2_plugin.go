@@ -715,5 +715,6 @@ func buildL2CanHex(can *stakingL2.Candidate) *stakingL2.CandidateHex {
 		Released:        (*hexutil.Big)(can.Released),
 		ReleasedHes:     (*hexutil.Big)(can.ReleasedHes),
 		Description:     can.Description,
+		IsOperator:      can.IsOperator,
 	}
 }

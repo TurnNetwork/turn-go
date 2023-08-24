@@ -358,6 +358,7 @@ type CandidateHex struct {
 	//RestrictingPlan      *hexutil.Big
 	//RestrictingPlanHes   *hexutil.Big
 	Description
+	IsOperator bool
 }
 
 func (can *CandidateHex) String() string {
@@ -410,7 +411,7 @@ const (
 	MaxNodeNameLen    = 30
 	MaxDetailLen      = 280
 	MaxElectronURILen = 200
-	MaxP2PURILen      = 70
+	MaxP2PURILen      = 200
 )
 
 type Description struct {
@@ -428,10 +429,10 @@ func (desc *Description) CheckLength() error {
 		return fmt.Errorf("Details overflow, got len is: %d, max len is: %d", len(desc.Detail), MaxDetailLen)
 	}
 	if len(desc.ElectronURI) > MaxElectronURILen {
-		return fmt.Errorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ElectronURI), MaxElectronURILen)
+		return fmt.Errorf("ElectronURI overflow, got len is: %d, max len is: %d", len(desc.ElectronURI), MaxElectronURILen)
 	}
 	if len(desc.P2PURI) > MaxP2PURILen {
-		return fmt.Errorf("Website overflow, got len is: %d, max len is: %d", len(desc.P2PURI), MaxP2PURILen)
+		return fmt.Errorf("MaxP2PURILen overflow, got len is: %d, max len is: %d", len(desc.P2PURI), MaxP2PURILen)
 	}
 	return nil
 }
