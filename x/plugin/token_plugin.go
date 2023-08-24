@@ -48,9 +48,9 @@ var (
 )
 
 type TokenPlugin struct {
-	MainOpAddr  common.Address // Main chain operator address
-	IsSubOpNode bool           // Whether it is a child chain operator node
+	IsSubOpNode bool // Whether it is a child chain operator node
 	OpConfig    *params.OpConfig
+	ChainID     *big.Int
 	eventMux    *event.TypeMux
 }
 
@@ -78,13 +78,15 @@ func genSettleTxRlpData(settleTask *token.SettleTask) []byte {
 	var params [][]byte
 	params = make([][]byte, 0)
 	// Settlement function encoding
-	settleFuncType := uint16(0005)
+	settleFuncType := uint16(5)
 	fnType, _ := rlp.EncodeToBytes(settleFuncType)
 	params = append(params, fnType)
 
 	txHash, _ := rlp.EncodeToBytes(settleTask.TxHash)
+	bubId, _ := rlp.EncodeToBytes(settleTask.BubbleID)
 	accAsset, _ := rlp.EncodeToBytes(settleTask.SettleInfo)
 	params = append(params, txHash)
+	params = append(params, bubId)
 	params = append(params, accAsset)
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -176,9 +178,9 @@ func (tkp *TokenPlugin) HandleSettleTask(settleTask *token.SettleTask) ([]byte, 
 	return hash.Bytes(), nil
 }
 
-// SetMainOpAddr Set the main chain operator address
-func (tkp *TokenPlugin) SetMainOpAddr(mainOpAddr common.Address) {
-	tkp.MainOpAddr = mainOpAddr
+// SetChainID Set bubble's chainId
+func (tkp *TokenPlugin) SetChainID(chainId *big.Int) {
+	tkp.ChainID = chainId
 }
 
 // SetOpConfig Set the main chain operator address

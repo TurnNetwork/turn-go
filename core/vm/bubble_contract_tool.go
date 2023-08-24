@@ -198,9 +198,9 @@ func encodeGetBalancesCall(addrList []common.Address) ([]byte, error) {
 	return data, nil
 }
 
-// 解析字节数组为 uint256 数组
+// Parse the byte array into a uint256 array
 func parseBytesToUint256Array(bytes []byte) []*big.Int {
-	const Uint256Size = 32 // uint256 的大小为 32 个字节
+	const Uint256Size = 32 // The size of uint256 is 32 bytes
 	var uint256Array []*big.Int
 
 	for i := 0; i < len(bytes); i += Uint256Size {

@@ -45,6 +45,7 @@ type SettlementInfo struct {
 
 type SettleTask struct {
 	TxHash     common.Hash    // The transaction hash of the staking Token transaction
+	BubbleID   *big.Int       // bubbleID for settlement
 	SettleInfo SettlementInfo // Asset information for all accounts
 }
 

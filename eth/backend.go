@@ -328,7 +328,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			if err := opConfig.SetSubOpPriKey(config.SubOpPriKey); err != nil {
 				return nil, errors.New("failed to set the private key of child-chain operation address")
 			}
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig, chainConfig.ChainID)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -611,7 +611,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig, chainId *big.Int) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -620,10 +620,9 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 	xplugin.TokenInstance().SetOpConfig(opConfig)
-	// 设置主链运营地址
-	xplugin.TokenInstance().SetMainOpAddr(opConfig.MainChain.OpAddr)
+	xplugin.TokenInstance().SetChainID(chainId)
 	if reactor.NodeId == opConfig.SubChain.NodeId {
-		// 设置子链运营节点标识
+		// Set the sub-chain operation node identity
 		xplugin.TokenInstance().SetSubOpIdentity(true)
 	}
 	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenInstance())

@@ -192,7 +192,11 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 		token.StoreSettlementHash(blockHash, hash)
 		// Determine whether the current node is a sub-chain operator node
 		if tkc.Plugin.IsSubOpNode {
-			settleTask := token.SettleTask{TxHash: tkc.Evm.StateDB.TxHash(), SettleInfo: settlementInfo}
+			settleTask := token.SettleTask{
+				TxHash:     tkc.Evm.StateDB.TxHash(),
+				BubbleID:   tkc.Plugin.ChainID, // The chainID and bubbleID of the bubble sub-chain are the same
+				SettleInfo: settlementInfo,
+			}
 			// Send settlement task
 			tkc.Plugin.PostSettlementTask(&settleTask)
 		}
@@ -202,7 +206,7 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 
 func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset token.AccountAsset) ([]byte, error) {
 	from := tkc.Contract.CallerAddress
-	if from != tkc.Plugin.MainOpAddr {
+	if from != tkc.Plugin.OpConfig.MainChain.OpAddr {
 		return nil, token.ErrNotMainOpAddr
 	}
 
