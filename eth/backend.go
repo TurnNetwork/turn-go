@@ -626,7 +626,9 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
 	xplugin.BubbleInstance().SetCurrentNodeID(reactor.NodeId)
-	xplugin.BubbleInstance().SetOpPriKey(opPrikey)
+	if "" != opPrikey {
+		xplugin.BubbleInstance().SetOpPriKey(opPrikey)
+	}
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})

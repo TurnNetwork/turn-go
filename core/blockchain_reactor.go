@@ -45,18 +45,20 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh               *handler.VrfHandler
-	eventMux         *event.TypeMux
-	bftResultSub     *event.TypeMuxSubscription
-	mintTokenTaskSub *event.TypeMuxSubscription // MintToken task subscription
-	basePluginMap    map[int]plugin.BasePlugin  // xxPlugin container
-	beginRule        []int                      // Order rules for xxPlugins called in BeginBlocker
-	endRule          []int                      // Order rules for xxPlugins called in EndBlocker
-	validatorMode    string                     // mode: static, inner, dpos
-	NodeId           discover.NodeID            // The nodeId of current node
-	exitCh           chan chan struct{}         // Used to receive an exit signal
-	exitOnce         sync.Once
-	chainID          *big.Int
+	vh                   *handler.VrfHandler
+	eventMux             *event.TypeMux
+	bftResultSub         *event.TypeMuxSubscription
+	mintTokenTaskSub     *event.TypeMuxSubscription // MintToken task subscription
+	createBubbleTaskSub  *event.TypeMuxSubscription // create bubble task subscription
+	releaseBubbleTaskSub *event.TypeMuxSubscription // release bubble task subscription
+	basePluginMap        map[int]plugin.BasePlugin  // xxPlugin container
+	beginRule            []int                      // Order rules for xxPlugins called in BeginBlocker
+	endRule              []int                      // Order rules for xxPlugins called in EndBlocker
+	validatorMode        string                     // mode: static, inner, dpos
+	NodeId               discover.NodeID            // The nodeId of current node
+	exitCh               chan chan struct{}         // Used to receive an exit signal
+	exitOnce             sync.Once
+	chainID              *big.Int
 }
 
 var (
@@ -83,7 +85,9 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 		bcr.mintTokenTaskSub = bcr.eventMux.Subscribe(bubble.MintTokenTask{})
-		// start the loop rutine
+		bcr.createBubbleTaskSub = bcr.eventMux.Subscribe(bubble.CreateBubbleTask{})
+		bcr.releaseBubbleTaskSub = bcr.eventMux.Subscribe(bubble.ReleaseBubbleTask{})
+		// start the loop
 		go bcr.loop()
 		go bcr.handleTask()
 	}
@@ -155,6 +159,38 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+		case msg := <-bcr.createBubbleTaskSub.Chan():
+			if msg == nil {
+				continue
+			}
+			CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to process CreateBubbleTask task")
+				continue
+			}
+			// handle task
+			err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
+			if err != nil {
+				log.Error("blockchain_reactor failed to process CreateBubbleTask task")
+				// TODO: write the failed task back into the source channel
+			}
+			log.Info("process CreateBubbleTask succeeded, tx hash:", CreateBubbleTask.TxHash)
+		case msg := <-bcr.releaseBubbleTaskSub.Chan():
+			if msg == nil {
+				continue
+			}
+			ReleaseBubbleTask, ok := msg.Data.(bubble.ReleaseBubbleTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to process ReleaseBubbleTask task")
+				continue
+			}
+			// handle task
+			err := plugin.BubbleInstance().HandleReleaseBubbleTask(&ReleaseBubbleTask)
+			if err != nil {
+				log.Error("blockchain_reactor failed to process ReleaseBubbleTask task")
+				// TODO: write the failed task back into the source channel
+			}
+			log.Info("process ReleaseBubbleTask succeeded, tx hash:", ReleaseBubbleTask.TxHash)
 		}
 	}
 }

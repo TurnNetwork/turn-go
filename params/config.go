@@ -37,7 +37,7 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 }
 
 var (
-	initialMainNetConsensusNodes = []initNode{
+	initialMainNetConsensusNodes = []InitNode{
 		{
 			"enode://c6a19b488e56c2cb0fdcdf245809cdffcb6af843c70b70790e58a6f161837c5f691bebf0b2c41a30fe8ab2175070106d28bd4b06b234fe40eb7e4d3eec14ae44@mf1.bubble.org:16789",
 			"edfb6f219bf7f044fd15b11a89e0781777d02d36aee4c8a656994c523945b57f5eb9e3d3f2705671859bf242077225004782a1edafdb3d318ce0de3e50a7dbe2246e857c94d0c3534d8e9105e093dc49ff74b3e316427b04ca260dcc9d7c1d99",
@@ -75,7 +75,7 @@ var (
 		},
 	}
 
-	initialTestnetConsensusNodes = []initNode{
+	initialTestnetConsensusNodes = []InitNode{
 		{
 			"enode://b7f1f7757a900cce7ce4caf8663ecf871205763ac201c65f9551d5b841731a9cd9550bc05f3a16fbc2ef589c9faeef74d4500b60d76047939e2ba7fa4a5915aa@127.0.0.1:16789",
 			"f1735bac863706b49809a4e635fe0c2e224aef5ad549f18ba3f2f6b61c0c9d0005f12d497a301ba26a8aaf009c90e4198301875002984c5cd9bd614cd2fbcb81c57f6355a8400d56c20804edfb34782c1f2eadda82c8b226aa4a71bfa60be8c",
@@ -183,7 +183,7 @@ type CbftNode struct {
 	RPC       string
 }
 
-type initNode struct {
+type InitNode struct {
 	Enode     string
 	BlsPubkey string
 	RPC       string
@@ -326,7 +326,7 @@ func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
 }
 
-func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
+func ConvertNodeUrl(initialNodes []InitNode) []CbftNode {
 	bls.Init(bls.BLS12_381)
 	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, n := range initialNodes {
