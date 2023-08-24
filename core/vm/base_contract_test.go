@@ -297,6 +297,7 @@ func newMockChain() *mock.Chain {
 		amount = new(big.Int).Mul(common.Big257, amount)
 		chain.StateDB.AddBalance(addr, amount)
 	}
+	xcom.GetEc(xcom.DefaultTestNet)
 	return chain
 }
 
