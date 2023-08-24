@@ -18,25 +18,20 @@ package vm
 
 import (
 	"fmt"
-	stakingL2 "github.com/bubblenet/bubble/x/stakingL2"
 	"math/big"
 
-	"github.com/bubblenet/bubble/common/hexutil"
-
-	"github.com/bubblenet/bubble/node"
-
-	"github.com/bubblenet/bubble/x/gov"
-
-	"github.com/bubblenet/bubble/crypto/bls"
-
-	"github.com/bubblenet/bubble/params"
-
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/node"
 	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/x/gov"
 	"github.com/bubblenet/bubble/x/plugin"
+	stakingL2 "github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xutil"
 )
 
@@ -45,10 +40,10 @@ const (
 	TxEditorCandidateL2   = 2001
 	TxIncreaseStakingL2   = 2002
 	TxWithdrewCandidateL2 = 2003
-	//QueryCandidateListL2  = 2102
-	QueryCandidateInfoL2 = 2103
-	GetPackageRewardL2   = 2200
-	GetStakingRewardL2   = 2201
+	QueryCandidateListL2  = 2102
+	QueryCandidateInfoL2  = 2103
+	GetPackageRewardL2    = 2200
+	GetStakingRewardL2    = 2201
 )
 
 type StakingL2Contract struct {
@@ -84,7 +79,7 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 		//TxIncreaseStakingL2:   stk.increaseStaking,
 		TxWithdrewCandidateL2: stk.withdrewStaking,
 		// Get
-		//QueryCandidateListL2: stk.getCandidateList,
+		QueryCandidateListL2: stk.getCandidateList,
 		QueryCandidateInfoL2: stk.getCandidateInfo,
 		// Reward
 		GetPackageReward: stk.GetPackageReward,
@@ -126,7 +121,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
 			TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
 	}
-	if stk.Plugin.CheckStakeThresholdL2(amount) {
+	if !stk.Plugin.CheckStakeThresholdL2(amount) {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", plugin.StakeThresholdL2, amount),
 			TxCreateStakingL2, stakingL2.ErrStakeVonTooLow)
 	}
@@ -433,23 +428,20 @@ func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, e
 		"", TxWithdrewCandidateL2, common.NoErr)
 }
 
-//func (stk *StakingL2Contract) getCandidateList() ([]byte, error) {
-//
-//	blockNumber := stk.Evm.Context.BlockNumber
-//	blockHash := stk.Evm.Context.BlockHash
-//
-//	arr, err := stk.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
-//	if snapshotdb.NonDbNotFoundErr(err) {
-//		return callResultHandler(stk.Evm, "getCandidateList",
-//			arr, stakingL2.ErrGetCandidateList.Wrap(err.Error())), nil
-//	}
-//	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-//		return callResultHandler(stk.Evm, "getCandidateList",
-//			arr, stakingL2.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
-//	}
-//	return callResultHandler(stk.Evm, "getCandidateList",
-//		arr, nil), nil
-//}
+func (stk *StakingL2Contract) getCandidateList() ([]byte, error) {
+
+	blockNumber := stk.Evm.Context.BlockNumber
+	blockHash := stk.Evm.Context.BlockHash
+
+	arr, err := stk.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return callResultHandler(stk.Evm, "getCandidateList", arr, stakingL2.ErrGetCandidateList.Wrap(err.Error())), nil
+	}
+	if snapshotdb.IsDbNotFoundErr(err) || len(arr) == 0 {
+		return callResultHandler(stk.Evm, "getCandidateList", arr, stakingL2.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
+	}
+	return callResultHandler(stk.Evm, "getCandidateList", arr, nil), nil
+}
 
 func (stk *StakingL2Contract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
 	blockNumber := stk.Evm.Context.BlockNumber
