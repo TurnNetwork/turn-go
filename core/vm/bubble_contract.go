@@ -29,13 +29,13 @@ import (
 )
 
 const (
-	TxCreateBubble        = 0001
-	TxReleaseBubble       = 0002
-	TxStakingToken        = 0003
-	TxWithdrewToken       = 0004
-	TxSettleBubble        = 0005
-	CallGetBubbleInfo     = 0100
-	CallGetL1HashByL2Hash = 0101
+	TxCreateBubble        = 1
+	TxReleaseBubble       = 2
+	TxStakingToken        = 3
+	TxWithdrewToken       = 4
+	TxSettleBubble        = 5
+	CallGetBubbleInfo     = 100
+	CallGetL1HashByL2Hash = 101
 	CallGetBubTxHashList  = 102
 )
 
