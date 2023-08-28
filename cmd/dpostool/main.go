@@ -330,19 +330,19 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	params = append(params, fnType)
 
 	switch funcType {
-	case 0003:
+	case 3:
 		{
 			bubId, _ := rlp.EncodeToBytes(cfg.P0003.BubbleID)
 			accAsset, _ := rlp.EncodeToBytes(cfg.P0003.AccAsset)
 			params = append(params, bubId)
 			params = append(params, accAsset)
 		}
-	case 0004:
+	case 4:
 		{
 			bubId, _ := rlp.EncodeToBytes(cfg.P0004.BubbleID)
 			params = append(params, bubId)
 		}
-	case 0005:
+	case 5:
 		{
 			txHash, _ := rlp.EncodeToBytes(cfg.P0005.L2TxHash)
 			bubbleId, _ := rlp.EncodeToBytes(cfg.P0005.BubbleId)
