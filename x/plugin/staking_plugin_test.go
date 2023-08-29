@@ -780,6 +780,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	state, genesis, err := newChainState()
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -849,9 +850,9 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		blsKey.SetByCSPRNG()
 		var blsKeyHex bls.PublicKeyHex
 		err = blsKeyHex.UnmarshalText(blsKey.Serialize())
-		if nil != err {
-			return
-		}
+		//if nil != err {
+		//	return
+		//}
 
 		canBase := &staking.CandidateBase{
 			NodeId:          nodeId,
