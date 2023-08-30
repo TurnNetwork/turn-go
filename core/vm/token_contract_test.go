@@ -24,6 +24,7 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/mock"
+	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/params"
@@ -288,7 +289,7 @@ func decode_and_verify_mint_tx_receipt(tkContract *TokenContract, mintAccount co
 	for _, log := range logs {
 		// Deal only with switchable viewer is empty,
 		// mintToken transaction logs will be written to erc20 COINS event information, need to filter
-		if nil != (*log).Topics {
+		if nil != (*log).Topics || (*log).Address != vm.TokenContractAddr {
 			continue
 		}
 		data := (*log).Data
@@ -329,6 +330,9 @@ func decode_and_verify_mint_tx_receipt(tkContract *TokenContract, mintAccount co
 func decode_and_verify_settle_tx_receipt(tkContract *TokenContract, txIndex int, t *testing.T) {
 	logs := tkContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
 	for _, log := range logs {
+		if nil != (*log).Topics || (*log).Address != vm.TokenContractAddr {
+			continue
+		}
 		data := (*log).Data
 		// t.Logf("settleBubble tx logs: %v", data)
 		var settlementInfo token.SettlementInfo

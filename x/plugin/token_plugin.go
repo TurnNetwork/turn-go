@@ -67,10 +67,12 @@ func (tkp *TokenPlugin) SetEventMux(eventMux *event.TypeMux) {
 }
 
 // PostSettlementTask post the checkout task to the subscription event
-func (tkp *TokenPlugin) PostSettlementTask(settleTask *token.SettleTask) {
+func (tkp *TokenPlugin) PostSettlementTask(settleTask *token.SettleTask) error {
 	if err := tkp.eventMux.Post(*settleTask); nil != err {
 		log.Error("post settlementInfo failed", "err", err)
+		return err
 	}
+	return nil
 }
 
 // Generate the rlp encoding of the main-chain settlement transaction

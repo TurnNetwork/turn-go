@@ -198,7 +198,9 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 				SettleInfo: settlementInfo,
 			}
 			// Send settlement task
-			tkc.Plugin.PostSettlementTask(&settleTask)
+			if err := tkc.Plugin.PostSettlementTask(&settleTask); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &settlementInfo, nil
