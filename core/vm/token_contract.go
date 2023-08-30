@@ -290,7 +290,7 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 	}
 
 	// The mapping relationship between the sub-chain settlement transaction hash and the main chain settlement transaction hash is stored
-	if err := tkc.Plugin.StoreL1HashToL2Hash(blockHash, tkc.Evm.StateDB.TxHash(), L1StakingTokenTxHash); nil != err {
+	if err := tkc.Plugin.StoreL1HashToL2Hash(blockHash, L1StakingTokenTxHash, tkc.Evm.StateDB.TxHash()); nil != err {
 		return nil, token.ErrStoreL1HashToL2Hash
 	}
 	return nil, nil

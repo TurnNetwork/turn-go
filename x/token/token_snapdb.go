@@ -94,15 +94,11 @@ func GetMintAccInfo(blockHash common.Hash) (*MintAccInfo, error) {
 }
 
 func StoreL1HashToL2Hash(blockHash common.Hash, L1TxHash common.Hash, L2TxHash common.Hash) error {
-	if data, err := rlp.EncodeToBytes(L2TxHash); err != nil {
-		return err
-	} else {
-		return put(blockHash, L1TxHash.Bytes(), data)
-	}
+	return put(blockHash, KeyPrefixTxHash(L1TxHash), L2TxHash)
 }
 
 func GetL2HashByL1Hash(blockHash common.Hash, L1TxHash common.Hash) (*common.Hash, error) {
-	data, err := get(blockHash, L1TxHash.Bytes())
+	data, err := get(blockHash, KeyPrefixTxHash(L1TxHash))
 	if err != nil {
 		return nil, err
 	}

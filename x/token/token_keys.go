@@ -16,13 +16,27 @@
 
 package token
 
+import (
+	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/rlp"
+)
+
 var (
 	keyPrefixMintAccInfo    = []byte("MintAccInfo")
 	keyPrefixSettlementHash = []byte("SettlementHash")
+	keyPrefixTxHash         = []byte("TxHash")
 )
 
 func KeyMintAccInfo() []byte {
 	return keyPrefixMintAccInfo
+}
+
+func KeyPrefixTxHash(txHash common.Hash) []byte {
+	hash, err := rlp.EncodeToBytes(txHash)
+	if nil != err {
+		return nil
+	}
+	return append(keyPrefixTxHash, hash...)
 }
 
 func KeyPrefixSettlementHash() []byte {

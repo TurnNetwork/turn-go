@@ -297,6 +297,10 @@ func newMockChain() *mock.Chain {
 		amount = new(big.Int).Mul(common.Big257, amount)
 		chain.StateDB.AddBalance(addr, amount)
 	}
+	xcom.GetEc(xcom.DefaultUnitTestNet)
+	if err := chain.SnapDB.SetCurrent(chain.Genesis.Hash(), *common.Big0, *common.Big0); nil != err {
+		panic(fmt.Errorf("failed to SetCurrent by snapshotdb. genesisHash: %v, error:%s", chain.Genesis.Hash(), err.Error()))
+	}
 	return chain
 }
 
