@@ -536,7 +536,7 @@ func verify_token_amount(contract *BubbleContract, NativeAmount *big.Int, tokenA
 }
 
 // decode_and_verify_stakingToken_tx_receipt Parse and verify the logs information in the stakingToken transaction receipt
-func parse_and_verify_stakingToken_tx_receipt(bubContract *BubbleContract, stakingAccount common.Address, txIndex int, t *testing.T) {
+func decode_and_verify_stakingToken_tx_receipt(bubContract *BubbleContract, stakingAccount common.Address, txIndex int, t *testing.T) {
 	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
 	for _, log := range logs {
 		// Deal only with switchable viewer is empty,
@@ -579,8 +579,8 @@ func parse_and_verify_stakingToken_tx_receipt(bubContract *BubbleContract, staki
 	}
 }
 
-// parse_and_verify_withdrewToken_tx_receipt Parse and verify the logs information in the withdrewToken transaction receipt
-func parse_and_verify_withdrewToken_tx_receipt(bubContract *BubbleContract, caller common.Address, txIndex int, t *testing.T) {
+// decode_and_verify_withdrewToken_tx_receipt Parse and verify the logs information in the withdrewToken transaction receipt
+func decode_and_verify_withdrewToken_tx_receipt(bubContract *BubbleContract, caller common.Address, txIndex int, t *testing.T) {
 	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
 	for _, log := range logs {
 		// Deal only with switchable viewer is empty,
@@ -623,8 +623,8 @@ func parse_and_verify_withdrewToken_tx_receipt(bubContract *BubbleContract, call
 	}
 }
 
-// parse_and_verify_settleBubble_tx_receipt Parse and verify the logs information in the settleBubble transaction receipt
-func parse_and_verify_settleBubble_tx_receipt(bubContract *BubbleContract, txIndex int, t *testing.T) {
+// decode_and_verify_settleBubble_tx_receipt Parse and verify the logs information in the settleBubble transaction receipt
+func decode_and_verify_settleBubble_tx_receipt(bubContract *BubbleContract, txIndex int, t *testing.T) {
 	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
 	for _, log := range logs {
 		// Deal only with switchable viewer is empty,
@@ -726,7 +726,7 @@ func TestBubbleContract_stakingToken(t *testing.T) {
 		contract.Contract = newContract(common.Big0, caller)
 		chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 		staking_token(contract, t)
-		parse_and_verify_stakingToken_tx_receipt(contract, caller, index, t)
+		decode_and_verify_stakingToken_tx_receipt(contract, caller, index, t)
 		index++
 	}
 
@@ -767,7 +767,7 @@ func TestBubbleContract_withdrewToken(t *testing.T) {
 		contract.Contract = newContract(common.Big0, caller)
 		chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 		withdrew_token(contract, t)
-		parse_and_verify_withdrewToken_tx_receipt(contract, caller, index, t)
+		decode_and_verify_withdrewToken_tx_receipt(contract, caller, index, t)
 		index++
 	}
 	// Validation of redemption after primary tokens and erc20 token number
@@ -797,7 +797,7 @@ func TestBubbleContract_settleBubble(t *testing.T) {
 	contract.Contract = newContract(common.Big0, sender)
 	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 	settle_bubble(contract, t)
-	parse_and_verify_settleBubble_tx_receipt(contract, index, t)
+	decode_and_verify_settleBubble_tx_receipt(contract, index, t)
 	index++
 
 	// call withdrewToken：It can be redeemed only when the bubble state is released
