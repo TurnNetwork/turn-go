@@ -262,6 +262,8 @@ func newPlugins() {
 	plugin.SlashInstance()
 	plugin.RestrictingInstance()
 	plugin.RewardMgrInstance()
+	plugin.StakingL2Instance()
+	plugin.BubbleInstance()
 }
 
 func newChain() (*mock.Chain, error) {
