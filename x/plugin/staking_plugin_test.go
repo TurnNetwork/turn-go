@@ -3728,7 +3728,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 
 	newChainState()
-
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	curve := crypto.S256()
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)

@@ -246,7 +246,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 	}
 
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxStakingToken, int(common.NoErr.Code), stakingAsset), nil
+		"", TxStakingToken, int(common.NoErr.Code), bubbleID, stakingAsset), nil
 }
 
 // withdrewToken Redeem account tokens, including native tokens and ERC20 tokens
@@ -276,7 +276,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxWithdrewToken, int(common.NoErr.Code), accAsset), nil
+		"", TxWithdrewToken, int(common.NoErr.Code), bubbleID, accAsset), nil
 }
 
 // settleBubble Count the account assets in the bubble and record them
@@ -312,7 +312,7 @@ func (bc *BubbleContract) settleBubble(L2SettleTxHash common.Hash, bubbleID *big
 	}
 	// log record
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "",
-		"", TxSettleBubble, int(common.NoErr.Code), L2SettleTxHash, settlementInfo), nil
+		"", TxSettleBubble, int(common.NoErr.Code), L2SettleTxHash, bubbleID, settlementInfo), nil
 }
 
 // StakingToken The processing logic of stakingToken's trading interface
@@ -490,7 +490,7 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	if err := bp.StoreTxHashToBub(blockHash, bubbleID, state.TxHash(), bubble.WithdrewToken); nil != err {
 		return nil, err
 	}
-	return &resetAsset, nil
+	return accAsset, nil
 }
 
 // SettleBubble The processing logic of settleBubble's trading interface

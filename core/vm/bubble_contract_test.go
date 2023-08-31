@@ -23,6 +23,7 @@ import (
 	"fmt"
 	_ "fmt"
 	"github.com/bubblenet/bubble/accounts/abi"
+	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/p2p/discover"
@@ -68,8 +69,8 @@ var (
 		sender, // sender
 		delegateSender,
 	}
-	L2TxHash      = common.HexToHash("0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e")
-	currentNodeId = discover.NodeID{0x1}
+	L2SettleTxHash = common.HexToHash("0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e")
+	currentNodeId  = discover.NodeID{0x1}
 )
 
 func runBubbleTx(bubContract *BubbleContract, params [][]byte, title string, t *testing.T) {
@@ -454,7 +455,7 @@ func settle_bubble(contract *BubbleContract, t *testing.T) {
 	}
 
 	fnType, _ := rlp.EncodeToBytes(uint16(5))
-	txHash, _ := rlp.EncodeToBytes(L2TxHash)
+	txHash, _ := rlp.EncodeToBytes(L2SettleTxHash)
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 	settle, _ := rlp.EncodeToBytes(settleInfo)
 
@@ -489,7 +490,7 @@ func getL1TxHashByL2TxHash(contract *BubbleContract, VerifyL1TxHash common.Hash,
 
 	fnType, _ := rlp.EncodeToBytes(uint16(101))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
-	txHash, _ := rlp.EncodeToBytes(L2TxHash)
+	txHash, _ := rlp.EncodeToBytes(L2SettleTxHash)
 
 	params = append(params, fnType)
 	params = append(params, bubId)
@@ -534,6 +535,152 @@ func verify_token_amount(contract *BubbleContract, NativeAmount *big.Int, tokenA
 	}
 }
 
+// decode_and_verify_stakingToken_tx_receipt Parse and verify the logs information in the stakingToken transaction receipt
+func parse_and_verify_stakingToken_tx_receipt(bubContract *BubbleContract, stakingAccount common.Address, txIndex int, t *testing.T) {
+	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
+	for _, log := range logs {
+		// Deal only with switchable viewer is empty,
+		// stakingToken transaction logs will be written to erc20 COINS event information, need to filter
+		if nil != (*log).Topics || (*log).Address != vm.BubbleContractAddr {
+			continue
+		}
+		data := (*log).Data
+		// t.Logf("stakingToken tx logs: %v", data)
+		var bubbleId *big.Int
+		var stakingAsset bubble.AccountAsset
+		var m [][]byte
+		if err := rlp.DecodeBytes(data, &m); err != nil {
+			t.Error(err)
+		}
+		var code string
+		err := rlp.DecodeBytes(m[0], &code)
+		assert.True(t, nil == err)
+		assert.True(t, code == "0")
+
+		err = rlp.DecodeBytes(m[1], &bubbleId)
+		assert.True(t, nil == err)
+		result := bubbleId.Cmp(testBubbleId)
+		assert.Equal(t, 0, result, "BubbleID error obtained")
+
+		if err := rlp.DecodeBytes(m[2], &stakingAsset); err != nil {
+			t.Error(err)
+		}
+		assert.True(t, stakingAccount == stakingAsset.Account, "stakingToken account error, and the test account is inconsistent")
+		result = testNativeAmount.Cmp(stakingAsset.NativeAmount)
+		assert.Equal(t, 0, result, "Incorrect staking native token count, inconsistent with test native token count")
+		assert.True(t, len(testERC20AddrList) == len(stakingAsset.TokenAssets), "Inconsistent length of staking token accounts")
+		for i, tokenAddr := range testERC20AddrList {
+			tokenAsset := stakingAsset.TokenAssets[i]
+			assert.True(t, tokenAddr == tokenAsset.TokenAddr, "Inconsistent erc20 token address")
+			result := testTokenAmount.Cmp(tokenAsset.Balance)
+			assert.Equal(t, 0, result, "Inconsistent erc20 token amount")
+		}
+		// fmt.Printf("staking AccoutAsset: %v\n", stakingAsset)
+	}
+}
+
+// parse_and_verify_withdrewToken_tx_receipt Parse and verify the logs information in the withdrewToken transaction receipt
+func parse_and_verify_withdrewToken_tx_receipt(bubContract *BubbleContract, caller common.Address, txIndex int, t *testing.T) {
+	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
+	for _, log := range logs {
+		// Deal only with switchable viewer is empty,
+		// withdrewToken transaction logs will be written to erc20 COINS event information, need to filter
+		if nil != (*log).Topics || (*log).Address != vm.BubbleContractAddr {
+			continue
+		}
+		data := (*log).Data
+		// t.Logf("withdrewToken tx logs: %v", data)
+		var bubbleId *big.Int
+		var accAsset bubble.AccountAsset
+		var m [][]byte
+		if err := rlp.DecodeBytes(data, &m); err != nil {
+			t.Error(err)
+		}
+		var code string
+		err := rlp.DecodeBytes(m[0], &code)
+		assert.True(t, nil == err)
+		assert.True(t, code == "0")
+
+		err = rlp.DecodeBytes(m[1], &bubbleId)
+		assert.True(t, nil == err)
+		result := bubbleId.Cmp(testBubbleId)
+		assert.Equal(t, 0, result, "BubbleID error obtained")
+
+		if err := rlp.DecodeBytes(m[2], &accAsset); err != nil {
+			t.Error(err)
+		}
+		assert.True(t, caller == accAsset.Account, "withdrewToken account error, and the test account is inconsistent")
+		result = testNativeAmount.Cmp(accAsset.NativeAmount)
+		assert.Equal(t, 0, result, "Incorrect withdrew native token count, inconsistent with test native token count")
+		assert.True(t, len(testERC20AddrList) == len(accAsset.TokenAssets), "Inconsistent length of withdrew token accounts")
+		for i, tokenAddr := range testERC20AddrList {
+			tokenAsset := accAsset.TokenAssets[i]
+			assert.True(t, tokenAddr == tokenAsset.TokenAddr, "Inconsistent erc20 token address")
+			result := testTokenAmount.Cmp(tokenAsset.Balance)
+			assert.Equal(t, 0, result, "Inconsistent erc20 token amount")
+		}
+		// fmt.Printf("withdrew AccoutAsset: %v\n", accAsset)
+	}
+}
+
+// parse_and_verify_settleBubble_tx_receipt Parse and verify the logs information in the settleBubble transaction receipt
+func parse_and_verify_settleBubble_tx_receipt(bubContract *BubbleContract, txIndex int, t *testing.T) {
+	logs := bubContract.Evm.StateDB.GetLogs(txHashArr[txIndex])
+	for _, log := range logs {
+		// Deal only with switchable viewer is empty,
+		// settleBubble transaction logs will be written to erc20 COINS event information, need to filter
+		if nil != (*log).Topics || (*log).Address != vm.BubbleContractAddr {
+			continue
+		}
+		data := (*log).Data
+		// t.Logf("settleBubble tx logs: %v", data)
+		var m [][]byte
+		if err := rlp.DecodeBytes(data, &m); err != nil {
+			t.Error(err)
+		}
+		var code string
+		err := rlp.DecodeBytes(m[0], &code)
+		assert.True(t, nil == err)
+		assert.True(t, code == "0")
+		// parse L2TxHash
+		var L2TxHash common.Hash
+		err = rlp.DecodeBytes(m[1], &L2TxHash)
+		assert.True(t, nil == err)
+		assert.True(t, L2TxHash == L2SettleTxHash, "Error in obtaining the sub-chain settleBubble transaction hash")
+
+		// parse bubbleID
+		var bubbleId *big.Int
+		err = rlp.DecodeBytes(m[2], &bubbleId)
+		assert.True(t, nil == err)
+		result := bubbleId.Cmp(testBubbleId)
+		assert.Equal(t, 0, result, "BubbleID error obtained")
+
+		// parse settlementInfo
+		var settleInfo bubble.SettlementInfo
+		if err := rlp.DecodeBytes(m[3], &settleInfo); err != nil {
+			t.Error(err)
+		}
+		assert.True(t, nil == err)
+		assert.True(t, len(testAddrList) == len(settleInfo.AccAssets), "Settlement account number error")
+
+		for i, accAsset := range settleInfo.AccAssets {
+			account := testAddrList[i]
+			assert.True(t, account == accAsset.Account, "settleBubble account error, and the test account is inconsistent")
+			result = settleNativeAmount.Cmp(accAsset.NativeAmount)
+			assert.Equal(t, 0, result, "Incorrect settleBubble native token count, inconsistent with test native token count")
+			assert.True(t, len(testERC20AddrList) == len(accAsset.TokenAssets), "Inconsistent length of settleBubble token accounts")
+			for i, tokenAddr := range testERC20AddrList {
+				tokenAsset := accAsset.TokenAssets[i]
+				assert.True(t, tokenAddr == tokenAsset.TokenAddr, "Inconsistent erc20 token address")
+				result := settleTokenAmount.Cmp(tokenAsset.Balance)
+				assert.Equal(t, 0, result, "Inconsistent erc20 token amount")
+			}
+		}
+
+		// fmt.Printf("withdrew AccoutAsset: %v\n", accAsset)
+	}
+}
+
 /**
 Standard test cases
 */
@@ -574,9 +721,13 @@ func TestBubbleContract_stakingToken(t *testing.T) {
 	verify_token_amount(contract, sBalance, testTokenAmount, t)
 
 	// Cycle call stakingToken system contracts interface
+	index := 2
 	for _, caller := range testAddrList {
 		contract.Contract = newContract(common.Big0, caller)
+		chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 		staking_token(contract, t)
+		parse_and_verify_stakingToken_tx_receipt(contract, caller, index, t)
+		index++
 	}
 
 	// The sender's number of native tokens and erc20 tokens after verifying the pledged token
@@ -611,9 +762,13 @@ func TestBubbleContract_withdrewToken(t *testing.T) {
 		fmt.Errorf("failed to StoreBubBasics, %v", err)
 	}
 	// call withdrewToken
+	index := 2
 	for _, caller := range testAddrList {
 		contract.Contract = newContract(common.Big0, caller)
+		chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 		withdrew_token(contract, t)
+		parse_and_verify_withdrewToken_tx_receipt(contract, caller, index, t)
+		index++
 	}
 	// Validation of redemption after primary tokens and erc20 token number
 	verify_token_amount(contract, sBalance, testTokenAmount, t)
@@ -638,8 +793,12 @@ func TestBubbleContract_settleBubble(t *testing.T) {
 	}
 
 	// call settleBubble：Only the sub-chain operating address can send settlement transactions
+	index := 2
 	contract.Contract = newContract(common.Big0, sender)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 	settle_bubble(contract, t)
+	parse_and_verify_settleBubble_tx_receipt(contract, index, t)
+	index++
 
 	// call withdrewToken：It can be redeemed only when the bubble state is released
 	// store bubble state
