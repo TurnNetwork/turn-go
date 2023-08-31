@@ -68,6 +68,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		operator := bubble.Operator{
 			NodeId: initNode.Node.ID,
 			RPC:    initNode.RPC,
+			OpAddr: xcom.CDFAccount(),
 		}
 		Operators = append(Operators, operator)
 	}
