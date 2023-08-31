@@ -870,12 +870,11 @@ func VRF(vrfQueue VRFQueue, number uint, curNonce []byte, preNonces [][]byte) (V
 	})
 
 	for i, vrfer := range vrfQueue {
-		xorValue := gomath.Abs(float64(new(big.Int).Xor(new(big.Int).SetBytes(curNonce), new(big.Int).SetBytes(preNonces[i])).Int64()))
-		//resultStr := new(big.Int).Xor(new(big.Int).SetBytes(curNonce), new(big.Int).SetBytes(preNonces[i])).Text(10)
-		//xorValue, err := strconv.ParseFloat(resultStr, 64)
-		//if nil != err {
-		//	return nil, err
-		//}
+		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(curNonce), new(big.Int).SetBytes(preNonces[i])).Text(10)
+		xorValue, err := strconv.ParseFloat(resultStr, 64)
+		if nil != err {
+			return nil, err
+		}
 
 		xorP := xorValue / maxValue
 		bd := math.NewBinomialDistribution(vrfer.w.Int64(), p)
