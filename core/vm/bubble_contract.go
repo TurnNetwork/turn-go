@@ -197,7 +197,8 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
-		return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, bubble.ErrBubbleNotExist), err
+		return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub,
+			bubble.ErrBubbleNotExist.Wrap(err.Error())), nil
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
@@ -209,7 +210,8 @@ func (bc *BubbleContract) getL1HashByL2Hash(bubbleID *big.Int, L2TxHash common.H
 
 	txHash, err := bc.Plugin.GetL1HashByL2Hash(blockHash, bubbleID, L2TxHash)
 	if err != nil {
-		return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID), txHash, bubble.ErrGetL1HashByL2Hash), err
+		return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID),
+			txHash, bubble.ErrGetL1HashByL2Hash.Wrap(err.Error())), nil
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getL1HashByL2Hash, bubbleID: %d", bubbleID), txHash, nil), nil
@@ -222,7 +224,8 @@ func (bc *BubbleContract) getBubTxHashList(bubbleID *big.Int, txType bubble.BubT
 
 	txHashList, err := bc.Plugin.GetTxHashListByBub(blockHash, bubbleID, txType)
 	if err != nil {
-		return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList, bubble.ErrGetTxHashListByBub), err
+		return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList,
+			bubble.ErrGetTxHashListByBub.Wrap(err.Error())), err
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList, nil), nil
