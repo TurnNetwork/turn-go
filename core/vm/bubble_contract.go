@@ -29,14 +29,14 @@ import (
 )
 
 const (
-	TxCreateBubble        = 1
-	TxReleaseBubble       = 2
-	TxStakingToken        = 3
-	TxWithdrewToken       = 4
-	TxSettleBubble        = 5
-	CallGetBubbleInfo     = 100
-	CallGetL1HashByL2Hash = 101
-	CallGetBubTxHashList  = 102
+	TxCreateBubble        = 8001
+	TxReleaseBubble       = 8002
+	TxStakingToken        = 8003
+	TxWithdrewToken       = 8004
+	TxSettleBubble        = 8005
+	CallGetBubbleInfo     = 8100
+	CallGetL1HashByL2Hash = 8101
+	CallGetBubTxHashList  = 8102
 )
 
 type BubbleContract struct {
@@ -95,6 +95,14 @@ func (bc *BubbleContract) createBubble() ([]byte, error) {
 		return nil, ErrOutOfGas
 	}
 
+	if bizErr := bc.Plugin.CheckBubbleElements(blockHash); bizErr != nil {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "createBubble", bizErr.Error(), TxCreateBubble, bizErr)
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
 	bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
@@ -105,7 +113,7 @@ func (bc *BubbleContract) createBubble() ([]byte, error) {
 		}
 	}
 
-	// operators send create bubble event to blockchain Mxu
+	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.CreateBubbleTask{
 		BubbleID: bub.Basics.BubbleId,
 		TxHash:   txHash,
@@ -158,11 +166,15 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 			TxReleaseBubble, bubble.ErrBubbleUnableRelease)
 	}
 
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
 	if err := bc.Plugin.ReleaseBubble(blockHash, blockNumber, bubbleID); err != nil {
 		return nil, err
 	}
 
-	// operators send release bubble event to blockchain Mxu
+	// send release bubble event to the blockchain Mux if local node is operator
 	task := &bubble.ReleaseBubbleTask{
 		BubbleID: bub.Basics.BubbleId,
 		TxHash:   txHash,
