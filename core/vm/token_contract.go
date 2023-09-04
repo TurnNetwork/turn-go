@@ -87,12 +87,12 @@ func (tkc *TokenContract) mintToken(L1StakingTokenTxHash common.Hash, accAsset t
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
+	// Call handling logic
+	ret, err := MintToken(tkc, L1StakingTokenTxHash, accAsset)
+	// estimate gas
+	if err == nil && ret == nil {
 		return nil, nil
 	}
-
-	// Call handling logic
-	_, err := MintToken(tkc, L1StakingTokenTxHash, accAsset)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.TokenContractAddr, tkc.Evm, "mintToken", bizErr.Error(), TxMintToken, bizErr)
@@ -188,21 +188,28 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 	if lastHash != nil && *lastHash == hash {
 		// There are no related accounts within the bubble to generate new transactions, so there is no need for settlement
 		return nil, token.ErrNotNeedToSettle
-	} else {
-		// settlement task
-		// store current hash
-		token.StoreSettlementHash(blockHash, hash)
-		// Determine whether the current node is a sub-chain operator node
-		if tkc.Plugin.IsSubOpNode {
-			settleTask := token.SettleTask{
-				TxHash:     tkc.Evm.StateDB.TxHash(),
-				BubbleID:   tkc.Plugin.ChainID, // The chainID and bubbleID of the bubble sub-chain are the same
-				SettleInfo: settlementInfo,
-			}
-			// Send settlement task
-			if err := tkc.Plugin.PostSettlementTask(&settleTask); err != nil {
-				return nil, err
-			}
+	}
+
+	// The transaction hash is empty when gas is estimated
+	if tkc.Evm.StateDB.TxHash() == common.ZeroHash {
+		return nil, nil
+	}
+
+	// settlement task
+	// store current hash
+	if err = token.StoreSettlementHash(blockHash, hash); err != nil {
+		return nil, err
+	}
+	// Determine whether the current node is a sub-chain operator node
+	if tkc.Plugin.IsSubOpNode {
+		settleTask := token.SettleTask{
+			TxHash:     tkc.Evm.StateDB.TxHash(),
+			BubbleID:   tkc.Plugin.ChainID, // The chainID and bubbleID of the bubble sub-chain are the same
+			SettleInfo: settlementInfo,
+		}
+		// Send settlement task
+		if err := tkc.Plugin.PostSettlementTask(&settleTask); err != nil {
+			return nil, err
 		}
 	}
 	return &settlementInfo, nil
@@ -264,11 +271,16 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 			log.Error("Failed to Mint ERC20 Token", "error", err)
 			return nil, token.ErrEncodeMintData
 		}
-		_, err = RunEvm(tkc.Evm, contract, input)
+		ret, err := RunEvm(tkc.Evm, contract, input)
 		if err != nil {
-			log.Error("Failed to Mint ERC20 Token", "error", err)
+			log.Error("Failed to Mint ERC20 Token", "error", err, "ret", ret)
 			return nil, token.ErrEVMExecERC20
 		}
+	}
+
+	// The transaction hash is empty when gas is estimated
+	if tkc.Evm.StateDB.TxHash() == common.ZeroHash {
+		return nil, nil
 	}
 
 	// Add minting account information
@@ -283,7 +295,7 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 	if err := tkc.Plugin.StoreL1HashToL2Hash(blockHash, L1StakingTokenTxHash, tkc.Evm.StateDB.TxHash()); nil != err {
 		return nil, token.ErrStoreL1HashToL2Hash
 	}
-	return nil, nil
+	return []byte{0x1}, nil
 }
 
 // settleBubble sub-chain settle transactions
@@ -304,11 +316,12 @@ func (tkc *TokenContract) settleBubble() ([]byte, error) {
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
+	// Call handling logic
+	settleInfo, err := SettleBubble(tkc)
+	// estimate gas
+	if err == nil && settleInfo == nil {
 		return nil, nil
 	}
-	// Call handling logic
-	settlementInfo, err := SettleBubble(tkc)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.TokenContractAddr, tkc.Evm, "settleBubble", bizErr.Error(), TxSettleBubble, bizErr)
@@ -320,7 +333,7 @@ func (tkc *TokenContract) settleBubble() ([]byte, error) {
 
 	// record log
 	return txResultHandlerWithRes(vm.TokenContractAddr, tkc.Evm, "",
-		"", TxSettleBubble, int(common.NoErr.Code), settlementInfo), nil
+		"", TxSettleBubble, int(common.NoErr.Code), settleInfo), nil
 }
 
 // getL2HashByL1Hash The sub-chain settlement transaction hash is obtained according to the settlement transaction hash of the main chain

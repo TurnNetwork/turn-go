@@ -135,15 +135,15 @@
 	"P6000":{
 		"L1TxHash": "0x45fa0186ba70a82e03e6523a08d25f1232a718a4ef111eb56f0b8a56d06f6487",
 		"AccAsset": {
-			"Account": "0x36c756417E63F740d83908d5216310A4603d6ecc",
+			"Account": "0x86d5b5903b0330d76b47D368bebF5A74dB6251dB",
 			"NativeAmount": 1000,
 			"TokenAssets": [
-				{"TokenAddr": "0xa18B2442CBee8D22bED5a9d2b5ce98EFB7E497f2", "Balance": 100},
-				{"TokenAddr": "0x3aa4e6d933342648173f17cf8557a75850f29b59", "Balance": 200}
+				{"TokenAddr": "0xa18B2442CBee8D22bED5a9d2b5ce98EFB7E497f2", "Balance": 10000000},
+				{"TokenAddr": "0x3aa4e6d933342648173f17cf8557a75850f29b59", "Balance": 20000000}
 			]
 		}
 	},
 	"P6100":{
-		"L1TxHash": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e"
+		"L1TxHash": "0x45fa0186ba70a82e03e6523a08d25f1232a718a4ef111eb56f0b8a56d06f6487"
 	}
 }
