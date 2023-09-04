@@ -81,7 +81,7 @@ func (db *StakingDB) GetOperatorArrStore(blockHash common.Hash) ([]*bubble.Opera
 	}
 	var operators []*bubble.Operator
 
-	if err := rlp.DecodeBytes(data, operators); err != nil {
+	if err := rlp.DecodeBytes(data, &operators); err != nil {
 		return nil, err
 	}
 

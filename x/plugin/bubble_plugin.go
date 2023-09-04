@@ -137,6 +137,23 @@ func (bp *BubblePlugin) GetBubState(blockHash common.Hash, bubbleID *big.Int) (*
 	return bp.db.GetBubState(blockHash, bubbleID)
 }
 
+func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash) *common.BizError {
+	// check L1 operators
+	if operators, err := bp.stkPlugin.db.GetOperatorArrStore(blockHash); err != nil || len(operators) < int(bubble.OperatorL1Size) {
+		return bubble.ErrOperatorL1IsInsufficient
+	}
+	// check L2 operators
+	if operators, err := bp.stk2Plugin.GetOperatorList(blockHash); err != nil || len(operators) < int(bubble.OperatorL2Size) {
+		return bubble.ErrOperatorL2IsInsufficient
+	}
+	// check L2 committees
+	if committees, err := bp.stk2Plugin.GetCommitteeList(blockHash); err != nil || len(committees) < int(bubble.CommitteeSize) {
+		return bubble.ErrMicroNodeIsInsufficient
+	}
+
+	return nil
+}
+
 // CreateBubble run the non-business logic to create bubble
 func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentHash common.Hash) (*bubble.Bubble, error) {
 
@@ -145,6 +162,8 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	if err != nil {
 		return nil, err
 	}
+
+	// fill empty nonce if insufficient nonce
 	maxLen := int(gomath.Max(gomath.Max(bubble.OperatorL1Size, bubble.OperatorL2Size), bubble.CommitteeSize))
 	if len(preNonces) < maxLen {
 		newNonces := make([][]byte, maxLen)
@@ -159,7 +178,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 
 	// elect the operatorsL2 by VRF
-	candidateL2, err := bp.ElectCandidateL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
+	candidateL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
@@ -236,21 +255,22 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
-	if len(operators) == 0 {
+	if len(operators) < int(operatorNumber) {
 		return nil, bubble.ErrOperatorL1IsInsufficient
 	}
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operators, func(item interface{}) *VRFItem {
+		w, _ := new(big.Int).SetString("1000000000000000000000000", 10)
 		return &VRFItem{
 			v: item,
-			w: new(big.Int).SetInt64(10000),
+			w: w,
 		}
 	})
 	if err != nil {
 		return nil, err
 	}
 	// VRF Elect
-	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:operatorNumber])
+	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
@@ -267,9 +287,9 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	return electedOperators, nil
 }
 
-// ElectCandidateL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber uint, blockNumber *big.Int, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
-	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash, blockNumber.Uint64())
+// ElectOperatorL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
+func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, blockNumber *big.Int, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +298,7 @@ func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber u
 	}
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operatorQueue, func(item interface{}) *VRFItem {
-		if candidate, ok := (item).(stakingL2.Candidate); ok {
+		if candidate, ok := (item).(*stakingL2.Candidate); ok {
 			return &VRFItem{
 				v: item,
 				w: candidate.Shares,
@@ -290,7 +310,7 @@ func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber u
 		return nil, err
 	}
 	// VRF Elect
-	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:operatorNumber])
+	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
@@ -320,16 +340,16 @@ func (bp *BubblePlugin) ElectCandidateL2(blockHash common.Hash, operatorNumber u
 
 // ElectBubbleMicroNodes Elect the Committee nodes for the bubble chain by VRF
 func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber *big.Int, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
-	candidateQueue, err := bp.stk2Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
+	committeeQueue, err := bp.stk2Plugin.GetCommitteeList(blockHash)
 	if err != nil {
 		return nil, err
 	}
-	if len(candidateQueue) == 0 {
+	if len(committeeQueue) == 0 {
 		return nil, bubble.ErrMicroNodeIsInsufficient
 	}
 	// wrap the candidates to the VRF able queue
-	vrfQueue, err := VRFQueueWrapper(candidateQueue, func(item interface{}) *VRFItem {
-		if candidate, ok := (item).(stakingL2.Candidate); ok {
+	vrfQueue, err := VRFQueueWrapper(committeeQueue, func(item interface{}) *VRFItem {
+		if candidate, ok := (item).(*stakingL2.Candidate); ok {
 			return &VRFItem{
 				v: item,
 				w: candidate.Shares,
@@ -341,7 +361,7 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 		return nil, err
 	}
 	// VRF Elect
-	electedVrfQueue, err := VRF(vrfQueue, committeeNumber, curNonce, preNonces[:committeeNumber])
+	electedVrfQueue, err := VRF(vrfQueue, committeeNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +380,7 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 		if err != nil {
 			return nil, err
 		}
-		if err := bp.stk2Plugin.db.DelCandidateStore(blockHash, addr); err != nil {
+		if err := bp.stk2Plugin.db.DelCommitteeStore(blockHash, addr); err != nil {
 			return nil, err
 		}
 	}
@@ -374,7 +394,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	if err != nil {
 		return err
 	}
-	// release the operator nodes of the L2 to the database
+	// release the operatorL2 nodes to the DB
 	for _, operator := range bub.Basics.OperatorsL2 {
 		addr, err := xutil.NodeId2Addr(operator.NodeId)
 		if err != nil {
@@ -391,9 +411,9 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 			return err
 		}
 	}
-	// release the candidate nodes of the L2 to the database
-	for _, candidate := range bub.Basics.MicroNodes {
-		addr, err := xutil.NodeId2Addr(candidate.NodeId)
+	// release the committeeL2 nodes to the DB
+	for _, committee := range bub.Basics.MicroNodes {
+		addr, err := xutil.NodeId2Addr(committee.NodeId)
 		if err != nil {
 			return err
 		}
@@ -402,9 +422,9 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		if can != nil || err == snapshotdb.ErrNotFound {
 			break
 		}
-		if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, candidate); nil != err {
+		if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SetCandidateStore on ReleaseBubble: Store Candidate info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", candidate.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", committee.NodeId.String(), "err", err)
 			return err
 		}
 	}
@@ -813,17 +833,19 @@ func (vq VRFQueue) Swap(i, j int) {
 // VRFQueueWrapper Wrap any slice to be VRFQueue
 func VRFQueueWrapper(slice interface{}, wrapper func(interface{}) *VRFItem) (VRFQueue, error) {
 	// convert slice to an interface queue, to Supports running wrapper
+	s := reflect.ValueOf(slice)
+	//fmt.Println(kind)
 	queue := make([]interface{}, 0)
-	if s := reflect.ValueOf(slice); s.Kind() == reflect.Slice {
+	if s.Kind() == reflect.Slice {
 		for i := 0; i < s.Len(); i++ {
-			queue[i] = s.Index(i).Interface()
+			queue = append(queue, s.Index(i).Interface())
 		}
 	} else {
 		return nil, errors.New("the first parameter must be slice")
 	}
 	// wrap interface queue to an vrfQueue
 	vrfQueue := make(VRFQueue, 0)
-	for item := range queue {
+	for _, item := range queue {
 		if vrfItem := wrapper(item); vrfItem == nil {
 			return nil, errors.New("failed to convert the slice element to VRFItem")
 		} else {
