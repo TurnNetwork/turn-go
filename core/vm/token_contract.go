@@ -342,7 +342,7 @@ func (tkc *TokenContract) getL2HashByL1Hash(L1TxHash common.Hash) ([]byte, error
 
 	txHash, err := tkc.Plugin.GetL2HashByL1Hash(blockHash, L1TxHash)
 	if err != nil {
-		return callResultHandler(tkc.Evm, "getL2HashByL1Hash, txHash", txHash, token.ErrGetL2TxHashByL1), err
+		return callResultHandler(tkc.Evm, "getL2HashByL1Hash, txHash", txHash, token.ErrGetL2TxHashByL1.Wrap(err.Error())), nil
 	}
 
 	return callResultHandler(tkc.Evm, "getL2HashByL1Hash, txHash", txHash, nil), nil
