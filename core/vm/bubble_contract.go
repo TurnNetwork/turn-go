@@ -242,12 +242,12 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 	if !bc.Contract.UseGas(params.StakingTokenGas) {
 		return nil, ErrOutOfGas
 	}
-	if txHash == common.ZeroHash {
+	// Call handling logic
+	ret, err := StakingToken(bc, bubbleID, stakingAsset)
+	// estimate gas
+	if err == nil && ret == nil {
 		return nil, nil
 	}
-
-	// Call handling logic
-	_, err := StakingToken(bc, bubbleID, stakingAsset)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
@@ -272,12 +272,12 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 	if !bc.Contract.UseGas(params.WithdrewTokenGas) {
 		return nil, ErrOutOfGas
 	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
 	// Call handling logic
 	accAsset, err := WithdrewToken(bc, bubbleID)
+	// estimate gas
+	if err == nil && accAsset == nil {
+		return nil, nil
+	}
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
@@ -308,12 +308,12 @@ func (bc *BubbleContract) settleBubble(L2SettleTxHash common.Hash, bubbleID *big
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
+	// Call handling logic
+	ret, err := SettleBubble(bc, L2SettleTxHash, bubbleID, settlementInfo)
+	// estimate gas
+	if err == nil && ret == nil {
 		return nil, nil
 	}
-
-	// Call handling logic
-	_, err := SettleBubble(bc, L2SettleTxHash, bubbleID, settlementInfo)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "settleBubble", bizErr.Error(), TxSettleBubble, bizErr)
@@ -400,6 +400,11 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		}
 	}
 
+	// The transaction hash is empty when gas is estimated
+	if bc.Evm.StateDB.TxHash() == common.ZeroHash {
+		return nil, nil
+	}
+
 	// The assets staking by the storage account
 	if err := bp.AddAccAssetToBub(blockHash, bubbleID, &stakingAsset); nil != err {
 		return nil, err
@@ -425,7 +430,7 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		}
 	}
 
-	return nil, nil
+	return []byte{0x1}, nil
 }
 
 // WithdrewToken The processing logic of withdrewToken's trading interface
@@ -433,13 +438,20 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	bp := bc.Plugin
 	blockHash := bc.Evm.Context.BlockHash
 	state := bc.Evm.StateDB
-	// Get Bubble Information
-	bubInfo, err := bp.GetBubbleInfo(blockHash, bubbleID)
-	if nil != err || nil == bubInfo {
-		return nil, err
+
+	// Get Bubble Basics
+	basics, err := bp.GetBubBasics(blockHash, bubbleID)
+	if nil != err || nil == basics {
+		return nil, bubble.ErrBubbleNotExist
+	}
+
+	// check bubble state
+	bubState, err := bp.GetBubState(blockHash, bubbleID)
+	if nil != err || nil == bubState {
+		return nil, bubble.ErrBubbleNotExist
 	}
 	// check bubble state
-	if bubInfo.State != bubble.ReleasedStatus {
+	if *bubState != bubble.ReleasedStatus {
 		return nil, bubble.ErrBubbleIsNotRelease
 	}
 
@@ -494,6 +506,12 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 		}
 		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: common.Big0})
 	}
+
+	// The transaction hash is empty when gas is estimated
+	if bc.Evm.StateDB.TxHash() == common.ZeroHash {
+		return nil, nil
+	}
+
 	// Store the latest information about the staking assets of the account into bubble
 	if err = bp.StoreAccAssetToBub(blockHash, bubbleID, &resetAsset); nil != err {
 		return nil, bubble.ErrStoreAccAsset
@@ -537,6 +555,7 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 		return nil, bubble.ErrSettleAccListIncLength
 	}
 
+	var newAccAssets []bubble.AccountAsset
 	for _, accAsset := range settlementInfo.AccAssets {
 		account := accAsset.Account
 		// Query account assets
@@ -555,7 +574,16 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 			newAccAsset.TokenAssets = append(newAccAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: tokenAddr, Balance: amount})
 		}
 
-		// Store the latest information about the staking assets of the account into bubble
+		newAccAssets = append(newAccAssets, newAccAsset)
+	}
+
+	// The transaction hash is empty when gas is estimated
+	if bc.Evm.StateDB.TxHash() == common.ZeroHash {
+		return nil, nil
+	}
+
+	// Store the latest information about the staking assets of the account into bubble
+	for _, newAccAsset := range newAccAssets {
 		if err = bp.StoreAccAssetToBub(blockHash, bubbleID, &newAccAsset); nil != err {
 			return nil, bubble.ErrStoreAccAssetToBub
 		}
@@ -570,5 +598,5 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 	if err := bp.StoreTxHashToBub(blockHash, bubbleID, bc.Evm.StateDB.TxHash(), bubble.SettleBubble); nil != err {
 		return nil, err
 	}
-	return nil, nil
+	return []byte{0x1}, nil
 }
