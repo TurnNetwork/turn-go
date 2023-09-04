@@ -78,6 +78,18 @@ func (tkc *TokenContract) FnSigns() map[uint16]interface{} {
 func (tkc *TokenContract) mintToken(L1StakingTokenTxHash common.Hash, accAsset token.AccountAsset) ([]byte, error) {
 	txHash := tkc.Evm.StateDB.TxHash()
 	blockNumber := tkc.Evm.Context.BlockNumber
+	from := tkc.Contract.CallerAddress
+	blockHash := tkc.Evm.Context.BlockHash
+	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "caller", from)
+	// Calculating gas
+	if !tkc.Contract.UseGas(params.MintTokenGas) {
+		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 
 	// Call handling logic
 	_, err := MintToken(tkc, L1StakingTokenTxHash, accAsset)
@@ -95,18 +107,8 @@ func (tkc *TokenContract) mintToken(L1StakingTokenTxHash common.Hash, accAsset t
 
 // SettleBubble Logic functions that handle the settleBubble system's contract interface
 func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
-	txHash := tkc.Evm.StateDB.TxHash()
 	state := tkc.Evm.StateDB
 	blockHash := tkc.Evm.Context.BlockHash
-
-	// Calculating gas
-	if !tkc.Contract.UseGas(params.TokenGas) {
-		return nil, token.ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, token.ErrZeroHash
-	}
 
 	// Get minting account information
 	mintAccInfo, err := tkc.Plugin.GetMintAccInfo(blockHash)
@@ -212,22 +214,8 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 		return nil, token.ErrNotMainOpAddr
 	}
 
-	txHash := tkc.Evm.StateDB.TxHash()
-	blockNumber := tkc.Evm.Context.BlockNumber
 	state := tkc.Evm.StateDB
 	blockHash := tkc.Evm.Context.BlockHash
-
-	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "caller", from)
-
-	// Calculating gas
-	if !tkc.Contract.UseGas(params.MintTokenGas) {
-		return nil, token.ErrOutOfGas
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, token.ErrZeroHash
-	}
 
 	// Store new user information
 	accList := make([]common.Address, 1)
@@ -311,6 +299,14 @@ func (tkc *TokenContract) settleBubble() ([]byte, error) {
 	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
+	// Calculating gas
+	if !tkc.Contract.UseGas(params.TokenGas) {
+		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	// Call handling logic
 	settlementInfo, err := SettleBubble(tkc)
 	if nil != err {

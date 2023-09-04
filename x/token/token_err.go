@@ -30,7 +30,5 @@ var (
 	ErrCalcSettleInfoHash    = common.NewBizError(600006, "failed to calculate settlement information hash")
 	ErrNotNeedToSettle       = common.NewBizError(600007, "Settlement is not required if there are no new transactions in the relevant account")
 	ErrNotMainOpAddr         = common.NewBizError(600008, "the transaction sender is not the main chain operator address")
-	ErrOutOfGas              = common.NewBizError(600009, "out of gas")
-	ErrZeroHash              = common.NewBizError(600010, "zero hash")
 	ErrEncodeMintData        = common.NewBizError(600011, "Failed to generate data for ERC20 mint interface")
 )
