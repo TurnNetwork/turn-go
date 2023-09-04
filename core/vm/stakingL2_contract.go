@@ -36,14 +36,14 @@ import (
 )
 
 const (
-	TxCreateStakingL2     = 2000
-	TxEditorCandidateL2   = 2001
-	TxIncreaseStakingL2   = 2002
-	TxWithdrewCandidateL2 = 2003
-	QueryCandidateListL2  = 2102
-	QueryCandidateInfoL2  = 2103
-	GetPackageRewardL2    = 2200
-	GetStakingRewardL2    = 2201
+	TxCreateStakingL2     = 7000
+	TxEditorCandidateL2   = 7001
+	TxIncreaseStakingL2   = 7002
+	TxWithdrewCandidateL2 = 7003
+	QueryCandidateListL2  = 7102
+	QueryCandidateInfoL2  = 7103
+	GetPackageRewardL2    = 7200
+	GetStakingRewardL2    = 7201
 )
 
 type StakingL2Contract struct {
