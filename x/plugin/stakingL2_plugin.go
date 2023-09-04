@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"sync"
 
@@ -306,7 +307,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 			return err
 		}
 	} else {
-		// 删除选举队列节点信息
+		// delete node store
 		if can.IsOperator {
 			if err := sk.db.DelOperatorStore(blockHash, canAddr); err != nil {
 				log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Operator info is failed",
@@ -320,7 +321,6 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 				return err
 			}
 		}
-		// 删除节点信息
 		if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -538,9 +538,7 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 	return nil
 }
 
-func (sk *StakingL2Plugin) GetOperatorList(blockHash common.Hash, blockNumber uint64) (stakingL2.CandidateQueue, error) {
-
-	epoch := xutil.CalculateEpoch(blockNumber)
+func (sk *StakingL2Plugin) GetOperatorList(blockHash common.Hash) (stakingL2.CandidateQueue, error) {
 
 	iter := sk.db.IteratorOperatorsStore(blockHash, 0)
 	if err := iter.Error(); nil != err {
@@ -551,14 +549,33 @@ func (sk *StakingL2Plugin) GetOperatorList(blockHash common.Hash, blockNumber ui
 	candidates := make(stakingL2.CandidateQueue, 0)
 
 	for iter.Valid(); iter.Next(); {
-
-		addrSuffix := iter.Value()
-		candidate, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
+		data := iter.Value()
+		candidate := new(stakingL2.Candidate)
+		if err := rlp.DecodeBytes(data, candidate); err != nil {
 			return nil, err
 		}
+		candidates = append(candidates, candidate)
+	}
 
-		lazyCalcL2StakeAmount(epoch, candidate.CandidateMutable)
+	return candidates, nil
+}
+
+func (sk *StakingL2Plugin) GetCommitteeList(blockHash common.Hash) (stakingL2.CandidateQueue, error) {
+
+	iter := sk.db.IteratorCommitteeStore(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	candidates := make(stakingL2.CandidateQueue, 0)
+
+	for iter.Valid(); iter.Next(); {
+		data := iter.Value()
+		candidate := new(stakingL2.Candidate)
+		if err := rlp.DecodeBytes(data, candidate); err != nil {
+			return nil, err
+		}
 		candidates = append(candidates, candidate)
 	}
 

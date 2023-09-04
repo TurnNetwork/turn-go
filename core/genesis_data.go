@@ -60,12 +60,12 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	initQueue := g.Config.Cbft.InitialNodes
 
 	// 存储代理节点列队
-	Operators := make([]bubble.Operator, 0)
+	Operators := make([]*bubble.Operator, 0)
 	for _, initNode := range initQueue {
 		if initNode.RPC == "" {
 			break
 		}
-		operator := bubble.Operator{
+		operator := &bubble.Operator{
 			NodeId: initNode.Node.ID,
 			RPC:    initNode.RPC,
 			OpAddr: xcom.CDFAccount(),
