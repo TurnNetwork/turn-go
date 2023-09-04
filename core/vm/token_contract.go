@@ -300,7 +300,7 @@ func (tkc *TokenContract) settleBubble() ([]byte, error) {
 		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
 	// Calculating gas
-	if !tkc.Contract.UseGas(params.TokenGas) {
+	if !tkc.Contract.UseGas(params.SettleBubbleGas) {
 		return nil, ErrOutOfGas
 	}
 
