@@ -225,7 +225,7 @@ func (bc *BubbleContract) getBubTxHashList(bubbleID *big.Int, txType bubble.BubT
 	txHashList, err := bc.Plugin.GetTxHashListByBub(blockHash, bubbleID, txType)
 	if err != nil {
 		return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList,
-			bubble.ErrGetTxHashListByBub.Wrap(err.Error())), err
+			bubble.ErrGetTxHashListByBub.Wrap(err.Error())), nil
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubTxHashList, bubbleID: %d", bubbleID), txHashList, nil), nil
