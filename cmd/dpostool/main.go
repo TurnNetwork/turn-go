@@ -42,29 +42,6 @@ var (
 	funcTypesFlag = flag.String("funcTypes", "", "A collection of contract interface types")
 )
 
-// stakingToken
-type Dpos_0003 struct {
-	BubbleID *big.Int
-	AccAsset bubble.AccountAsset
-}
-
-// withdrewToken
-type Dpos_0004 struct {
-	BubbleID *big.Int
-}
-
-// settleBubble
-type Dpos_0005 struct {
-	L2TxHash       common.Hash
-	BubbleId       *big.Int
-	SettlementInfo bubble.SettlementInfo
-}
-
-type Dpos_0102 struct {
-	TxType   bubble.BubTxType
-	BubbleId *big.Int
-}
-
 // L2_Dpos_2000 L2 createStaking
 type Dpos_2000 struct {
 	NodeId             discover.NodeID
@@ -267,11 +244,42 @@ type Dpos_5100 struct {
 	NodeIDs []discover.NodeID
 }
 
+// stakingToken
+type Dpos_8003 struct {
+	BubbleID *big.Int
+	AccAsset bubble.AccountAsset
+}
+
+// withdrewToken
+type Dpos_8004 struct {
+	BubbleID *big.Int
+}
+
+// settleBubble
+type Dpos_8005 struct {
+	L2TxHash       common.Hash
+	BubbleId       *big.Int
+	SettlementInfo bubble.SettlementInfo
+}
+
+// getBubbleInfo
+type Dpos_8100 struct {
+	BubbleId *big.Int
+}
+
+// getL1HashByL2Hash
+type Dpos_8101 struct {
+	BubbleId *big.Int
+	L2TxHash common.Hash
+}
+
+// getBubTxHashList
+type Dpos_8102 struct {
+	TxType   bubble.BubTxType
+	BubbleId *big.Int
+}
+
 type decDataConfig struct {
-	P0003 Dpos_0003
-	P0004 Dpos_0004
-	P0005 Dpos_0005
-	P0102 Dpos_0102
 	P1000 Dpos_1000
 	P1001 Dpos_1001
 	P1002 Dpos_1002
@@ -299,6 +307,12 @@ type decDataConfig struct {
 	P4000 Dpos_4000
 	P4100 Dpos_4100
 	P5100 Dpos_5100
+	P8003 Dpos_8003
+	P8004 Dpos_8004
+	P8005 Dpos_8005
+	P8100 Dpos_8100
+	P8101 Dpos_8101
+	P8102 Dpos_8102
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
@@ -330,34 +344,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	params = append(params, fnType)
 
 	switch funcType {
-	case 3:
-		{
-			bubId, _ := rlp.EncodeToBytes(cfg.P0003.BubbleID)
-			accAsset, _ := rlp.EncodeToBytes(cfg.P0003.AccAsset)
-			params = append(params, bubId)
-			params = append(params, accAsset)
-		}
-	case 4:
-		{
-			bubId, _ := rlp.EncodeToBytes(cfg.P0004.BubbleID)
-			params = append(params, bubId)
-		}
-	case 5:
-		{
-			txHash, _ := rlp.EncodeToBytes(cfg.P0005.L2TxHash)
-			bubbleId, _ := rlp.EncodeToBytes(cfg.P0005.BubbleId)
-			settlementInfo, _ := rlp.EncodeToBytes(cfg.P0005.SettlementInfo)
-			params = append(params, txHash)
-			params = append(params, bubbleId)
-			params = append(params, settlementInfo)
-		}
-	case 102:
-		{
-			bubbleId, _ := rlp.EncodeToBytes(cfg.P0102.BubbleId)
-			txType, _ := rlp.EncodeToBytes(cfg.P0102.TxType)
-			params = append(params, bubbleId)
-			params = append(params, txType)
-		}
 	case 1000:
 		{
 			typ, _ := rlp.EncodeToBytes(cfg.P1000.Typ)
@@ -624,6 +610,46 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeIds, _ := rlp.EncodeToBytes(cfg.P5100.NodeIDs)
 			params = append(params, addr)
 			params = append(params, nodeIds)
+		}
+	case 8003:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P8003.BubbleID)
+			accAsset, _ := rlp.EncodeToBytes(cfg.P8003.AccAsset)
+			params = append(params, bubId)
+			params = append(params, accAsset)
+		}
+	case 8004:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P8004.BubbleID)
+			params = append(params, bubId)
+		}
+	case 8005:
+		{
+			txHash, _ := rlp.EncodeToBytes(cfg.P8005.L2TxHash)
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P8005.BubbleId)
+			settlementInfo, _ := rlp.EncodeToBytes(cfg.P8005.SettlementInfo)
+			params = append(params, txHash)
+			params = append(params, bubbleId)
+			params = append(params, settlementInfo)
+		}
+	case 8100:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P8100.BubbleId)
+			params = append(params, bubbleId)
+		}
+	case 8101:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P8101.BubbleId)
+			txHash, _ := rlp.EncodeToBytes(cfg.P8101.L2TxHash)
+			params = append(params, bubbleId)
+			params = append(params, txHash)
+		}
+	case 8102:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P8102.BubbleId)
+			txType, _ := rlp.EncodeToBytes(cfg.P8102.TxType)
+			params = append(params, bubbleId)
+			params = append(params, txType)
 		}
 	default:
 		{
