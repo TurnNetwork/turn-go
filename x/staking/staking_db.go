@@ -18,6 +18,7 @@ package staking
 
 import (
 	"fmt"
+	"github.com/bubblenet/bubble/x/bubble"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 
@@ -71,6 +72,28 @@ func (db *StakingDB) Del(blockHash common.Hash, key []byte) error {
 
 func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 	return db.db.GetLastKVHash(blockHash)
+}
+
+func (db *StakingDB) GetOperatorArrStore(blockHash common.Hash) ([]*bubble.Operator, error) {
+	data, err := db.get(blockHash, OperatorArrKey)
+	if err != nil {
+		return nil, err
+	}
+	var operators []*bubble.Operator
+
+	if err := rlp.DecodeBytes(data, &operators); err != nil {
+		return nil, err
+	}
+
+	return operators, nil
+}
+
+func (db *StakingDB) SetOperatorArrStore(blockHash common.Hash, operators []*bubble.Operator) error {
+	if data, err := rlp.EncodeToBytes(operators); err != nil {
+		return err
+	} else {
+		return db.put(blockHash, OperatorArrKey, data)
+	}
 }
 
 // about candidate ...

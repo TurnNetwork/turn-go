@@ -223,6 +223,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "Operator",
+		Flags: []cli.Flag{
+			utils.OpPriKeyFlag,
+		},
+	},
+	{
 		Name: "ALIASED (deprecated)",
 		Flags: append([]cli.Flag{
 			utils.LegacyRPCEnabledFlag,

@@ -1,4 +1,46 @@
 {
+	"P0003": {
+		"BubbleID": 100,
+		"AccAsset": {
+			"Account": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
+			"NativeAmount": 1000000000000000000,
+			"TokenAssets": [
+				{"TokenAddr": "0x1000000000000000000000000000000000000020", "Balance": 10000000},
+				{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
+			]
+		}
+	},
+	"P0004": {
+		"BubbleID": 100
+	},
+	"P0005": {
+		"L2TxHash": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e",
+		"BubbleId": 100,
+		"SettlementInfo": {
+			"AccAssets": [
+				{
+					"Account": "0xc3899703e578f13802c0F83Fb5Ee114a139910f0",
+					"NativeAmount": 1000000000000000000,
+					"TokenAssets": [
+						{"TokenAddr": "0x1000000000000000000000000000000000000020", "Balance": 10000000},
+						{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
+					]
+				},
+				{
+					"Account": "0x12c171900f010b17e969702efa044d077e868082",
+					"NativeAmount": 1000000000000000000,
+					"TokenAssets": [
+						{"TokenAddr": "0x1000000000000000000000000000000000000020", "Balance": 10000000},
+						{"TokenAddr": "0x12c171900f010b17e969702efa044d077e868082", "Balance": 20000000}
+					]
+				}
+			]
+		}
+	},
+	"P0102": {
+		"BubbleId": 100,
+		"TxType": 0
+	},
 	"P1000":{
 		"Typ":0,
 		"BenefitAddress":"0x12c171900f010b17e969702efa044d077e868082",

@@ -643,6 +643,11 @@ var (
 		Usage: "Number of cache epoch states, default 10",
 		Value: eth.DefaultConfig.DBCacheEpoch,
 	}
+
+	OpPriKeyFlag = cli.StringFlag{
+		Name:  "op.prikey",
+		Usage: "Private key of main-chain operation address (pledged address of operation node)",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1224,6 +1229,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if b > 0 {
 			cfg.DBCacheEpoch = b
 		}
+	}
+	// Private key of main-chain operation address (pledged address of operation node)
+	if ctx.GlobalIsSet(OpPriKeyFlag.Name) {
+		cfg.OpPriKey = ctx.GlobalString(OpPriKeyFlag.Name)
 	}
 }
 

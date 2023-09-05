@@ -30,10 +30,10 @@ jobs:
         with:
           path: build/bin/bubble
 
-      - name: Upload bubblekey
+      - name: Upload keytool
         uses: actions/upload-artifact@v3
         with:
-          path: build/bin/bubblekey
+          path: build/bin/keytool
 
       - name: Upload ctool
         uses: actions/upload-artifact@v3

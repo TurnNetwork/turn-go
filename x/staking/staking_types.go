@@ -211,6 +211,7 @@ func (can *CandidateBase) IsEmpty() bool {
 }
 
 type CandidateMutable struct {
+	Type uint8
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status CandidateStatus

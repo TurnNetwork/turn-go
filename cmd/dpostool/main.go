@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 	"os"
 	"strconv"
@@ -40,6 +41,45 @@ var (
 	jsonFlag      = flag.String("json", "", "Json file path for contract parameters")
 	funcTypesFlag = flag.String("funcTypes", "", "A collection of contract interface types")
 )
+
+// stakingToken
+type Dpos_0003 struct {
+	BubbleID *big.Int
+	AccAsset bubble.AccountAsset
+}
+
+// withdrewToken
+type Dpos_0004 struct {
+	BubbleID *big.Int
+}
+
+// settleBubble
+type Dpos_0005 struct {
+	L2TxHash       common.Hash
+	BubbleId       *big.Int
+	SettlementInfo bubble.SettlementInfo
+}
+
+type Dpos_0102 struct {
+	TxType   bubble.BubTxType
+	BubbleId *big.Int
+}
+
+// L2_Dpos_2000 L2 createStaking
+type Dpos_2000 struct {
+	NodeId             discover.NodeID
+	Amount             *big.Int
+	BenefitAddress     common.Address
+	Name               string
+	Detail             string
+	ElectronURI        string
+	P2pURI             string
+	ProgramVersion     uint32
+	ProgramVersionSign common.VersionSign
+	BlsPubKey          bls.PublicKeyHex
+	BlsProof           bls.SchnorrProofHex
+	IsOperator         bool
+}
 
 // createStaking
 type Dpos_1000 struct {
@@ -113,10 +153,10 @@ type Dpos_1105 struct {
 }
 
 // submitText
-type Dpos_2000 struct {
-	Verifier discover.NodeID
-	PIPID    string
-}
+//type Dpos_2000 struct {
+//	Verifier discover.NodeID
+//	PIPID    string
+//}
 
 // submitVersion
 type Dpos_2001 struct {
@@ -228,6 +268,10 @@ type Dpos_5100 struct {
 }
 
 type decDataConfig struct {
+	P0003 Dpos_0003
+	P0004 Dpos_0004
+	P0005 Dpos_0005
+	P0102 Dpos_0102
 	P1000 Dpos_1000
 	P1001 Dpos_1001
 	P1002 Dpos_1002
@@ -286,6 +330,34 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	params = append(params, fnType)
 
 	switch funcType {
+	case 3:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P0003.BubbleID)
+			accAsset, _ := rlp.EncodeToBytes(cfg.P0003.AccAsset)
+			params = append(params, bubId)
+			params = append(params, accAsset)
+		}
+	case 4:
+		{
+			bubId, _ := rlp.EncodeToBytes(cfg.P0004.BubbleID)
+			params = append(params, bubId)
+		}
+	case 5:
+		{
+			txHash, _ := rlp.EncodeToBytes(cfg.P0005.L2TxHash)
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P0005.BubbleId)
+			settlementInfo, _ := rlp.EncodeToBytes(cfg.P0005.SettlementInfo)
+			params = append(params, txHash)
+			params = append(params, bubbleId)
+			params = append(params, settlementInfo)
+		}
+	case 102:
+		{
+			bubbleId, _ := rlp.EncodeToBytes(cfg.P0102.BubbleId)
+			txType, _ := rlp.EncodeToBytes(cfg.P0102.TxType)
+			params = append(params, bubbleId)
+			params = append(params, txType)
+		}
 	case 1000:
 		{
 			typ, _ := rlp.EncodeToBytes(cfg.P1000.Typ)
@@ -400,10 +472,33 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 1202:
 	case 2000:
 		{
-			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
-			params = append(params, verifier)
-			params = append(params, pipID)
+			nodeId, _ := rlp.EncodeToBytes(cfg.P2000.NodeId)
+			amount, _ := rlp.EncodeToBytes(cfg.P2000.Amount)
+			benefitAddress, _ := rlp.EncodeToBytes(cfg.P2000.BenefitAddress.Bytes())
+			name, _ := rlp.EncodeToBytes(cfg.P2000.Name)
+			details, _ := rlp.EncodeToBytes(cfg.P2000.Detail)
+			electronURI, _ := rlp.EncodeToBytes(cfg.P2000.ElectronURI)
+			P2pURI, _ := rlp.EncodeToBytes(cfg.P2000.P2pURI)
+
+			programVersion, _ := rlp.EncodeToBytes(cfg.P2000.ProgramVersion)
+			programVersionSign, _ := rlp.EncodeToBytes(cfg.P2000.ProgramVersionSign)
+			blsPubKey, _ := rlp.EncodeToBytes(cfg.P2000.BlsPubKey)
+			blsProof, _ := rlp.EncodeToBytes(cfg.P2000.BlsProof)
+			isOperator, _ := rlp.EncodeToBytes(cfg.P2000.IsOperator)
+
+			params = append(params, nodeId)
+			params = append(params, amount)
+			params = append(params, benefitAddress)
+			params = append(params, name)
+			params = append(params, details)
+			params = append(params, electronURI)
+			params = append(params, P2pURI)
+			params = append(params, programVersion)
+			params = append(params, programVersionSign)
+			params = append(params, blsPubKey)
+			params = append(params, blsProof)
+			params = append(params, isOperator)
+
 		}
 	case 2001:
 		{

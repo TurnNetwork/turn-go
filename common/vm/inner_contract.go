@@ -27,6 +27,8 @@ var (
 	GovContractAddr            = common.HexToAddress("0x1000000000000000000000000000000000000005") // The Bubble Precompiled contract addr for governance
 	DelegateRewardPoolAddr     = common.HexToAddress("0x1000000000000000000000000000000000000006") // The Bubble Precompiled contract addr for delegate reward
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The Bubble Precompiled contract addr for cbft inner
+	StakingL2ContractAddr      = common.HexToAddress("0x2000000000000000000000000000000000000001") // The Bubble Precompiled contract addr for mobile Node staking
+	BubbleContractAddr         = common.HexToAddress("0x2000000000000000000000000000000000000002") // The Bubble Precompiled contract addr for bubble
 	VrfInnerContractAddr       = common.HexToAddress("0x3000000000000000000000000000000000000001") // The Bubble Precompiled contract addr for vrf inner
 )
 

@@ -18,6 +18,7 @@ package byteutil
 
 import (
 	"encoding/hex"
+	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 
 	"github.com/bubblenet/bubble/crypto/bls"
@@ -36,6 +37,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[32]byte": BytesTo32Bytes,
 	"[64]byte": BytesTo64Bytes,
 
+	"bool":    BytesToBool,
 	"uint8":   BytesToUint8,
 	"uint16":  BytesToUint16,
 	"*uint16": BytesToUint16Point,
@@ -44,6 +46,7 @@ var Bytes2X_CMD = map[string]interface{}{
 
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
+	"[][]uint8":             BytesToUint8Arr,
 	"discover.NodeID":       BytesToNodeId,
 	"[]discover.NodeID":     BytesToNodeIdArr,
 	"common.Hash":           BytesToHash,
@@ -59,6 +62,9 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]bls.SchnorrProofHex": BytesToSchnorrProofHexArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
+	"bubble.AccountAsset":           BytesToAccountAsset,
+	"bubble.SettlementInfo":         BytesToSettlementInfo,
+	"bubble.BubTxType":              BytesToBubTxType,
 }
 
 func BytesToString(curByte []byte) string {
@@ -117,6 +123,14 @@ func BytesTo64Bytes(curByte []byte) [64]byte {
 		panic("BytesTo64Bytes:" + err.Error())
 	}
 	return arr
+}
+
+func BytesToBool(b []byte) bool {
+	var x bool
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToBool:" + err.Error())
+	}
+	return x
 }
 
 func BytesToUint8(b []byte) uint8 {
@@ -181,6 +195,14 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 	var arr []*big.Int
 	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
 		panic("BytesToBigIntArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToUint8Arr(curByte []byte) [][]uint8 {
+	var arr [][]uint8
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesToBytesArr:" + err.Error())
 	}
 	return arr
 }
@@ -325,6 +347,30 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return planArr
+}
+
+func BytesToAccountAsset(curByte []byte) bubble.AccountAsset {
+	var accAsset bubble.AccountAsset
+	if err := rlp.DecodeBytes(curByte, &accAsset); nil != err {
+		panic("BytesToAccountAsset:" + err.Error())
+	}
+	return accAsset
+}
+
+func BytesToSettlementInfo(curByte []byte) bubble.SettlementInfo {
+	var settleInfo bubble.SettlementInfo
+	if err := rlp.DecodeBytes(curByte, &settleInfo); nil != err {
+		panic("BytesToSettlementInfo:" + err.Error())
+	}
+	return settleInfo
+}
+
+func BytesToBubTxType(curByte []byte) bubble.BubTxType {
+	var txType bubble.BubTxType
+	if err := rlp.DecodeBytes(curByte, &txType); nil != err {
+		panic("BytesToBubTxType:" + err.Error())
+	}
+	return txType
 }
 
 func PrintNodeID(nodeID discover.NodeID) string {

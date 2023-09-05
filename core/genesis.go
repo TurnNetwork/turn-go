@@ -520,7 +520,7 @@ func DefaultGenesisBlock() *Genesis {
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 1682870400000,
+		Timestamp: params.MainNetGenesisTimestamp,
 		ExtraData: []byte(manifesto),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{

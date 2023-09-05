@@ -184,6 +184,9 @@ var (
 		utils.VMWasmType,
 		utils.VmTimeoutDuration,
 	}
+	opFlags = []cli.Flag{
+		utils.OpPriKeyFlag,
+	}
 )
 
 func init() {
@@ -230,6 +233,9 @@ func init() {
 	app.Flags = append(app.Flags, cbftFlags...)
 	app.Flags = append(app.Flags, dbFlags...)
 	app.Flags = append(app.Flags, vmFlags...)
+
+	// for operator
+	app.Flags = append(app.Flags, opFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
