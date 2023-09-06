@@ -18,6 +18,7 @@ package stakingL2
 
 import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"math/big"
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
@@ -53,36 +54,6 @@ func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
 func (db *StakingDB) ranking(blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
 	return db.db.Ranking(blockHash, prefix, ranges)
 }
-
-//func (db *StakingDB) GetOperatorStore(blockHash common.Hash, addr common.NodeAddress) (*Operator, error) {
-//	data, err := db.get(blockHash, OperatorKeyByAddr(addr))
-//	if err != nil {
-//		return nil, err
-//	}
-//	var operator Operator
-//
-//	if err := rlp.DecodeBytes(data, operator); err != nil {
-//		return nil, err
-//	}
-//
-//	return &operator, nil
-//}
-//
-//func (db *StakingDB) GetAllOperatorsStore(blockHash common.Hash, ranges int) iterator.Iterator {
-//	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
-//}
-//
-//func (db *StakingDB) SetOperatorStore(blockHash common.Hash, addr common.NodeAddress, operator *Operator) error {
-//	if data, err := rlp.EncodeToBytes(operator); err != nil {
-//		return err
-//	} else {
-//		return db.put(blockHash, OperatorKeyByAddr(addr), data)
-//	}
-//}
-//
-//func (db *StakingDB) DelOperatorStore(blockHash common.Hash, addr common.NodeAddress) error {
-//	return db.del(blockHash, OperatorKeyByAddr(addr))
-//}
 
 // about Candidate ...
 
@@ -311,20 +282,20 @@ func (db *StakingDB) DelCommitteeStore(blockHash common.Hash, addr common.NodeAd
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
+	key := TallyPowerKey(can.Version, (*big.Int)(can.Shares), can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
+	key := TallyPowerKey(can.Version, (*big.Int)(can.Shares), can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 	return db.del(blockHash, key)
 }
 
-// about UnStakeItem ...
+// about UnStakeRecord ...
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64, recovery bool) error {
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -344,10 +315,9 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	}
 	item_key := GetUnStakeItemKey(epoch, v)
 
-	unStakeItem := &UnStakeItem{
+	unStakeItem := &UnStakeRecord{
 		NodeAddress:     canAddr,
 		StakingBlockNum: stakeBlockNumber,
-		Recovery:        recovery,
 	}
 
 	item, err := rlp.EncodeToBytes(unStakeItem)
@@ -368,14 +338,14 @@ func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (
 	return common.BytesToUint64(val), nil
 }
 
-func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (*UnStakeItem, error) {
+func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (*UnStakeRecord, error) {
 	item_key := GetUnStakeItemKey(epoch, index)
 	itemByte, err := db.get(blockHash, item_key)
 	if nil != err {
 		return nil, err
 	}
 
-	var unStakeItem UnStakeItem
+	var unStakeItem UnStakeRecord
 	if err := rlp.DecodeBytes(itemByte, &unStakeItem); nil != err {
 		return nil, err
 	}

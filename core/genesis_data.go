@@ -59,7 +59,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 
 	initQueue := g.Config.Cbft.InitialNodes
 
-	// 存储代理节点列队
+	// store layer1 operators
 	Operators := make([]*bubble.Operator, 0)
 	for _, initNode := range initQueue {
 		if initNode.RPC == "" {
