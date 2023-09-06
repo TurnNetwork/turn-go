@@ -102,7 +102,6 @@ func GetUnStakeCountKey(epoch uint64) []byte {
 }
 
 func GetUnStakeItemKey(epoch, index uint64) []byte {
-
 	epochByte := common.Uint64ToBytes(epoch)
 	indexByte := common.Uint64ToBytes(index)
 

@@ -17,13 +17,13 @@
 package plugin
 
 import (
+	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 	"sync"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
@@ -74,73 +74,19 @@ func (sk *StakingL2Plugin) SetChainDB(reader ethdb.KeyValueReader, writer ethdb.
 }
 
 func (sk *StakingL2Plugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	//blockNumber := header.Number.Uint64()
-	//if xutil.IsEndOfConsensus(blockNumber) {
-	//	// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
-	//	// Used to record historical consensus round node information.
-	//	// 1. Simplify the consensus node information
-	//	// 2. Calculate the identification ID
-	//	// 3. Compute the hash of the simplified list of node information
-	//	// 4. Replace the value of header.extra[0:32] with the Hash value.
-	//	// 5. Form a list of identification IDs in the order of block generation and write them into the DB
-	//	next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
-	//	if err != nil {
-	//		log.Error("Failed to Query Next validators on StakingL2Plugin Begin When end of consensus",
-	//			"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-	//		return err
-	//	}
-	//	historyValidatorList := make(stakingL2.HistoryValidatorList, len(next.Arr))
-	//	historyValidatorIDList := make(stakingL2.HistoryValidatorIDList, len(next.Arr))
-	//	for i := 0; i < len(next.Arr); i++ {
-	//		hv := &stakingL2.HistoryValidator{
-	//			NodeId:    next.Arr[i].NodeId,
-	//			BlsPubKey: next.Arr[i].BlsPubKey,
-	//		}
-	//		id := hv.ID()
-	//		historyValidatorList[i] = hv
-	//		historyValidatorIDList[i] = id
-	//		if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
-	//			return err
-	//		}
-	//	}
-	//	if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
-	//		return err
-	//	}
-	//	listHash, err := historyValidatorList.Hash()
-	//	if err != nil {
-	//		log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-	//		return err
-	//	}
-	//	// The outgoing block node writes to extra.
-	//	// Non-outgoing block nodes validate extra.
-	//	if xutil.IsWorker(header.Extra) {
-	//		// The hash value will be signed by the node.
-	//		// will also be counted in the block Hash.
-	//		copy(header.Extra[:32], listHash.Bytes())
-	//	} else {
-	//		if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
-	//			return errors.New("historical validator list Hash is not the same")
-	//		}
-	//	}
-	//	log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
-	//}
 	return nil
 }
 
 func (sk *StakingL2Plugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
 	if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
-		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, header.Number.Uint64(), blockHash, epoch)
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateItem on StakingL2Plugin EndBlock",
 				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
-
 	}
 
 	return nil
@@ -157,7 +103,7 @@ func (sk *StakingL2Plugin) GetCanMutable(blockHash common.Hash, addr common.Node
 	return sk.db.GetCanMutableStore(blockHash, addr)
 }
 
-func (sk *StakingL2Plugin) GetCandidateCompactInfo(blockHash common.Hash, blockNumber uint64, addr common.NodeAddress) (*stakingL2.CandidateHex, error) {
+func (sk *StakingL2Plugin) GetFacadeCandidateInfo(blockHash common.Hash, blockNumber uint64, addr common.NodeAddress) (*stakingL2.MarshalAbleCandidate, error) {
 	can, err := sk.GetCandidateInfo(blockHash, addr)
 	if nil != err {
 		return nil, err
@@ -165,7 +111,7 @@ func (sk *StakingL2Plugin) GetCandidateCompactInfo(blockHash common.Hash, blockN
 
 	epoch := xutil.CalculateEpoch(blockNumber)
 	lazyCalcL2StakeAmount(epoch, can.CandidateMutable)
-	canHex := buildL2CanHex(can)
+	canHex := buildMarshalAbleCandidate(can)
 	return canHex, nil
 }
 
@@ -181,7 +127,7 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 	}
 	state.SubBalance(can.StakingAddress, amount)
 	state.AddBalance(vm.StakingContractAddr, amount)
-	can.ReleasedHes = amount
+	can.PendingShares = amount
 	can.StakingEpoch = uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
@@ -252,7 +198,7 @@ func (sk *StakingL2Plugin) EditCandidate(blockHash common.Hash, blockNumber *big
 //	}
 //	state.SubBalance(can.StakingAddress, amount)
 //	state.AddBalance(vm.StakingContractAddr, amount)
-//	can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, amount)
+//	can.PendingShares = new(big.Int).Add(can.PendingShares, amount)
 //
 //	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 //		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Delete Candidate old power is failed",
@@ -300,7 +246,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 
 	can.StakingEpoch = uint32(epoch)
 
-	if can.Released.Cmp(common.Big0) > 0 {
+	if can.LockedShares.Cmp(common.Big0) > 0 {
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Store CandidateMutable info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -344,13 +290,13 @@ func (sk *StakingL2Plugin) withdrewStakeAmount(state xcom.StateDB, blockHash com
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
-	if can.ReleasedHes.Cmp(common.Big0) > 0 {
-		state.AddBalance(can.StakingAddress, can.ReleasedHes)
-		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
-		can.ReleasedHes = new(big.Int).SetInt64(0)
+	if can.PendingShares.Cmp(common.Big0) > 0 {
+		state.AddBalance(can.StakingAddress, can.PendingShares)
+		state.SubBalance(vm.StakingContractAddr, can.PendingShares)
+		can.PendingShares = new(big.Int).SetInt64(0)
 	}
 
-	if can.Released.Cmp(common.Big0) > 0 {
+	if can.LockedShares.Cmp(common.Big0) > 0 {
 		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -359,7 +305,7 @@ func (sk *StakingL2Plugin) withdrewStakeAmount(state xcom.StateDB, blockHash com
 	}
 
 	can.CleanShares()
-	can.Status |= stakingL2.Invalided | stakingL2.Withdrew
+	can.Status |= stakingL2.Invalid
 
 	return nil
 }
@@ -391,9 +337,6 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 
 		canAddr := stakeItem.NodeAddress
 
-		//log.Debug("Call HandleUnCandidateItem: the candidate Addr",
-		//	"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "addr", canAddr.Hex())
-
 		if _, ok := filterAddr[canAddr]; ok {
 			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: Delete already handle unstakeItem failed",
@@ -422,7 +365,6 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 			continue
 		}
 
-		// if the item stakingBlockNum is not enough the stakingBlockNum of candidate info
 		if stakeItem.StakingBlockNum != can.StakingBlockNum {
 
 			log.Warn("Call HandleUnCandidateItem: the item stakingBlockNum no equal current candidate stakingBlockNum",
@@ -436,58 +378,10 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 			}
 
 			continue
-
 		}
 
-		// The state of the node needs to be restored
-		if stakeItem.Recovery {
-			// If the node is reported double-signed during the lock-up period，
-			// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the staking after the expiration
-			// Otherwise, the state of the node is restored to the normal staking state
-			if can.IsDuplicateSign() {
-
-				// Because there is no need to release the staking when the zero-out block is locked, "SubAccountStakeRc" is not executed
-				if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
-					log.Error("Failed to HandleUnCandidateItem: Sub Account staking Reference Count is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-
-				// Lock the node again and will release the staking
-				if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
-					log.Error("Failed to SlashCandidates on StakingL2Plugin: Add UnStakeItemStore failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				can.CleanLowRatioStatus()
-				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on StakingL2Plugin: Store CandidateMutable info is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				log.Debug("Call HandleUnCandidateItem: Node double sign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
-					"status", can.Status, "shares", can.Shares)
-			} else {
-
-				can.SetValided()
-				if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on StakingL2Plugin: Store Candidate power is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
-					log.Error("Failed to HandleUnCandidateItem on StakingL2Plugin: Store CandidateMutable info is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-					return err
-				}
-				log.Debug("Call HandleUnCandidateItem: Node state recovery", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
-					"status", can.Status, "shares", can.Shares)
-			}
-		} else {
-			// Second handle balabala ...
-			if err := sk.handleUnStake(state, blockNumber, blockHash, epoch, canAddr, can); nil != err {
-				return err
-			}
+		if err := sk.handleUnStake(state, blockNumber, blockHash, epoch, canAddr, can); nil != err {
+			return err
 		}
 
 		if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
@@ -525,8 +419,8 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 		return balance
 	}
 
-	can.ReleasedHes = refundReleaseFn(can.ReleasedHes)
-	can.Released = refundReleaseFn(can.Released)
+	can.PendingShares = refundReleaseFn(can.PendingShares)
+	can.LockedShares = refundReleaseFn(can.LockedShares)
 
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed",
@@ -609,29 +503,6 @@ func (sk *StakingL2Plugin) GetCandidateList(blockHash common.Hash, blockNumber u
 	return candidates, nil
 }
 
-func (sk *StakingL2Plugin) GetCanBaseList(blockHash common.Hash, blockNumber uint64) (stakingL2.CandidateBaseQueue, error) {
-
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
-	if err := iter.Error(); nil != err {
-		return nil, err
-	}
-	defer iter.Release()
-
-	queue := make(stakingL2.CandidateBaseQueue, 0)
-
-	for iter.Valid(); iter.Next(); {
-
-		addrSuffix := iter.Value()
-		can, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			return nil, err
-		}
-		queue = append(queue, can)
-	}
-
-	return queue, nil
-}
-
 func lazyCalcL2StakeAmount(epoch uint64, can *stakingL2.CandidateMutable) {
 	if can.IsEmpty() {
 		return
@@ -648,9 +519,9 @@ func lazyCalcL2StakeAmount(epoch uint64, can *stakingL2.CandidateMutable) {
 		return
 	}
 
-	if can.ReleasedHes.Cmp(common.Big0) > 0 {
-		can.Released = new(big.Int).Add(can.Released, can.ReleasedHes)
-		can.ReleasedHes = new(big.Int).SetInt64(0)
+	if can.PendingShares.Cmp(common.Big0) > 0 {
+		can.LockedShares = new(big.Int).Add(can.LockedShares, can.PendingShares)
+		can.PendingShares = new(big.Int).SetInt64(0)
 	}
 
 	log.Debug("lazyCalcL2StakeAmount end", "current epoch", epoch, "canMutable", can)
@@ -687,27 +558,7 @@ func (sk *StakingL2Plugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64
 		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
 
-	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, false); nil != err {
-		return err
-	}
-	return nil
-}
-
-func (sk *StakingL2Plugin) addRecoveryUnStakeItem(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID,
-	canAddr common.NodeAddress, stakingBlockNum uint64) error {
-
-	duration, err := gov.GovernZeroProduceFreezeDuration(blockNumber, blockHash)
-	if nil != err {
-		return err
-	}
-
-	targetEpoch := xutil.CalculateEpoch(blockNumber) + duration
-
-	log.Debug("Call addRecoveryUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
-		"duration", duration, "unstake item target Epoch", targetEpoch,
-		"nodeId", nodeId.String())
-
-	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum, true); nil != err {
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum); nil != err {
 		return err
 	}
 	return nil
@@ -717,21 +568,27 @@ func (sk *StakingL2Plugin) CheckStakeThresholdL2(amount *big.Int) bool {
 	return amount.Cmp(StakeThresholdL2) >= 0
 }
 
-func buildL2CanHex(can *stakingL2.Candidate) *stakingL2.CandidateHex {
-	return &stakingL2.CandidateHex{
-		NodeId:          can.NodeId,
-		BlsPubKey:       can.BlsPubKey,
+func buildMarshalAbleCandidate(can *stakingL2.Candidate) *stakingL2.MarshalAbleCandidate {
+	return &stakingL2.MarshalAbleCandidate{
+		NodeId:      can.NodeId,
+		Name:        can.Name,
+		Status:      can.Status,
+		Version:     can.Version,
+		ElectronURI: can.ElectronURI,
+		P2PURI:      can.P2PURI,
+		IsOperator:  can.IsOperator,
+
 		StakingAddress:  can.StakingAddress,
 		BenefitAddress:  can.BenefitAddress,
-		StakingTxIndex:  can.StakingTxIndex,
-		ProgramVersion:  can.ProgramVersion,
-		Status:          can.Status,
 		StakingEpoch:    can.StakingEpoch,
 		StakingBlockNum: can.StakingBlockNum,
-		Shares:          (*hexutil.Big)(can.Shares),
-		Released:        (*hexutil.Big)(can.Released),
-		ReleasedHes:     (*hexutil.Big)(can.ReleasedHes),
-		Description:     can.Description,
-		IsOperator:      can.IsOperator,
+		StakingTxIndex:  can.StakingTxIndex,
+
+		Shares:        (*hexutil.Big)(can.Shares),
+		LockedShares:  (*hexutil.Big)(can.LockedShares),
+		PendingShares: (*hexutil.Big)(can.PendingShares),
+
+		BlsPubKey: can.BlsPubKey,
+		Detail:    can.Detail,
 	}
 }
