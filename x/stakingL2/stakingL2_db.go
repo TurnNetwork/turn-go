@@ -295,7 +295,7 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 
 // about UnStakeRecord ...
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
+func (db *StakingDB) AddUnStakeRecordStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -313,14 +313,14 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
-	item_key := GetUnStakeItemKey(epoch, v)
+	item_key := GetUnStakeRecordKey(epoch, v)
 
-	unStakeItem := &UnStakeRecord{
+	unStakeRecord := &UnStakeRecord{
 		NodeAddress:     canAddr,
 		StakingBlockNum: stakeBlockNumber,
 	}
 
-	item, err := rlp.EncodeToBytes(unStakeItem)
+	item, err := rlp.EncodeToBytes(unStakeRecord)
 	if nil != err {
 		return err
 	}
@@ -338,18 +338,18 @@ func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (
 	return common.BytesToUint64(val), nil
 }
 
-func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (*UnStakeRecord, error) {
-	item_key := GetUnStakeItemKey(epoch, index)
+func (db *StakingDB) GetUnStakeRecordStore(blockHash common.Hash, epoch, index uint64) (*UnStakeRecord, error) {
+	item_key := GetUnStakeRecordKey(epoch, index)
 	itemByte, err := db.get(blockHash, item_key)
 	if nil != err {
 		return nil, err
 	}
 
-	var unStakeItem UnStakeRecord
-	if err := rlp.DecodeBytes(itemByte, &unStakeItem); nil != err {
+	var unStakeRecord UnStakeRecord
+	if err := rlp.DecodeBytes(itemByte, &unStakeRecord); nil != err {
 		return nil, err
 	}
-	return &unStakeItem, nil
+	return &unStakeRecord, nil
 }
 
 func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) error {
@@ -358,8 +358,8 @@ func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) e
 	return db.del(blockHash, count_key)
 }
 
-func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uint64) error {
-	item_key := GetUnStakeItemKey(epoch, index)
+func (db *StakingDB) DelUnStakeRecordStore(blockHash common.Hash, epoch, index uint64) error {
+	item_key := GetUnStakeRecordKey(epoch, index)
 
 	return db.del(blockHash, item_key)
 }

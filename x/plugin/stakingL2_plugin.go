@@ -27,11 +27,8 @@ import (
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
-	"github.com/bubblenet/bubble/ethdb"
-	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/p2p/discover"
-	"github.com/bubblenet/bubble/x/gov"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -42,10 +39,7 @@ var (
 )
 
 type StakingL2Plugin struct {
-	db            *stakingL2.StakingDB
-	eventMux      *event.TypeMux
-	chainReaderDB ethdb.KeyValueReader
-	chainWriterDB ethdb.KeyValueWriter
+	db *stakingL2.StakingDB
 }
 
 var (
@@ -62,15 +56,6 @@ func StakingL2Instance() *StakingL2Plugin {
 		}
 	})
 	return stkL2
-}
-
-func (sk *StakingL2Plugin) SetEventMux(eventMux *event.TypeMux) {
-	sk.eventMux = eventMux
-}
-
-func (sk *StakingL2Plugin) SetChainDB(reader ethdb.KeyValueReader, writer ethdb.KeyValueWriter) {
-	sk.chainReaderDB = reader
-	sk.chainWriterDB = writer
 }
 
 func (sk *StakingL2Plugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
@@ -91,6 +76,11 @@ func (sk *StakingL2Plugin) EndBlock(blockHash common.Hash, header *types.Header,
 
 	return nil
 }
+
+func (sk *StakingL2Plugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+	return nil
+}
+
 func (sk *StakingL2Plugin) GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*stakingL2.Candidate, error) {
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
@@ -297,8 +287,8 @@ func (sk *StakingL2Plugin) withdrewStakeAmount(state xcom.StateDB, blockHash com
 	}
 
 	if can.LockedShares.Cmp(common.Big0) > 0 {
-		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
-			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Add UnStakeItemStore failed",
+		if err := sk.addUnStakeRecord(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
+			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Add UnStakeRecordStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
@@ -328,9 +318,9 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 
 	for index := 1; index <= int(unStakeCount); index++ {
 
-		stakeItem, err := sk.db.GetUnStakeItemStore(blockHash, epoch, uint64(index))
+		stakeItem, err := sk.db.GetUnStakeRecordStore(blockHash, epoch, uint64(index))
 		if nil != err {
-			log.Error("Failed to HandleUnCandidateItem: Query the unStakeItem node addr is failed",
+			log.Error("Failed to HandleUnCandidateItem: Query the unStakeRecord node addr is failed",
 				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
@@ -338,8 +328,8 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 		canAddr := stakeItem.NodeAddress
 
 		if _, ok := filterAddr[canAddr]; ok {
-			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
-				log.Error("Failed to HandleUnCandidateItem: Delete already handle unstakeItem failed",
+			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
+				log.Error("Failed to HandleUnCandidateItem: Delete already handle unStakeRecord failed",
 					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
 			}
@@ -356,8 +346,8 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 		// This should not be nil
 		if snapshotdb.IsDbNotFoundErr(err) || can.IsEmpty() {
 
-			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
-				log.Error("Failed to HandleUnCandidateItem: Candidate is no exist, Delete unstakeItem failed",
+			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
+				log.Error("Failed to HandleUnCandidateItem: Candidate is no exist, Delete unStakeRecord failed",
 					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
 			}
@@ -370,9 +360,9 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 			log.Warn("Call HandleUnCandidateItem: the item stakingBlockNum no equal current candidate stakingBlockNum",
 				"item stakingBlockNum", stakeItem.StakingBlockNum, "candidate stakingBlockNum", can.StakingBlockNum)
 
-			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
+			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: The Item is invilad, cause the stakingBlockNum is less "+
-					"than stakingBlockNum of curr candidate, Delete unstakeItem failed",
+					"than stakingBlockNum of curr candidate, Delete unStakeRecord failed",
 					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
 			}
@@ -384,8 +374,8 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 			return err
 		}
 
-		if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
-			log.Error("Failed to HandleUnCandidateItem: Delete unstakeItem failed",
+		if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
+			log.Error("Failed to HandleUnCandidateItem: Delete unStakeRecord failed",
 				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
@@ -410,7 +400,7 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 
 	lazyCalcL2StakeAmount(epoch, can.CandidateMutable)
 
-	refundReleaseFn := func(balance *big.Int) *big.Int {
+	refundSharesFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, balance)
 			state.SubBalance(vm.StakingContractAddr, balance)
@@ -419,8 +409,8 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 		return balance
 	}
 
-	can.PendingShares = refundReleaseFn(can.PendingShares)
-	can.LockedShares = refundReleaseFn(can.LockedShares)
+	can.PendingShares = refundSharesFn(can.PendingShares)
+	can.LockedShares = refundSharesFn(can.LockedShares)
 
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed",
@@ -528,37 +518,14 @@ func lazyCalcL2StakeAmount(epoch uint64, can *stakingL2.CandidateMutable) {
 
 }
 
-func (sk *StakingL2Plugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
+func (sk *StakingL2Plugin) addUnStakeRecord(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
 	nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
 
-	endVoteNum, err := gov.GetMaxEndVotingBlock(nodeId, blockHash, state)
-	if nil != err {
-		return err
-	}
-	var refundEpoch, maxEndVoteEpoch, targetEpoch uint64
-	if endVoteNum != 0 {
-		maxEndVoteEpoch = xutil.CalculateEpoch(endVoteNum)
-	}
+	refundEpoch := xutil.CalculateEpoch(blockNumber) + 0
+	log.Debug("Call addUnStakeRecord, AddUnStakeRecordStore start", "current blockNumber", blockNumber,
+		"unStakeFreeze Epoch", 0, "unStake record refund Epoch", refundEpoch, "nodeId", nodeId.String())
 
-	duration, err := gov.GovernUnStakeFreezeDuration(blockNumber, blockHash)
-	if nil != err {
-		return err
-	}
-
-	refundEpoch = xutil.CalculateEpoch(blockNumber) + duration
-
-	if maxEndVoteEpoch <= refundEpoch {
-		targetEpoch = refundEpoch
-	} else {
-		targetEpoch = maxEndVoteEpoch
-	}
-
-	log.Debug("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
-		"govenance max end vote blokNumber", endVoteNum, "unStakeFreeze Epoch", refundEpoch,
-		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
-		"nodeId", nodeId.String())
-
-	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr, stakingBlockNum); nil != err {
+	if err := sk.db.AddUnStakeRecordStore(blockHash, refundEpoch, canAddr, stakingBlockNum); nil != err {
 		return err
 	}
 	return nil

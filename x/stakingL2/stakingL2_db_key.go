@@ -33,7 +33,7 @@ var (
 	CommitteeKeyPrefix   = []byte("CommitteeL2")
 	CanPowerKeyPrefix    = []byte("PowerL2")
 	UnStakeCountKey      = []byte("UnStakeCountL2")
-	UnStakeItemKey       = []byte("UnStakeItemL2")
+	UnStakeRecordKey     = []byte("UnStakeRecordL2")
 	AccountStakeRcPrefix = []byte("AccStakeRcL2")
 
 	b104Len = len(math.MaxBig104.Bytes())
@@ -101,16 +101,16 @@ func GetUnStakeCountKey(epoch uint64) []byte {
 	return append(UnStakeCountKey, common.Uint64ToBytes(epoch)...)
 }
 
-func GetUnStakeItemKey(epoch, index uint64) []byte {
+func GetUnStakeRecordKey(epoch, index uint64) []byte {
 	epochByte := common.Uint64ToBytes(epoch)
 	indexByte := common.Uint64ToBytes(index)
 
-	markPre := len(UnStakeItemKey)
+	markPre := len(UnStakeRecordKey)
 	markEpoch := markPre + len(epochByte)
 	size := markEpoch + len(indexByte)
 
 	key := make([]byte, size)
-	copy(key[:markPre], UnStakeItemKey)
+	copy(key[:markPre], UnStakeRecordKey)
 	copy(key[markPre:markEpoch], epochByte)
 	copy(key[markEpoch:], indexByte)
 
