@@ -27,7 +27,6 @@ import (
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
 	"golang.org/x/crypto/sha3"
-	gomath "math"
 	"math/big"
 	"math/rand"
 	"net/rpc"
@@ -163,14 +162,6 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		return nil, err
 	}
 
-	// fill empty nonce if insufficient nonce
-	maxLen := int(gomath.Max(gomath.Max(bubble.OperatorL1Size, bubble.OperatorL2Size), bubble.CommitteeSize))
-	if len(preNonces) < maxLen {
-		newNonces := make([][]byte, maxLen)
-		newNonces = append(newNonces, preNonces...)
-		preNonces = newNonces
-	}
-
 	// elect the operatorsL1 by VRF
 	OperatorsL1, err := bp.ElectOperatorL1(blockHash, bubble.OperatorL1Size, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
@@ -255,9 +246,17 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
-	if len(operators) < int(operatorNumber) {
+	if len(operators) < int(operatorNumber) || len(operators) == 0 {
 		return nil, bubble.ErrOperatorL1IsInsufficient
 	}
+
+	// fill empty nonce preNonces to if nonce insufficient
+	if len(preNonces) < len(operators) {
+		newNonces := make([][]byte, len(operators))
+		newNonces = append(newNonces, preNonces...)
+		preNonces = newNonces
+	}
+
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operators, func(item interface{}) *VRFItem {
 		w, _ := new(big.Int).SetString("1000000000000000000000000", 10)
@@ -269,11 +268,14 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
+
 	// VRF Elect
+	log.Info("ElectOperatorL1 run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
+
 	// unwrap the VRF able queue
 	electedOperators := make([]*bubble.Operator, 0)
 	for _, item := range electedVrfQueue {
@@ -293,9 +295,17 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
-	if len(operatorQueue) == 0 {
+	if len(operatorQueue) < int(operatorNumber) || len(operatorQueue) == 0 {
 		return nil, bubble.ErrOperatorL2IsInsufficient
 	}
+
+	// fill empty nonce preNonces to if nonce insufficient
+	if len(preNonces) < len(operatorQueue) {
+		newNonces := make([][]byte, len(operatorQueue))
+		newNonces = append(newNonces, preNonces...)
+		preNonces = newNonces
+	}
+
 	// wrap the operators to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(operatorQueue, func(item interface{}) *VRFItem {
 		if candidate, ok := (item).(*stakingL2.Candidate); ok {
@@ -309,11 +319,14 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 	if err != nil {
 		return nil, err
 	}
+
 	// VRF Elect
+	log.Info("ElectOperatorL2 run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
+
 	// unwrap the VRF able queue
 	electedOperators := make(bubble.CandidateQueue, 0)
 	for _, item := range electedVrfQueue {
@@ -323,6 +336,7 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 			return nil, errors.New("type error")
 		}
 	}
+
 	// delete the elected operators from the operator list
 	for _, operator := range electedOperators {
 		addr, err := xutil.NodeId2Addr(operator.NodeId)
@@ -344,9 +358,17 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 	if err != nil {
 		return nil, err
 	}
-	if len(committeeQueue) == 0 {
+	if len(committeeQueue) < int(committeeNumber) || len(committeeQueue) == 0 {
 		return nil, bubble.ErrMicroNodeIsInsufficient
 	}
+
+	// fill empty nonce preNonces to if nonce insufficient
+	if len(preNonces) < len(committeeQueue) {
+		newNonces := make([][]byte, len(committeeQueue))
+		newNonces = append(newNonces, preNonces...)
+		preNonces = newNonces
+	}
+
 	// wrap the candidates to the VRF able queue
 	vrfQueue, err := VRFQueueWrapper(committeeQueue, func(item interface{}) *VRFItem {
 		if candidate, ok := (item).(*stakingL2.Candidate); ok {
@@ -360,11 +382,14 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 	if err != nil {
 		return nil, err
 	}
+
 	// VRF Elect
+	log.Info("ElectBubbleMicroNodes run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, committeeNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
+
 	// unwrap the VRF able queue
 	committees := make(bubble.CandidateQueue, 0)
 	for _, item := range electedVrfQueue {
@@ -374,6 +399,7 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 			return nil, errors.New("type error")
 		}
 	}
+
 	// delete the elected candidates from the candidate list
 	for _, committee := range committees {
 		addr, err := xutil.NodeId2Addr(committee.NodeId)
