@@ -970,7 +970,12 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 	// Execute the binary search and hone in on an executable gas limit
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
-		failed, _, err := executable(mid)
+		failed, ret, err := executable(mid)
+		// The gasUsed that returns the successfully executed transaction is used as the estimated gas
+		if !failed && nil == err && nil != ret {
+			hi = ret.UsedGas
+			break
+		}
 		// If the error is not nil(consensus error), it means the provided message
 		// call or transaction will never be accepted no matter how much gas it is
 		// assigned. Return the error directly, don't struggle any more.

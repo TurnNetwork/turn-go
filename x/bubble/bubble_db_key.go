@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	bubbleKeyPrefix     = []byte("Bubble")
 	AccListKeyPrefix    = []byte("AccList")  // the key prefix of the accounts list of the staking token
 	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
 	TxHashKeyPrefix     = []byte("TxHash")
@@ -16,16 +15,8 @@ var (
 	BubStateKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
 )
 
-func GetBubbleKey(bubbleID *big.Int) []byte {
-	bid, err := rlp.EncodeToBytes(bubbleID)
-	if nil != err {
-		return nil
-	}
-	return append(bubbleKeyPrefix, bid...)
-}
-
-// BasicsByBubKey bubble basics that press bubbleId key
-func BasicsByBubKey(bubbleID *big.Int) []byte {
+// getBubBasicsKey bubble basics that press bubbleId key
+func getBubBasicsKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil
@@ -33,8 +24,8 @@ func BasicsByBubKey(bubbleID *big.Int) []byte {
 	return append(BubBasicsKeyPrefix, bid...)
 }
 
-// StateByBubKey bubble state that press bubbleId key
-func StateByBubKey(bubbleID *big.Int) []byte {
+// getBubStateKey bubble state that press bubbleId key
+func getBubStateKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil

@@ -407,7 +407,7 @@ func staking_token(contract *BubbleContract, t *testing.T) {
 		stakingAsset.TokenAssets = append(stakingAsset.TokenAssets, tokenAsset)
 	}
 
-	fnType, _ := rlp.EncodeToBytes(uint16(3))
+	fnType, _ := rlp.EncodeToBytes(uint16(TxStakingToken))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 	accAsset, _ := rlp.EncodeToBytes(stakingAsset)
 
@@ -425,7 +425,7 @@ func withdrew_token(contract *BubbleContract, t *testing.T) {
 	params = make([][]byte, 0)
 	bubbleId := big.NewInt(1)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(4))
+	fnType, _ := rlp.EncodeToBytes(uint16(TxWithdrewToken))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 
 	params = append(params, fnType)
@@ -454,7 +454,7 @@ func settle_bubble(contract *BubbleContract, t *testing.T) {
 		settleInfo.AccAssets = append(settleInfo.AccAssets, accAsset)
 	}
 
-	fnType, _ := rlp.EncodeToBytes(uint16(5))
+	fnType, _ := rlp.EncodeToBytes(uint16(TxSettleBubble))
 	txHash, _ := rlp.EncodeToBytes(L2SettleTxHash)
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 	settle, _ := rlp.EncodeToBytes(settleInfo)
@@ -473,7 +473,7 @@ func get_bubble_info(contract *BubbleContract, t *testing.T) {
 	params = make([][]byte, 0)
 	bubbleId := big.NewInt(1)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(100))
+	fnType, _ := rlp.EncodeToBytes(uint16(CallGetBubbleInfo))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 
 	params = append(params, fnType)
@@ -488,7 +488,7 @@ func getL1TxHashByL2TxHash(contract *BubbleContract, VerifyL1TxHash common.Hash,
 	params = make([][]byte, 0)
 	bubbleId := testBubbleId
 
-	fnType, _ := rlp.EncodeToBytes(uint16(101))
+	fnType, _ := rlp.EncodeToBytes(uint16(CallGetL1HashByL2Hash))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 	txHash, _ := rlp.EncodeToBytes(L2SettleTxHash)
 
@@ -505,7 +505,7 @@ func getBubbleTxHashList(contract *BubbleContract, txType bubble.BubTxType, t *t
 	params = make([][]byte, 0)
 	bubbleId := testBubbleId
 
-	fnType, _ := rlp.EncodeToBytes(uint16(102))
+	fnType, _ := rlp.EncodeToBytes(uint16(CallGetBubTxHashList))
 	bubId, _ := rlp.EncodeToBytes(bubbleId)
 	bubTxType, _ := rlp.EncodeToBytes(txType)
 

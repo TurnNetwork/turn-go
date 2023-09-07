@@ -26,7 +26,6 @@ import (
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/log"
-	"github.com/bubblenet/bubble/node"
 	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/gov"
@@ -105,36 +104,25 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		return nil, ErrOutOfGas
 	}
 	// parse bls publickey
-	blsPk, err := blsPubKey.ParseBlsPubKey()
-	if nil != err {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
-			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKey)
-	}
-	// verify bls proof
-	if err := verifyBlsProof(blsProof, blsPk); nil != err {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
-			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKeyProof)
-
-	}
-	// validate programVersion sign
-	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
-			TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
-	}
+	//blsPk, err := blsPubKey.ParseBlsPubKey()
+	//if nil != err {
+	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
+	//		TxCreateStakingL2, stakingL2.ErrWrongBlsPubKey)
+	//}
+	//// verify bls proof
+	//if err := verifyBlsProof(blsProof, blsPk); nil != err {
+	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
+	//		TxCreateStakingL2, stakingL2.ErrWrongBlsPubKeyProof)
+	//
+	//}
+	//// validate programVersion sign
+	//if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
+	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
+	//		TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
+	//}
 	if !stk.Plugin.CheckStakeThresholdL2(amount) {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", plugin.StakeThresholdL2, amount),
 			TxCreateStakingL2, stakingL2.ErrStakeVonTooLow)
-	}
-	// check Description length
-	desc := &stakingL2.Description{
-		Name:        name,
-		Detail:      detail,
-		ElectronURI: electronURI,
-		P2PURI:      p2pURI,
-	}
-	if err := desc.CheckLength(); nil != err {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
-			TxCreateStakingL2, stakingL2.ErrDescriptionLen)
 	}
 	// Query current active version
 	if programVersion < gov.L2Version {
@@ -158,36 +146,41 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
-	if canOld.IsNotEmpty() {
+	if !canOld.IsEmpty() {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "can is not nil", TxCreateStakingL2, stakingL2.ErrCanAlreadyExist)
 	}
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	// init candidate info
 	canBase := &stakingL2.CandidateBase{
 		NodeId:          nodeId,
-		BlsPubKey:       blsPubKey,
+		Name:            name,
+		Version:         programVersion,
+		ElectronURI:     electronURI,
+		P2PURI:          p2pURI,
+		IsOperator:      isOperator,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		ProgramVersion:  programVersion,
-		IsOperator:      isOperator,
-		Description:     *desc,
+		BlsPubKey:       blsPubKey,
+		Detail:          detail,
 	}
 	canMutable := &stakingL2.CandidateMutable{
-		Shares:      amount,
-		Released:    new(big.Int).SetInt64(0),
-		ReleasedHes: new(big.Int).SetInt64(0),
-		//RestrictingPlan:      new(big.Int).SetInt64(0),
-		//RestrictingPlanHes:   new(big.Int).SetInt64(0),
-
+		Shares:        amount,
+		PendingShares: new(big.Int).SetInt64(0),
+		LockedShares:  new(big.Int).SetInt64(0),
 	}
 	can := &stakingL2.Candidate{}
 	can.CandidateBase = canBase
 	can.CandidateMutable = canMutable
+	// check Description length
+	if err := can.CheckDescription(); nil != err {
+		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
+			TxCreateStakingL2, stakingL2.ErrDescriptionLen)
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	// run non-business logic to create candidate
 	err = stk.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, canAddr, can)
 	if nil != err {
@@ -238,7 +231,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
 			"can is nil", TxEditorCandidateL2, stakingL2.ErrCanNoExist)
 	}
-	if canOld.IsInvalid() {
+	if canOld.Status.IsInvalid() {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
 			fmt.Sprintf("can status is: %d", canOld.Status),
 			TxEditorCandidateL2, stakingL2.ErrCanStatusInvalid)
@@ -254,12 +247,12 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 		canOld.BenefitAddress = *benefitAddress
 	}
 	if name != "" {
-		canOld.Description.Name = name
+		canOld.Name = name
 	}
 	if detail != "" {
-		canOld.Description.Detail = detail
+		canOld.Detail = detail
 	}
-	if err := canOld.Description.CheckLength(); nil != err {
+	if err := canOld.CheckDescription(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
 			stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
 			TxEditorCandidateL2, stakingL2.ErrDescriptionLen)
@@ -397,7 +390,7 @@ func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, e
 			"can is nil", TxWithdrewCandidateL2, stakingL2.ErrCanNoExist)
 	}
 
-	if canOld.IsInvalid() {
+	if canOld.Status.IsInvalid() {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "withdrewStaking",
 			fmt.Sprintf("can status is: %d", canOld.Status),
 			TxWithdrewCandidateL2, stakingL2.ErrCanStatusInvalid)
@@ -452,7 +445,7 @@ func (stk *StakingL2Contract) getCandidateInfo(nodeId discover.NodeID) ([]byte, 
 		return callResultHandler(stk.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
 			nodeId), nil, stakingL2.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
-	can, err := stk.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
+	can, err := stk.Plugin.GetFacadeCandidateInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stk.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
 			nodeId), can, stakingL2.ErrQueryCandidateInfo.Wrap(err.Error())), nil

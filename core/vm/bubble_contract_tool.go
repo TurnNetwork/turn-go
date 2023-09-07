@@ -130,7 +130,7 @@ func checkInputEmpty(input []byte) bool {
 // encodeTransferFuncCall Generate functional signatures for smart contract transfer transactions
 func encodeTransferFuncCall(to common.Address, amount *big.Int) ([]byte, error) {
 
-	// 创建合约ABI解析器
+	// Create a contract ABI parser
 	encodeABI, err := abi.JSON(strings.NewReader(`[
 		{
 			"inputs": [
