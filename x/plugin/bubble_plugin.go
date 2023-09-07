@@ -402,7 +402,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		}
 		// check whether the node has been withdrawn
 		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if can != nil || err == snapshotdb.ErrNotFound {
+		if can == nil || err == snapshotdb.ErrNotFound {
 			break
 		}
 		if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, can); nil != err {
@@ -419,7 +419,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		}
 		// check whether the node has been withdrawn
 		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if can != nil || err == snapshotdb.ErrNotFound {
+		if can == nil || err == snapshotdb.ErrNotFound {
 			break
 		}
 		if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
@@ -429,7 +429,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		}
 	}
 
-	if err := bp.db.DelBubbleStore(blockHash, bubbleID); err != nil {
+	if err := bp.db.StoreBubState(blockHash, bubbleID, bubble.ReleasedStatus); err != nil {
 		return err
 	}
 
