@@ -38,6 +38,7 @@ const (
 	RewardRule
 	GovernanceRule
 	CollectDeclareVersionRule
+	StakingL2Rule
 )
 
 const (

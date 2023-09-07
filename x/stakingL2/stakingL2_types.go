@@ -168,7 +168,7 @@ type CandidateMutable struct {
 }
 
 func (can *CandidateMutable) String() string {
-	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d}`,
+	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"PendingShares": %d,"LockedShares": %d,}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
