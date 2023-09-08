@@ -17,12 +17,10 @@
 package stakingL2
 
 import (
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"math/big"
-
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/rlp"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 type StakingDB struct {
@@ -278,21 +276,6 @@ func (db *StakingDB) DelCommitteeStore(blockHash common.Hash, addr common.NodeAd
 	return db.del(blockHash, CommitteeKeyByAddr(addr))
 }
 
-// about candidate power ...
-
-func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
-
-	key := TallyPowerKey(can.Version, (*big.Int)(can.Shares), can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
-
-	return db.put(blockHash, key, addr.Bytes())
-}
-
-func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
-
-	key := TallyPowerKey(can.Version, (*big.Int)(can.Shares), can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
-	return db.del(blockHash, key)
-}
-
 // about UnStakeRecord ...
 
 func (db *StakingDB) AddUnStakeRecordStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {
@@ -364,8 +347,8 @@ func (db *StakingDB) DelUnStakeRecordStore(blockHash common.Hash, epoch, index u
 	return db.del(blockHash, item_key)
 }
 
-func (db *StakingDB) IteratorCandidatePowerByBlockHash(blockHash common.Hash, ranges int) iterator.Iterator {
-	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
+func (db *StakingDB) IteratorCandidateBase(blockHash common.Hash, ranges int) iterator.Iterator {
+	return db.ranking(blockHash, CanBaseKeyPrefix, ranges)
 }
 
 // about account staking reference count ...

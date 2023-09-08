@@ -140,12 +140,6 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 		}
 	}
 
-	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-		log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Candidate power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-		return err
-	}
-
 	// add the account staking Reference Count
 	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Staking Account Reference Count (add) is failed",
@@ -223,12 +217,6 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
 	lazyCalcL2StakeAmount(epoch, can.CandidateMutable)
-
-	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-		log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Candidate old power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
-		return err
-	}
 
 	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
 		return err
@@ -470,7 +458,7 @@ func (sk *StakingL2Plugin) GetCandidateList(blockHash common.Hash, blockNumber u
 
 	epoch := xutil.CalculateEpoch(blockNumber)
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+	iter := sk.db.IteratorCandidateBase(blockHash, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
 	}
@@ -480,10 +468,23 @@ func (sk *StakingL2Plugin) GetCandidateList(blockHash common.Hash, blockNumber u
 
 	for iter.Valid(); iter.Next(); {
 
-		addrSuffix := iter.Value()
-		candidate, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		data := iter.Value()
+		canBase := new(stakingL2.CandidateBase)
+		if err := rlp.DecodeBytes(data, canBase); err != nil {
+			return nil, err
+		}
+		nodeAddress, err := xutil.NodeId2Addr(canBase.NodeId)
+		if err != nil {
+			return nil, err
+		}
+		canMutable, err := sk.db.GetCanMutableStore(blockHash, nodeAddress)
 		if nil != err {
 			return nil, err
+		}
+
+		candidate := &stakingL2.Candidate{
+			CandidateBase:    canBase,
+			CandidateMutable: canMutable,
 		}
 
 		lazyCalcL2StakeAmount(epoch, candidate.CandidateMutable)
