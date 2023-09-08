@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/bubblenet/bubble/node"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -103,27 +104,31 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	if !stk.Contract.UseGas(params.CreateStakeL2Gas) {
 		return nil, ErrOutOfGas
 	}
+
 	// parse bls publickey
-	//blsPk, err := blsPubKey.ParseBlsPubKey()
-	//if nil != err {
-	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
-	//		TxCreateStakingL2, stakingL2.ErrWrongBlsPubKey)
-	//}
-	//// verify bls proof
-	//if err := verifyBlsProof(blsProof, blsPk); nil != err {
-	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
-	//		TxCreateStakingL2, stakingL2.ErrWrongBlsPubKeyProof)
-	//
-	//}
-	//// validate programVersion sign
-	//if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
-	//	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
-	//		TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
-	//}
+	blsPk, err := blsPubKey.ParseBlsPubKey()
+	if nil != err {
+		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
+			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKey)
+	}
+
+	// verify bls proof
+	if err := verifyBlsProof(blsProof, blsPk); nil != err {
+		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
+			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKeyProof)
+
+	}
+
+	// validate programVersion sign
+	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
+		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
+			TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
+	}
 	if !stk.Plugin.CheckStakeThresholdL2(amount) {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", plugin.StakeThresholdL2, amount),
 			TxCreateStakingL2, stakingL2.ErrStakeVonTooLow)
 	}
+
 	// Query current active version
 	if programVersion < gov.L2Version {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking",
@@ -133,6 +138,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		//If the node version is higher than the current governance version, temporarily use the governance version,  wait for the version to pass the governance proposal, and then replace it
 		programVersion = gov.L2Version
 	}
+
 	// check whether the candidate exists
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -149,6 +155,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	if !canOld.IsEmpty() {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "can is not nil", TxCreateStakingL2, stakingL2.ErrCanAlreadyExist)
 	}
+
 	// init candidate info
 	canBase := &stakingL2.CandidateBase{
 		NodeId:          nodeId,
@@ -172,6 +179,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	can := &stakingL2.Candidate{}
 	can.CandidateBase = canBase
 	can.CandidateMutable = canMutable
+
 	// check Description length
 	if err := can.CheckDescription(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
@@ -181,6 +189,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
+
 	// run non-business logic to create candidate
 	err = stk.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, canAddr, can)
 	if nil != err {
