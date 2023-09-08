@@ -148,12 +148,12 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to releaseBubble by GetBubbleInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "bubbleID", bubbleID, "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "bubbleID", bubbleID, "err", "bubble is not exist")
 		return nil, err
 	}
 	if bub == nil {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-			fmt.Sprintf("bubble %d is not exist", bub.Basics.BubbleId), TxReleaseBubble, bubble.ErrBubbleNotExist)
+			fmt.Sprintf("bubble %d is not exist", bubbleID), TxReleaseBubble, bubble.ErrBubbleNotExist)
 	}
 
 	if from != bub.Basics.Creator {

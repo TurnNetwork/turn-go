@@ -24,7 +24,7 @@ var (
 	ErrDescriptionLen          = common.NewBizError(321002, "The Description length is incorrect")
 	ErrWrongProgramVersionSign = common.NewBizError(321003, "The program version signature is invalid")
 	ErrProgramVersionTooLow    = common.NewBizError(321004, "The program version is too low")
-	ErrNoSameStakingAddr       = common.NewBizError(321005, "The address must be the same as the one initiated staking")
+	ErrNoSameStakingAddr       = common.NewBizError(321005, "The address must be the same as the staking address")
 	ErrStakeVonTooLow          = common.NewBizError(321100, "Staking deposit is insufficient")
 	ErrCanAlreadyExist         = common.NewBizError(321101, "The candidate already existed")
 	ErrCanNoExist              = common.NewBizError(321102, "The candidate does not exist")
