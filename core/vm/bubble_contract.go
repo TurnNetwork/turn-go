@@ -148,7 +148,7 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to releaseBubble by GetBubbleInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", bub.Basics.BubbleId, "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "bubbleID", bubbleID, "err", err)
 		return nil, err
 	}
 	if bub == nil {
