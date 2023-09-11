@@ -204,7 +204,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "", "", TxCreateStakingL2, common.NoErr)
 }
 
-func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail string) ([]byte, error) {
+func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail *string) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	blockNumber := stk.Evm.Context.BlockNumber
@@ -255,11 +255,11 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	if benefitAddress != nil && canOld.BenefitAddress != vm.RewardManagerPoolAddr {
 		canOld.BenefitAddress = *benefitAddress
 	}
-	if name != "" {
-		canOld.Name = name
+	if name != nil {
+		canOld.Name = *name
 	}
-	if detail != "" {
-		canOld.Detail = detail
+	if detail != nil {
+		canOld.Detail = *detail
 	}
 	if err := canOld.CheckDescription(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
