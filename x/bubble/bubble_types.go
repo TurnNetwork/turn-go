@@ -1,7 +1,6 @@
 package bubble
 
 import (
-	"encoding/json"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/math"
@@ -35,7 +34,9 @@ const (
 type BubTxType uint
 
 const (
-	StakingToken  BubTxType = iota // StakingToken transaction type
+	CreateBubble  BubTxType = iota // createBubble transaction type
+	ReleaseBubble                  // releaseBubble transaction type
+	StakingToken                   // StakingToken transaction type
 	WithdrewToken                  // WithdrewToken transaction type
 	SettleBubble                   // SettleBubble transaction type
 )
@@ -156,9 +157,4 @@ type GenesisL2 struct {
 	Number     math.HexOrDecimal64 `json:"number"`
 	GasUsed    math.HexOrDecimal64 `json:"gasUsed"`
 	ParentHash common.Hash         `json:"parentHash"`
-}
-
-// MarshalJSON marshals GenesisL2 to JSON.
-func (g *GenesisL2) MarshalJSON() ([]byte, error) {
-	return json.Marshal(g)
 }

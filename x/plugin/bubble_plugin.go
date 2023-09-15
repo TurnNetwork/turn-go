@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/json"
 	"github.com/bubblenet/bubble/common/math"
 	"github.com/bubblenet/bubble/common/sort"
 	"github.com/bubblenet/bubble/common/vm"
@@ -29,9 +30,10 @@ import (
 	"golang.org/x/crypto/sha3"
 	"math/big"
 	"math/rand"
-	"net/rpc"
+	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -594,7 +596,7 @@ func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) 
 
 // PostCreateBubbleEvent Send the create bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) error {
-	if err := bp.eventMux.Post(task); nil != err {
+	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post CreateBubble task failed", "err", err)
 		return err
 	}
@@ -771,30 +773,25 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 	genesisL2 := makeGenesisL2(bub)
-	args, err := genesisL2.MarshalJSON()
+
+	args, err := json.Marshal(genesisL2)
 	if err != nil {
 		log.Warn(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
 		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
 	}
 
-	for _, operator := range bub.Basics.OperatorsL2 {
-		client, err := rpc.DialHTTP("tcp", operator.RPC)
+	for _, microNode := range bub.Basics.MicroNodes {
+		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(args)))
+		response, err := http.Post(microNode.ElectronURI, "application/json", req)
 		if err != nil {
-			log.Warn(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
-			return errors.New(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
+			log.Error("failed to connect to the microNode when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
+			return errors.New(fmt.Sprintf("failed to connect to the microNode: %s", err.Error()))
 		}
-
-		// TODO: asynchronous process and check whether the network is built
-		var reply string
-		err = client.Call("", args, reply)
-		if err != nil {
-			log.Warn(fmt.Sprintf("failed to call remote function: %s", err.Error()))
-			return errors.New(fmt.Sprintf("failed to call remote function: %s", err.Error()))
+		if response.StatusCode != 200 {
+			log.Error("microNode response exception when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", response)
+			return err
 		}
-		if reply != "" {
-			log.Warn(fmt.Sprintf("call remote function result error: %s", reply))
-			return errors.New(fmt.Sprintf("call remote function result error: %s", reply))
-		}
+		response.Body.Close()
 	}
 	return nil
 }
@@ -811,25 +808,18 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
-	for _, operator := range bub.Basics.OperatorsL2 {
-		client, err := rpc.DialHTTP("tcp", operator.RPC)
+	for _, microNode := range bub.Basics.MicroNodes {
+		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId))
+		response, err := http.Post(microNode.ElectronURI, "application/json", req)
 		if err != nil {
-			log.Warn(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
-			return errors.New(fmt.Sprintf("failed to dial rpc: %s", err.Error()))
+			log.Error("failed to connect to the microNode when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
+			return errors.New(fmt.Sprintf("failed to connect to the microNode: %s", err.Error()))
 		}
-		args := bub.Basics.BubbleId
-
-		// TODO: asynchronous process and check whether the network is built
-		var reply string
-		err = client.Call("", args, reply)
-		if err != nil {
-			log.Warn(fmt.Sprintf("failed to call remote function: %s", err.Error()))
-			return errors.New(fmt.Sprintf("failed to call remote function: %s", err.Error()))
+		if response.StatusCode != 200 {
+			log.Error("microNode response exception when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", response)
+			return err
 		}
-		if reply != "" {
-			log.Warn(fmt.Sprintf("call remote function result error: %s", reply))
-			return errors.New(fmt.Sprintf("call remote function result error: %s", reply))
-		}
+		response.Body.Close()
 	}
 	return nil
 }
