@@ -770,14 +770,14 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 
 	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+		log.Error("failed to get bubble info", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 	genesisL2 := makeGenesisL2(bub)
 
 	args, err := json.Marshal(genesisL2)
 	if err != nil {
-		log.Warn(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
+		log.Warn("failed to marshal genesis", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
 	}
 
@@ -791,27 +791,27 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 		for i := 0; i < 3; i++ {
 			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
 			if err != nil {
-				log.Debug("failed to connect to the microNode when HandleCreateBubbleTask, retry times:", i)
+				log.Debug("failed to connect to the microNode when HandleCreateBubbleTask", "retry times", i)
 				time.Sleep(time.Duration(3) * time.Second)
 				continue
 			}
 		}
 
 		if err != nil {
-			log.Error("failed to connect to the microNode when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
+			log.Error("failed to connect to the microNode when HandleCreateBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "error", err.Error())
 			errNum++
 			continue
 		}
 
 		if resp.StatusCode != 200 {
-			log.Error("microNode response exception when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", resp)
+			log.Error("microNode response exception when HandleCreateBubbleTask", "NodeId", microNode.NodeId, "NodeId", microNode.ElectronURI, "response", resp)
 		}
 
 		resp.Body.Close()
 	}
 
 	if errNum > 0 {
-		return errors.New(fmt.Sprintf("Some node connections failed when HandleCreateBubbleTask"))
+		return errors.New("some node connections failed when HandleCreateBubbleTask")
 	}
 
 	return nil
@@ -820,12 +820,12 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 // HandleReleaseBubbleTask Handle release bubble task
 func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) error {
 	if task == nil {
-		return errors.New("ReleaseBubbleTask is empty")
+		return errors.New("releaseBubbleTask is empty")
 	}
 
 	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+		log.Error("failed to get bubble info", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
@@ -839,27 +839,27 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 		for i := 0; i < 3; i++ {
 			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
 			if err != nil {
-				log.Debug("failed to connect to the microNode when HandleReleaseBubbleTask, retry times:", i)
+				log.Debug("failed to connect to the microNode when HandleReleaseBubbleTask", "retry times", i)
 				time.Sleep(time.Duration(3) * time.Second)
 				continue
 			}
 		}
 
 		if err != nil {
-			log.Error("failed to connect to the microNode when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
+			log.Error("failed to connect to the microNode when HandleReleaseBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "error", err.Error())
 			errNum++
 			continue
 		}
 
 		if resp.StatusCode != 200 {
-			log.Error("microNode response exception when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", resp)
+			log.Error("microNode response exception when HandleReleaseBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "response", resp)
 		}
 
 		resp.Body.Close()
 	}
 
 	if errNum > 0 {
-		return errors.New(fmt.Sprintf("Some node connections failed when HandleReleaseBubbleTask"))
+		return errors.New("some node connections failed when HandleReleaseBubbleTask")
 	}
 	return nil
 }
