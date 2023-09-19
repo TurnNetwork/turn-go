@@ -35,6 +35,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -780,19 +781,39 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
 	}
 
+	var resp *http.Response
+	var errNum uint8
+
 	for _, microNode := range bub.Basics.MicroNodes {
 		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(args)))
-		response, err := http.Post(microNode.ElectronURI, "application/json", req)
+
+		// send and retry CreateBubbleTask
+		for i := 0; i < 3; i++ {
+			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
+			if err != nil {
+				log.Debug("failed to connect to the microNode when HandleCreateBubbleTask, retry times:", i)
+				time.Sleep(time.Duration(3) * time.Second)
+				continue
+			}
+		}
+
 		if err != nil {
 			log.Error("failed to connect to the microNode when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
-			return errors.New(fmt.Sprintf("failed to connect to the microNode: %s", err.Error()))
+			errNum++
+			continue
 		}
-		if response.StatusCode != 200 {
-			log.Error("microNode response exception when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", response)
-			return err
+
+		if resp.StatusCode != 200 {
+			log.Error("microNode response exception when HandleCreateBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", resp)
 		}
-		response.Body.Close()
+
+		resp.Body.Close()
 	}
+
+	if errNum > 0 {
+		return errors.New(fmt.Sprintf("Some node connections failed when HandleCreateBubbleTask"))
+	}
+
 	return nil
 }
 
@@ -808,18 +829,37 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
+	var resp *http.Response
+	var errNum uint8
+
 	for _, microNode := range bub.Basics.MicroNodes {
 		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId))
-		response, err := http.Post(microNode.ElectronURI, "application/json", req)
+
+		// send and retry CreateBubbleTask
+		for i := 0; i < 3; i++ {
+			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
+			if err != nil {
+				log.Debug("failed to connect to the microNode when HandleReleaseBubbleTask, retry times:", i)
+				time.Sleep(time.Duration(3) * time.Second)
+				continue
+			}
+		}
+
 		if err != nil {
 			log.Error("failed to connect to the microNode when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "error", err.Error())
-			return errors.New(fmt.Sprintf("failed to connect to the microNode: %s", err.Error()))
+			errNum++
+			continue
 		}
-		if response.StatusCode != 200 {
-			log.Error("microNode response exception when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", response)
-			return err
+
+		if resp.StatusCode != 200 {
+			log.Error("microNode response exception when HandleReleaseBubbleTask", microNode.NodeId, microNode.ElectronURI, "response", resp)
 		}
-		response.Body.Close()
+
+		resp.Body.Close()
+	}
+
+	if errNum > 0 {
+		return errors.New(fmt.Sprintf("Some node connections failed when HandleReleaseBubbleTask"))
 	}
 	return nil
 }
