@@ -193,6 +193,9 @@ var (
 
 // Getting the global EconomicModel single instance
 func GetEc(netId int8) *EconomicModel {
+	if ec != nil {
+		return ec
+	}
 	modelOnce.Do(func() {
 		ec = getDefaultEMConfig(netId)
 	})
