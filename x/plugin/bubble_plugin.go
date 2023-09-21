@@ -273,7 +273,7 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	}
 
 	// VRF Elect
-	log.Info("ElectOperatorL1 run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
+	log.Info("ElectOperatorL1 run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
@@ -324,7 +324,7 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 	}
 
 	// VRF Elect
-	log.Info("ElectOperatorL2 run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
+	log.Info("ElectOperatorL2 run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
@@ -387,7 +387,7 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 	}
 
 	// VRF Elect
-	log.Info("ElectBubbleMicroNodes run VRF, ", "vrfQueue len: ", len(vrfQueue), "preNonces len:", len(preNonces))
+	log.Info("ElectBubbleMicroNodes run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
 	electedVrfQueue, err := VRF(vrfQueue, committeeNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
