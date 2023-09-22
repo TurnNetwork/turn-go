@@ -180,7 +180,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	for _, can := range candidateL2 {
 		operator := &bubble.Operator{
 			NodeId: can.NodeId,
-			RPC:    can.ElectronURI,
+			RPC:    can.RPCURI,
 			OpAddr: can.StakingAddress,
 		}
 		OperatorsL2 = append(OperatorsL2, operator)

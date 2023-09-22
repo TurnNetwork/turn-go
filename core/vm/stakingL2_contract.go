@@ -88,7 +88,7 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 }
 
 func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.Int, benefitAddress common.Address, name, detail,
-	electronURI, p2pURI string, programVersion uint32, programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex,
+	electronURI, rpcURI, p2pURI string, programVersion uint32, programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex,
 	blsProof bls.SchnorrProofHex, isOperator bool) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
@@ -162,6 +162,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		Name:            name,
 		Version:         programVersion,
 		ElectronURI:     electronURI,
+		RPCURI:          rpcURI,
 		P2PURI:          p2pURI,
 		IsOperator:      isOperator,
 		StakingAddress:  from,
