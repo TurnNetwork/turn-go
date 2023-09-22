@@ -95,8 +95,10 @@ type CandidateBase struct {
 	Name   string
 	// The micro node version represent by uint32, only store large version (2.1.x == 2.1.0)
 	Version uint32
-	// The RPC URI to receive the genesis messages
+	// The http URL to receive the genesis messages
 	ElectronURI string
+	// The RPC URI to receive the staking token txs
+	RPCURI string
 	// The P2P URI used to link peers
 	P2PURI string
 	// is operation node
@@ -206,6 +208,7 @@ type MarshalAbleCandidate struct {
 	Status      CandidateStatus
 	Version     uint32
 	ElectronURI string
+	RPCURI      string
 	P2PURI      string
 	IsOperator  bool
 

@@ -543,6 +543,7 @@ func buildMarshalAbleCandidate(can *stakingL2.Candidate) *stakingL2.MarshalAbleC
 		Status:      can.Status,
 		Version:     can.Version,
 		ElectronURI: can.ElectronURI,
+		RPCURI:      can.RPCURI,
 		P2PURI:      can.P2PURI,
 		IsOperator:  can.IsOperator,
 
