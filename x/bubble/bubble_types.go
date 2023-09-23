@@ -1,6 +1,8 @@
 package bubble
 
 import (
+	"math/big"
+
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/math"
@@ -10,7 +12,6 @@ import (
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
-	"math/big"
 )
 
 // bubble chain size
@@ -106,6 +107,7 @@ type MintTokenTask struct {
 }
 
 type CreateBubbleTask struct {
+	BubInfo  *Bubble
 	BubbleID *big.Int
 	TxHash   common.Hash // The transaction hash of the createBubbleTask
 }

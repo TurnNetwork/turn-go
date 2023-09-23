@@ -18,6 +18,8 @@ package vm
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
@@ -25,7 +27,6 @@ import (
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/plugin"
-	"math/big"
 )
 
 const (
@@ -115,6 +116,7 @@ func (bc *BubbleContract) createBubble() ([]byte, error) {
 
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.CreateBubbleTask{
+		BubInfo:  bub,
 		BubbleID: bub.Basics.BubbleId,
 		TxHash:   txHash,
 	}

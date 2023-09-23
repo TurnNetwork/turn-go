@@ -1,10 +1,12 @@
 package bubble
 
 import (
+	"math/big"
+
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/rlp"
-	"math/big"
 )
 
 type BubbleDB struct {
@@ -20,10 +22,12 @@ func NewBubbleDB() *BubbleDB {
 func (bdb *BubbleDB) GetBubBasics(blockHash common.Hash, bubbleId *big.Int) (*BubBasics, error) {
 	data, err := bdb.db.Get(blockHash, getBubBasicsKey(bubbleId))
 	if err != nil {
+		log.Error("failed to GetBubBasics", "error", err.Error())
 		return nil, err
 	}
 	var basics BubBasics
 	if err := rlp.DecodeBytes(data, &basics); err != nil {
+		log.Error("failed to decode BubBasics", "error", err.Error())
 		return nil, err
 	} else {
 		return &basics, nil
