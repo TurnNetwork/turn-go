@@ -7,6 +7,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"net/http"
+	"reflect"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/json"
 	"github.com/bubblenet/bubble/common/math"
@@ -28,14 +37,6 @@ import (
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
 	"golang.org/x/crypto/sha3"
-	"math/big"
-	"math/rand"
-	"net/http"
-	"reflect"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -597,6 +598,7 @@ func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) 
 
 // PostCreateBubbleEvent Send the create bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) error {
+	log.Debug("PostCreateBubbleEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post CreateBubble task failed", "err", err)
 		return err
@@ -764,15 +766,17 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 // HandleCreateBubbleTask Handle create bubble task
 func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
-	if task == nil {
+	if task == nil || task.BubInfo == nil {
+		log.Error("create bubble task is nil")
 		return errors.New("CreateBubbleTask is empty")
 	}
 
-	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
-	if err != nil {
-		log.Error("failed to get bubble info", "error", err.Error())
-		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
-	}
+	// bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	// if err != nil {
+	// 	log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
+	// 	return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+	// }
+	bub := task.BubInfo
 	genesisL2 := makeGenesisL2(bub)
 
 	args, err := json.Marshal(genesisL2)
