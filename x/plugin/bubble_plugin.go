@@ -788,6 +788,8 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(args)))
 
 		// send and retry CreateBubbleTask
+		log.Debug("prepare to send BubbleGenesisMsg", "ElectronURI", microNode.ElectronURI, "req", req)
+
 		for i := 0; i < 3; i++ {
 			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
 			if err != nil {
@@ -795,6 +797,9 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 				time.Sleep(time.Duration(3) * time.Second)
 				continue
 			}
+			log.Debug("send BubbleGenesisMsg succeed", "ElectronURI", microNode.ElectronURI, "req", req)
+			break
+
 		}
 
 		if err != nil {
