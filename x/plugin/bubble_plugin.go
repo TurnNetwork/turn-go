@@ -731,6 +731,15 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
+	ec := xcom.GetEc(xcom.DefaultMainNet)
+	em := &bubble.EconomicModel{
+		EconomicModel: *ec,
+		Staking: bubble.StakingConfig{
+			StakingConfig:       xcom.GetEc(xcom.DefaultMainNet).Staking,
+			StakingConfigExtend: xcom.GetEce().Staking,
+		},
+	}
+
 	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
 			ChainID: bub.Basics.BubbleId,
@@ -746,7 +755,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 			MainChain: bub.Basics.OperatorsL1[0],
 			SubChain:  bub.Basics.OperatorsL2[0],
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
+		EconomicModel: em,
 		Nonce:         []byte{},
 		Timestamp:     params.MainNetGenesisTimestamp,
 		ExtraData:     []byte{},
