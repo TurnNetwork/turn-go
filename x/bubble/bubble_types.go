@@ -141,12 +141,22 @@ type GenesisAccount struct {
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
 }
 
+type StakingConfig struct {
+	xcom.StakingConfig
+	xcom.StakingConfigExtend
+}
+
+type EconomicModel struct {
+	xcom.EconomicModel
+	Staking StakingConfig `json:"staking"`
+}
+
 // GenesisL2 specifies the header fields, state of a layer2 genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type GenesisL2 struct {
 	Config        *params.ChainConfig `json:"config"`
 	OpConfig      *OpConfig           `json:"opConfig"`
-	EconomicModel *xcom.EconomicModel `json:"economicModel"`
+	EconomicModel *EconomicModel      `json:"economicModel"`
 	Nonce         hexutil.Bytes       `json:"nonce"`
 	Timestamp     math.HexOrDecimal64 `json:"timestamp"`
 	ExtraData     hexutil.Bytes       `json:"extraData"`

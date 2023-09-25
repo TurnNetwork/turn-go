@@ -92,7 +92,7 @@ var (
 	CeilMinimumRelease  = new(big.Int).Mul(new(big.Int).SetUint64(10000000), one)
 )
 
-type commonConfig struct {
+type CommonConfig struct {
 	MaxEpochMinutes     uint64 `json:"maxEpochMinutes"`     // expected minutes every epoch
 	NodeBlockTimeWindow uint64 `json:"nodeBlockTimeWindow"` // Node block time window (uint: seconds)
 	PerRoundBlocks      uint64 `json:"perRoundBlocks"`      // blocks each validator will create per consensus epoch
@@ -100,17 +100,16 @@ type commonConfig struct {
 	AdditionalCycleTime uint64 `json:"additionalCycleTime"` // Additional cycle time (uint: minutes)
 }
 
-type stakingConfig struct {
-	StakeThreshold           *big.Int `json:"stakeThreshold"`           // The Staking minimum threshold allowed
-	OperatingThreshold       *big.Int `json:"operatingThreshold"`       // The (incr, decr) delegate or incr staking minimum threshold allowed
-	MaxValidators            uint64   `json:"maxValidators"`            // The epoch (billing cycle) validators count
-	UnStakeFreezeDuration    uint64   `json:"unStakeFreezeDuration"`    // The freeze period of the withdrew Staking (unit is  epochs)
-	RewardPerMaxChangeRange  uint16   `json:"rewardPerMaxChangeRange"`  // The maximum amount of commission reward ratio that can be modified each time
-	RewardPerChangeInterval  uint16   `json:"rewardPerChangeInterval"`  // The interval for each modification of the commission reward ratio (unit: epoch)
-	UnDelegateFreezeDuration uint64   `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
+type StakingConfig struct {
+	StakeThreshold          *big.Int `json:"stakeThreshold"`          // The Staking minimum threshold allowed
+	OperatingThreshold      *big.Int `json:"operatingThreshold"`      // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators           uint64   `json:"maxValidators"`           // The epoch (billing cycle) validators count
+	UnStakeFreezeDuration   uint64   `json:"unStakeFreezeDuration"`   // The freeze period of the withdrew Staking (unit is  epochs)
+	RewardPerMaxChangeRange uint16   `json:"rewardPerMaxChangeRange"` // The maximum amount of commission reward ratio that can be modified each time
+	RewardPerChangeInterval uint16   `json:"rewardPerChangeInterval"` // The interval for each modification of the commission reward ratio (unit: epoch)
 }
 
-type slashingConfig struct {
+type SlashingConfig struct {
 	SlashFractionDuplicateSign uint32 `json:"slashFractionDuplicateSign"` // Proportion of fines when double signing occurs
 	DuplicateSignReportReward  uint32 `json:"duplicateSignReportReward"`  // The percentage of rewards for whistleblowers, calculated from the penalty
 	MaxEvidenceAge             uint32 `json:"maxEvidenceAge"`             // Validity period of evidence (unit is  epochs)
@@ -120,7 +119,7 @@ type slashingConfig struct {
 	ZeroProduceFreezeDuration  uint64 `json:"zeroProduceFreezeDuration"`  // Number of settlement cycles frozen after zero block penalty (unit is epochs)
 }
 
-type governanceConfig struct {
+type GovernanceConfig struct {
 	VersionProposalVoteDurationSeconds uint64 `json:"versionProposalVoteDurationSeconds"` // voting duration, it will count into Consensus-Round.
 	VersionProposalSupportRate         uint64 `json:"versionProposalSupportRate"`         // the version proposal will pass if the support rate exceeds this value.
 	TextProposalVoteDurationSeconds    uint64 `json:"textProposalVoteDurationSeconds"`    // voting duration, it will count into Consensus-Round.
@@ -133,18 +132,18 @@ type governanceConfig struct {
 	ParamProposalSupportRate           uint64 `json:"paramProposalSupportRate"`           // the param proposal will pass if the vote support reaches this value.
 }
 
-type rewardConfig struct {
+type RewardConfig struct {
 	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
 	BubbleFoundationYear         uint32 `json:"bubbleFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
 	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
 
-type restrictingConfig struct {
+type RestrictingConfig struct {
 	MinimumRelease *big.Int `json:"minimumRelease"` //The minimum number of Restricting release in one epoch
 }
 
-type innerAccount struct {
+type InnerAccount struct {
 	// Account of BubbleFoundation
 	BubbleFundAccount common.Address `json:"bubbleFundAccount"`
 	BubbleFundBalance *big.Int       `json:"bubbleFundBalance"`
@@ -155,21 +154,21 @@ type innerAccount struct {
 
 // total
 type EconomicModel struct {
-	Common      commonConfig      `json:"common"`
-	Staking     stakingConfig     `json:"staking"`
-	Slashing    slashingConfig    `json:"slashing"`
-	Gov         governanceConfig  `json:"gov"`
-	Reward      rewardConfig      `json:"reward"`
-	Restricting restrictingConfig `json:"restricting"`
-	InnerAcc    innerAccount      `json:"innerAcc"`
+	Common      CommonConfig      `json:"common"`
+	Staking     StakingConfig     `json:"staking"`
+	Slashing    SlashingConfig    `json:"slashing"`
+	Gov         GovernanceConfig  `json:"gov"`
+	Reward      RewardConfig      `json:"reward"`
+	Restricting RestrictingConfig `json:"restricting"`
+	InnerAcc    InnerAccount      `json:"innerAcc"`
 }
 
 // When the chain is started, if new parameters are added, add them to this structure
 type EconomicModelExtend struct {
-	Staking stakingConfigExtend `json:"staking"`
+	Staking StakingConfigExtend `json:"staking"`
 }
 
-type stakingConfigExtend struct {
+type StakingConfigExtend struct {
 	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
 }
 
@@ -241,14 +240,14 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	switch netId {
 	case DefaultMainNet:
 		ec = &EconomicModel{
-			Common: commonConfig{
+			Common: CommonConfig{
 				MaxEpochMinutes:     uint64(360), // 6 hours
 				NodeBlockTimeWindow: uint64(20),  // 20 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(43),
 				AdditionalCycleTime: uint64(525960),
 			},
-			Staking: stakingConfig{
+			Staking: StakingConfig{
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(201),
@@ -256,7 +255,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
-			Slashing: slashingConfig{
+			Slashing: SlashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
@@ -265,7 +264,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ZeroProduceNumberThreshold: uint16(1),
 				ZeroProduceFreezeDuration:  uint64(56),
 			},
-			Gov: governanceConfig{
+			Gov: GovernanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposalSupportRate:       6670,
@@ -278,16 +277,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalVoteRate:            5000,
 				ParamProposalSupportRate:         6670,
 			},
-			Reward: rewardConfig{
+			Reward: RewardConfig{
 				NewBlockRate:                 50,
 				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
 			},
-			Restricting: restrictingConfig{
+			Restricting: RestrictingConfig{
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
-			InnerAcc: innerAccount{
+			InnerAcc: InnerAccount{
 				BubbleFundAccount: common.HexToAddress("0xF1A63d79E43dEA9AE0715FDE95d59D34ce756264"),
 				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x48718b2C338FBa5A8DB2290d01183e0aE36eE5F4"),
@@ -295,20 +294,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 		ece = &EconomicModelExtend{
-			Staking: stakingConfigExtend{
+			Staking: StakingConfigExtend{
 				UnDelegateFreezeDuration: 56,
 			},
 		}
 	case DefaultTestNet:
 		ec = &EconomicModel{
-			Common: commonConfig{
+			Common: CommonConfig{
 				MaxEpochMinutes:     uint64(360), // 6 hours
 				NodeBlockTimeWindow: uint64(20),  // 20 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(25),
 				AdditionalCycleTime: uint64(525960),
 			},
-			Staking: stakingConfig{
+			Staking: StakingConfig{
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(101),
@@ -316,7 +315,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
-			Slashing: slashingConfig{
+			Slashing: SlashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
@@ -325,7 +324,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ZeroProduceNumberThreshold: uint16(1),
 				ZeroProduceFreezeDuration:  uint64(1),
 			},
-			Gov: governanceConfig{
+			Gov: GovernanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposalSupportRate:       6670,
@@ -338,16 +337,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalVoteRate:            5000,
 				ParamProposalSupportRate:         6670,
 			},
-			Reward: rewardConfig{
+			Reward: RewardConfig{
 				NewBlockRate:                 50,
 				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 20,
 			},
-			Restricting: restrictingConfig{
+			Restricting: RestrictingConfig{
 				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
-			InnerAcc: innerAccount{
+			InnerAcc: InnerAccount{
 				BubbleFundAccount: common.HexToAddress("0x01C71CecaeFF76b78325577E6a74A94D24A86BE2"),
 				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x02CddA362DCA508709a651fDe1513b22D3C2a4e5"),
@@ -355,20 +354,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 		ece = &EconomicModelExtend{
-			Staking: stakingConfigExtend{
+			Staking: StakingConfigExtend{
 				UnDelegateFreezeDuration: 2,
 			},
 		}
 	case DefaultUnitTestNet:
 		ec = &EconomicModel{
-			Common: commonConfig{
+			Common: CommonConfig{
 				MaxEpochMinutes:     uint64(6),  // 6 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(4),
 				AdditionalCycleTime: uint64(28),
 			},
-			Staking: stakingConfig{
+			Staking: StakingConfig{
 				StakeThreshold:          new(big.Int).Set(StakeLowerLimit),
 				OperatingThreshold:      new(big.Int).Set(DelegateLowerLimit),
 				MaxValidators:           uint64(25),
@@ -376,7 +375,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				RewardPerMaxChangeRange: uint16(500),
 				RewardPerChangeInterval: uint16(10),
 			},
-			Slashing: slashingConfig{
+			Slashing: SlashingConfig{
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(1),
@@ -385,7 +384,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ZeroProduceNumberThreshold: uint16(2),
 				ZeroProduceFreezeDuration:  uint64(1),
 			},
-			Gov: governanceConfig{
+			Gov: GovernanceConfig{
 				VersionProposalVoteDurationSeconds: uint64(160),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposalSupportRate:       6670,
@@ -398,16 +397,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ParamProposalVoteRate:            5000,
 				ParamProposalSupportRate:         6670,
 			},
-			Reward: rewardConfig{
+			Reward: RewardConfig{
 				NewBlockRate:                 50,
 				BubbleFoundationYear:         10,
 				IncreaseIssuanceRatio:        250,
 				TheNumberOfDelegationsReward: 2,
 			},
-			Restricting: restrictingConfig{
+			Restricting: RestrictingConfig{
 				MinimumRelease: new(big.Int).Set(FloorMinimumRelease),
 			},
-			InnerAcc: innerAccount{
+			InnerAcc: InnerAccount{
 				BubbleFundAccount: common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821"),
 				BubbleFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xC1f330B214668beAc2E6418Dd651B09C759a4Bf5"),
@@ -415,7 +414,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 		ece = &EconomicModelExtend{
-			Staking: stakingConfigExtend{
+			Staking: StakingConfigExtend{
 				UnDelegateFreezeDuration: 2,
 			},
 		}
@@ -887,8 +886,8 @@ func CDFBalance() *big.Int {
 func EconomicString() string {
 	if nil != ec {
 		type stakingConfigJson struct {
-			stakingConfig
-			stakingConfigExtend
+			StakingConfig
+			StakingConfigExtend
 		}
 		type EconomicModelJson struct {
 			EconomicModel
@@ -897,8 +896,8 @@ func EconomicString() string {
 		emJson := &EconomicModelJson{
 			EconomicModel: *ec,
 			Staking: stakingConfigJson{
-				stakingConfig:       ec.Staking,
-				stakingConfigExtend: ece.Staking,
+				StakingConfig:       ec.Staking,
+				StakingConfigExtend: ece.Staking,
 			},
 		}
 		ecByte, _ := json.Marshal(emJson)
