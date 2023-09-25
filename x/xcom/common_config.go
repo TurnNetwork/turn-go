@@ -101,12 +101,13 @@ type commonConfig struct {
 }
 
 type stakingConfig struct {
-	StakeThreshold          *big.Int `json:"stakeThreshold"`          // The Staking minimum threshold allowed
-	OperatingThreshold      *big.Int `json:"operatingThreshold"`      // The (incr, decr) delegate or incr staking minimum threshold allowed
-	MaxValidators           uint64   `json:"maxValidators"`           // The epoch (billing cycle) validators count
-	UnStakeFreezeDuration   uint64   `json:"unStakeFreezeDuration"`   // The freeze period of the withdrew Staking (unit is  epochs)
-	RewardPerMaxChangeRange uint16   `json:"rewardPerMaxChangeRange"` // The maximum amount of commission reward ratio that can be modified each time
-	RewardPerChangeInterval uint16   `json:"rewardPerChangeInterval"` // The interval for each modification of the commission reward ratio (unit: epoch)
+	StakeThreshold           *big.Int `json:"stakeThreshold"`           // The Staking minimum threshold allowed
+	OperatingThreshold       *big.Int `json:"operatingThreshold"`       // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators            uint64   `json:"maxValidators"`            // The epoch (billing cycle) validators count
+	UnStakeFreezeDuration    uint64   `json:"unStakeFreezeDuration"`    // The freeze period of the withdrew Staking (unit is  epochs)
+	RewardPerMaxChangeRange  uint16   `json:"rewardPerMaxChangeRange"`  // The maximum amount of commission reward ratio that can be modified each time
+	RewardPerChangeInterval  uint16   `json:"rewardPerChangeInterval"`  // The interval for each modification of the commission reward ratio (unit: epoch)
+	UnDelegateFreezeDuration uint64   `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
 }
 
 type slashingConfig struct {
@@ -193,6 +194,9 @@ var (
 
 // Getting the global EconomicModel single instance
 func GetEc(netId int8) *EconomicModel {
+	if ec != nil {
+		return ec
+	}
 	modelOnce.Do(func() {
 		ec = getDefaultEMConfig(netId)
 	})

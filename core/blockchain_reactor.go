@@ -22,9 +22,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 	"sync"
+
+	"github.com/bubblenet/bubble/x/bubble"
 
 	"github.com/bubblenet/bubble/common"
 	cvm "github.com/bubblenet/bubble/common/vm"
@@ -165,7 +166,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			}
 			CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to process CreateBubbleTask task")
+				log.Error("blockchain_reactor failed to receive CreateBubbleTask task")
 				continue
 			}
 			// handle task

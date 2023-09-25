@@ -1,7 +1,8 @@
 package bubble
 
 import (
-	"encoding/json"
+	"math/big"
+
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/math"
@@ -11,7 +12,6 @@ import (
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
-	"math/big"
 )
 
 // bubble chain size
@@ -35,7 +35,9 @@ const (
 type BubTxType uint
 
 const (
-	StakingToken  BubTxType = iota // StakingToken transaction type
+	CreateBubble  BubTxType = iota // createBubble transaction type
+	ReleaseBubble                  // releaseBubble transaction type
+	StakingToken                   // StakingToken transaction type
 	WithdrewToken                  // WithdrewToken transaction type
 	SettleBubble                   // SettleBubble transaction type
 )
@@ -105,6 +107,7 @@ type MintTokenTask struct {
 }
 
 type CreateBubbleTask struct {
+	BubInfo  *Bubble
 	BubbleID *big.Int
 	TxHash   common.Hash // The transaction hash of the createBubbleTask
 }
@@ -156,9 +159,4 @@ type GenesisL2 struct {
 	Number     math.HexOrDecimal64 `json:"number"`
 	GasUsed    math.HexOrDecimal64 `json:"gasUsed"`
 	ParentHash common.Hash         `json:"parentHash"`
-}
-
-// MarshalJSON marshals GenesisL2 to JSON.
-func (g *GenesisL2) MarshalJSON() ([]byte, error) {
-	return json.Marshal(g)
 }
