@@ -40,6 +40,7 @@ import (
 
 const (
 	MainChainSysAddr = "0x2000000000000000000000000000000000000002" // Main chain system contract address
+	MainSettleCode   = 8005
 )
 
 var (
@@ -80,7 +81,7 @@ func genSettleTxRlpData(settleTask *token.SettleTask) []byte {
 	var params [][]byte
 	params = make([][]byte, 0)
 	// Settlement function encoding
-	settleFuncType := uint16(5)
+	settleFuncType := uint16(MainSettleCode)
 	fnType, _ := rlp.EncodeToBytes(settleFuncType)
 	params = append(params, fnType)
 
@@ -103,7 +104,7 @@ func genSettleTxRlpData(settleTask *token.SettleTask) []byte {
 	return nil
 }
 
-//HandleSettleTask Handle settlement tasks
+// HandleSettleTask Handle settlement tasks
 func (tkp *TokenPlugin) HandleSettleTask(settleTask *token.SettleTask) ([]byte, error) {
 	if nil == settleTask {
 		return nil, errors.New("the data in the settlement task is empty")

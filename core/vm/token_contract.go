@@ -308,7 +308,7 @@ func (tkc *TokenContract) settleBubble() ([]byte, error) {
 	blockNumber := tkc.Evm.Context.BlockNumber
 	// state := tkc.Evm.StateDB
 	blockHash := tkc.Evm.Context.BlockHash
-	log.Debug("Call mintToken of TokenContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+	log.Debug("Call settleBubble", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "caller", from.Hex())
 
 	// Calculating gas

@@ -104,6 +104,14 @@ func runBubbleCall(tkContract *TokenContract, params [][]byte, title string, ver
 	t.Logf("%s the result: %v\n", title, string(res))
 }
 
+func TestRpc(t *testing.T) {
+	res := "0x7b22436f6465223a3631303030302c22526574223a224661696c656420746f206f627461696e20746865207375622d636861696e207472616e73616374696f6e20686173683a736e617073686f7444423a206e6f7420666f756e64227d"
+	var r xcom.Result
+	result, _ := hexutil.Decode(res)
+	json.Unmarshal(result, &r)
+	t.Logf("L2TxHash:%v", r.Ret)
+}
+
 func newOneBlock(parentHash common.Hash, blockNumber *uint64) common.Hash {
 	header := types.Header{
 		Number: big.NewInt(int64(*blockNumber)),
