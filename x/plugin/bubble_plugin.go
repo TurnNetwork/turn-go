@@ -424,26 +424,10 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	if err != nil {
 		return err
 	}
-	// release the operatorL2 nodes to the DB
-	for _, operator := range bub.Basics.OperatorsL2 {
-		addr, err := xutil.NodeId2Addr(operator.NodeId)
-		if err != nil {
-			return err
-		}
-		// check whether the node has been withdrawn
-		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if can == nil || err == snapshotdb.ErrNotFound {
-			break
-		}
-		if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, can); nil != err {
-			log.Error("Failed to SetOperatorStore on ReleaseBubble: Store Operator info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", operator.NodeId.String(), "err", err)
-			return err
-		}
-	}
+
 	// release the committeeL2 nodes to the DB
-	for _, committee := range bub.Basics.MicroNodes {
-		addr, err := xutil.NodeId2Addr(committee.NodeId)
+	for _, microNode := range bub.Basics.MicroNodes {
+		addr, err := xutil.NodeId2Addr(microNode.NodeId)
 		if err != nil {
 			return err
 		}
@@ -452,11 +436,35 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		if can == nil || err == snapshotdb.ErrNotFound {
 			break
 		}
-		if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
-			log.Error("Failed to SetCandidateStore on ReleaseBubble: Store Candidate info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", committee.NodeId.String(), "err", err)
-			return err
+
+		if microNode.IsOperator {
+			Operator, _ := bp.stk2Plugin.db.GetOperatorStore(blockHash, addr)
+			if Operator != nil {
+				log.Error("Failed to SetOperatorStore on ReleaseBubble: Operator info is exist",
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String())
+				return errors.New("failed to SetOperatorStore on ReleaseBubble: Operator info is exist")
+			}
+
+			if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, can); nil != err {
+				log.Error("Failed to SetOperatorStore on ReleaseBubble: Store Operator info is failed",
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err)
+				return err
+			}
+		} else {
+			Committee, _ := bp.stk2Plugin.db.GetCommitteeStore(blockHash, addr)
+			if Committee != nil {
+				log.Error("Failed to SetCommitteeStore on ReleaseBubble: Committee info is exist",
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String())
+				return errors.New("failed to SetCommitteeStore on ReleaseBubble: Committee info is exist")
+			}
+
+			if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
+				log.Error("Failed to SetCandidateStore on ReleaseBubble: Store Candidate info is failed",
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err)
+				return err
+			}
 		}
+
 	}
 
 	if err := bp.db.StoreBubState(blockHash, bubbleID, bubble.ReleasedStatus); err != nil {
