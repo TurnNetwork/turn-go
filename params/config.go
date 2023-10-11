@@ -106,9 +106,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), nil, GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -134,10 +134,10 @@ type ChainConfig struct {
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
-	Clique *CliqueConfig `json:"clique,omitempty"`
-	Cbft   *CbftConfig   `json:"cbft,omitempty"`
-
-	GenesisVersion uint32 `json:"genesisVersion"`
+	Clique         *CliqueConfig `json:"clique,omitempty"`
+	Cbft           *CbftConfig   `json:"cbft,omitempty"`
+	Frps           *FrpsConfig   `json:"frps,omitempty"`
+	GenesisVersion uint32        `json:"genesisVersion"`
 }
 
 // OperatorInfo Includes the operator's node ID, rpc url, operation address,
@@ -185,6 +185,21 @@ type CbftNode struct {
 type initNode struct {
 	Enode     string
 	BlsPubkey string
+}
+
+// AuthConfig frp server authenticate struct:Enable token authentication
+type AuthConfig struct {
+	Method       string // authentication method
+	HeartBeats   bool   // authenticate heartbeats
+	NewWorkConns bool   // authenticate_new_work_conns
+	Token        string // token authentication
+}
+
+// FrpsConfig frp server configuration structure
+type FrpsConfig struct {
+	ServerIP   string      // frp server ip
+	ServerPort uint16      // frp server port
+	Auth       *AuthConfig // Enable authentication mode
 }
 
 type CbftConfig struct {

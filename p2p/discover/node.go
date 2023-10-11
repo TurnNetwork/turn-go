@@ -242,6 +242,11 @@ func (n NodeID) String() string {
 	return fmt.Sprintf("%x", n[:])
 }
 
+// ShortString Get the first four bytes of nodeid and convert them to a hexadecimal string.
+func (n NodeID) ShortString() string {
+	return hex.EncodeToString(n[:4])
+}
+
 // The Go syntax representation of a NodeID is a call to HexID.
 func (n NodeID) GoString() string {
 	return fmt.Sprintf("discover.HexID(\"%x\")", n[:])

@@ -18,10 +18,14 @@
 package p2p
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"github.com/bubblenet/bubble/p2p/rlpx"
+	"github.com/fatedier/frp/client"
+	"github.com/fatedier/frp/pkg/config"
 	"math/big"
 	"math/rand"
 	"net"
@@ -138,6 +142,9 @@ type Config struct {
 	// ListenAddr field will be updated with the actual address when
 	// the server is started.
 	ListenAddr string
+
+	// frp configuration file path to record frp configuration information
+	FrpFilePath string
 
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
@@ -574,12 +581,20 @@ func (srv *Server) Start() (err error) {
 	for _, p := range srv.Protocols {
 		srv.ourHandshake.Caps = append(srv.ourHandshake.Caps, p.cap())
 	}
+
 	// listen/dial
 	if srv.ListenAddr != "" {
 		if err := srv.startListening(); err != nil {
 			return err
 		}
+		// Start frp service (decide whether to start frp service according to whether there is frp configuration file path parameter)
+		if common.FileExist(srv.FrpFilePath) {
+			if err := srv.startFrp(srv.FrpFilePath); err != nil {
+				return err
+			}
+		}
 	}
+
 	if srv.NoDial && srv.ListenAddr == "" {
 		srv.log.Warn("P2P server will be useless, neither dialing nor listening")
 	}
@@ -609,6 +624,26 @@ func (srv *Server) startListening() error {
 			srv.loopWG.Done()
 		}()
 	}
+	return nil
+}
+
+func (srv *Server) startFrp(cfgFile string) error {
+	cfg, pxyCfgs, visitorCfgs, err := config.ParseClientConfig(cfgFile)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	if cfgFile != "" {
+		log.Info("start frpc service for config file [%s]", cfgFile)
+		defer log.Info("frpc service for config file [%s] stopped", cfgFile)
+	}
+	svr, errRet := client.NewService(cfg, pxyCfgs, visitorCfgs, cfgFile)
+	if errRet != nil {
+		err = errRet
+		return err
+	}
+	go svr.Run(context.Background())
 	return nil
 }
 

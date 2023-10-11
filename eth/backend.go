@@ -18,10 +18,13 @@
 package eth
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math/big"
+	"net"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -195,7 +198,35 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
+	// Configuring frps
+	if nil != chainConfig && nil != chainConfig.Frps && nil != chainConfig.Cbft {
+		nodeCfg := stack.Config()
+		// Local node ID
+		nodeId := discover.PubkeyID(&nodeCfg.P2P.PrivateKey.PublicKey)
+		// 1.Assemble and generate the frpc profile
+		// 1.1 Create frp configuration file and assemble frp server configuration information and p2p listening information of local node
+		listenAddr := nodeCfg.P2P.ListenAddr
+		dataDir := nodeCfg.DataDir
+		err, file, writer, filePath := genFrpCfgFile(chainConfig.Frps, listenAddr, dataDir, nodeId)
+		defer file.Close()
+		if err != nil && nil != writer {
+			fmt.Println("failed to generate config file:", err)
+			return nil, err
+		}
 
+		for i := 0; i < len(chainConfig.Cbft.InitialNodes); i++ {
+			cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
+			// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
+			if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
+				err := addFrpVisitor(cbftNode, writer)
+				if nil != err {
+					return nil, err
+				}
+			}
+		}
+		// 2.Save the configuration file path to the node configuration
+		stack.Server().FrpFilePath = filePath
+	}
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
@@ -365,6 +396,105 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	stack.RegisterProtocols(eth.Protocols())
 	stack.RegisterLifecycle(eth)
 	return eth, nil
+}
+
+// Generate the frp profile
+func genFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId discover.NodeID) (error, *os.File, *bufio.Writer, string) {
+	// Create a new INI file
+	frpDir := dataDir + "/bubble/frp/"
+	if err := os.MkdirAll(frpDir, 0700); err != nil {
+		log.Error(fmt.Sprintf("Failed to create directory: %v", err))
+		return err, nil, nil, ""
+	}
+	fileName := "config.ini"
+	filePath := common.AbsolutePath(frpDir, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Error("failed to create Frp config file:", err)
+		return err, file, nil, filePath
+	}
+
+	if nil == frps {
+		log.Error("The frp server configuration is nil.")
+		return errors.New("The frp server configuration is nil"), file, nil, filePath
+	}
+
+	// Create a writer
+	writer := bufio.NewWriter(file)
+
+	// Write the frp server configuration
+	fmt.Fprintln(writer, "[common]")
+	fmt.Fprintln(writer, "server_addr =", frps.ServerIP)
+	fmt.Fprintln(writer, "server_port =", frps.ServerPort)
+	if nil != frps.Auth {
+		fmt.Fprintln(writer, "authentication_method =", frps.Auth.Method)
+		fmt.Fprintln(writer, "authenticate_heartbeats =", frps.Auth.HeartBeats)
+		fmt.Fprintln(writer, "authenticate_new_work_conns =", frps.Auth.NewWorkConns)
+		fmt.Fprintln(writer, "token =", frps.Auth.Token)
+	}
+	fmt.Fprintln(writer, "")
+
+	// Write the frp configuration that the node listens to
+	startIndex := strings.Index(listenAddr, ":")
+	if startIndex != -1 {
+		listenAddr = listenAddr[startIndex+1:]
+	}
+	shortKey := nodeId.ShortString()
+	nodeLabel := "[" + shortKey + "]"
+	fmt.Fprintln(writer, nodeLabel)
+	fmt.Fprintln(writer, "type = xtcp")
+	fmt.Fprintln(writer, "sk =", shortKey)
+	fmt.Fprintln(writer, "local_ip = 127.0.0.1")
+	fmt.Fprintln(writer, "local_port =", listenAddr)
+	fmt.Fprintln(writer, "use_encryption = false")
+	fmt.Fprintln(writer, "use_compression = false")
+	fmt.Fprintln(writer, "")
+
+	// Flush the buffer and write the data to the file
+	err = writer.Flush()
+	if err != nil {
+		fmt.Println("Failure to flush the buffer and write data to the file:", err)
+		return err, file, nil, filePath
+	}
+
+	return nil, file, writer, filePath
+}
+
+// Add the visitor entry to the frp configuration file
+func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
+	// Create a TCP listener that listens on a random local port
+	listener, err := net.Listen("tcp", "localhost:0")
+	defer listener.Close()
+	if err != nil {
+		log.Error("Failed to get an unused port:", err)
+		return err
+	}
+
+	// Get the local address of the listener
+	address := listener.Addr().(*net.TCPAddr)
+	// log.Debug("Available local address: %s:%d\n", address.IP.String(), address.Port)
+	// Set the p2p port number
+	cbftNode.UDP = uint16(address.Port)
+	cbftNode.TCP = uint16(address.Port)
+
+	visitorNode := cbftNode.ID.ShortString()
+	visitorLabel := "[" + visitorNode + "_visitor]"
+	fmt.Fprintln(writer, visitorLabel)
+	fmt.Fprintln(writer, "type = xtcp")
+	fmt.Fprintln(writer, "role = visitor")
+	fmt.Fprintln(writer, "server_name =", visitorNode)
+	fmt.Fprintln(writer, "sk =", visitorNode)
+	fmt.Fprintln(writer, "bind_addr = 127.0.0.1")
+	fmt.Fprintln(writer, "bind_port =", address.Port)
+	//fmt.Fprintln(writer, "use_encryption = false")
+	//fmt.Fprintln(writer, "use_compression = false")
+	fmt.Fprintln(writer, "")
+	err = writer.Flush()
+	if err != nil {
+		fmt.Println("Failure to flush the buffer and write data to the file:", err)
+		return err
+	}
+	return nil
 }
 
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
