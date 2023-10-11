@@ -783,17 +783,22 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 // HandleCreateBubbleTask Handle create bubble task
 func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
-	if task == nil || task.BubInfo == nil {
+	if task == nil {
 		log.Error("create bubble task is nil")
 		return errors.New("CreateBubbleTask is empty")
 	}
 
-	// bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
-	// if err != nil {
-	// 	log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
-	// 	return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
-	// }
-	bub := task.BubInfo
+	var bub *bubble.Bubble
+	var err error
+
+	// wait for blocks to be written to the db
+	time.Sleep(3 * time.Second)
+	bub, err = bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	if err != nil {
+		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
+		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+	}
+
 	genesisL2 := makeGenesisL2(bub)
 
 	args, err := json.Marshal(genesisL2)
@@ -860,6 +865,7 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 
 	for _, microNode := range bub.Basics.MicroNodes {
 		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId))
+		log.Debug("prepare to send ReleaseBubbleMsg", "ElectronURI", microNode.ElectronURI, "req", req)
 
 		// send and retry CreateBubbleTask
 		for i := 0; i < 3; i++ {
