@@ -792,14 +792,8 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 	var err error
 
 	// wait for blocks to be written to the db
-	for i := 0; i < 4; i++ {
-		bub, err = bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
-		if bub != nil && err == nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
+	time.Sleep(3 * time.Second)
+	bub, err = bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
