@@ -85,9 +85,9 @@ func (bcr *BlockChainReactor) Start(mode string) {
 	if mode == common.DPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
-		bcr.mintTokenTaskSub = bcr.eventMux.Subscribe(bubble.MintTokenTask{})
-		bcr.createBubbleTaskSub = bcr.eventMux.Subscribe(bubble.CreateBubbleTask{})
-		bcr.releaseBubbleTaskSub = bcr.eventMux.Subscribe(bubble.ReleaseBubbleTask{})
+		bcr.mintTokenTaskSub = bcr.eventMux.BufferSubscribe(1000, bubble.MintTokenTask{})
+		bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
+		bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
 		// start the loop
 		go bcr.loop()
 		go bcr.handleTask()
