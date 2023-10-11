@@ -78,6 +78,34 @@ func (mux *TypeMux) Subscribe(types ...interface{}) *TypeMuxSubscription {
 	return sub
 }
 
+func (mux *TypeMux) BufferSubscribe(bufferSize int, types ...interface{}) *TypeMuxSubscription {
+	sub := newBufferSub(mux, bufferSize)
+	mux.mutex.Lock()
+	defer mux.mutex.Unlock()
+	if mux.stopped {
+		// set the status to closed so that calling Unsubscribe after this
+		// call will short circuit.
+		sub.closed = true
+		close(sub.postC)
+	} else {
+		if mux.subm == nil {
+			mux.subm = make(map[reflect.Type][]*TypeMuxSubscription)
+		}
+		for _, t := range types {
+			rtyp := reflect.TypeOf(t)
+			oldsubs := mux.subm[rtyp]
+			if find(oldsubs, sub) != -1 {
+				panic(fmt.Sprintf("event: duplicate type %s in Subscribe", rtyp))
+			}
+			subs := make([]*TypeMuxSubscription, len(oldsubs)+1)
+			copy(subs, oldsubs)
+			subs[len(oldsubs)] = sub
+			mux.subm[rtyp] = subs
+		}
+	}
+	return sub
+}
+
 // Post sends an event to all receivers registered for the given type.
 // It returns ErrMuxClosed if the mux has been stopped.
 func (mux *TypeMux) Post(ev interface{}) error {
@@ -162,6 +190,17 @@ type TypeMuxSubscription struct {
 
 func newsub(mux *TypeMux) *TypeMuxSubscription {
 	c := make(chan *TypeMuxEvent)
+	return &TypeMuxSubscription{
+		mux:     mux,
+		created: time.Now(),
+		readC:   c,
+		postC:   c,
+		closing: make(chan struct{}),
+	}
+}
+
+func newBufferSub(mux *TypeMux, bufferSize int) *TypeMuxSubscription {
+	c := make(chan *TypeMuxEvent, bufferSize)
 	return &TypeMuxSubscription{
 		mux:     mux,
 		created: time.Now(),
