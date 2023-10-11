@@ -860,6 +860,7 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 
 	for _, microNode := range bub.Basics.MicroNodes {
 		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId))
+		log.Debug("prepare to send ReleaseBubbleMsg", "ElectronURI", microNode.ElectronURI, "req", req)
 
 		// send and retry CreateBubbleTask
 		for i := 0; i < 3; i++ {
