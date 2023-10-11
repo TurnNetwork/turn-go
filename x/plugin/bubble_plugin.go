@@ -783,18 +783,13 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 // HandleCreateBubbleTask Handle create bubble task
 func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
-	if task == nil || task.BubInfo == nil {
+	if task == nil || &task.BubInfo == nil {
 		log.Error("create bubble task is nil")
 		return errors.New("CreateBubbleTask is empty")
 	}
 
-	// bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
-	// if err != nil {
-	// 	log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
-	// 	return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
-	// }
 	bub := task.BubInfo
-	genesisL2 := makeGenesisL2(bub)
+	genesisL2 := makeGenesisL2(&bub)
 
 	args, err := json.Marshal(genesisL2)
 	if err != nil {
