@@ -175,7 +175,7 @@ func (bcr *BlockChainReactor) handleTask() {
 				log.Error("blockchain_reactor failed to process CreateBubbleTask task")
 				// TODO: write the failed task back into the source channel
 			}
-			log.Info("process CreateBubbleTask succeeded, tx hash:", CreateBubbleTask.TxHash)
+			log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
 		case msg := <-bcr.releaseBubbleTaskSub.Chan():
 			if msg == nil {
 				continue
@@ -191,7 +191,7 @@ func (bcr *BlockChainReactor) handleTask() {
 				log.Error("blockchain_reactor failed to process ReleaseBubbleTask task")
 				// TODO: write the failed task back into the source channel
 			}
-			log.Info("process ReleaseBubbleTask succeeded, tx hash:", ReleaseBubbleTask.TxHash)
+			log.Info("process ReleaseBubbleTask succeeded", "tx hash", ReleaseBubbleTask.TxHash)
 		}
 	}
 }
