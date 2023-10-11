@@ -213,8 +213,12 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			fmt.Println("failed to generate config file:", err)
 			return nil, err
 		}
-
-		for i := 0; i < len(chainConfig.Cbft.InitialNodes); i++ {
+		// The frp configuration is initialized according to the set maximum number of peer connections
+		maxCount := len(chainConfig.Cbft.InitialNodes)
+		if maxCount > nodeCfg.P2P.MaxPeers {
+			maxCount = nodeCfg.P2P.MaxPeers
+		}
+		for i := 0; i < maxCount; i++ {
 			cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
 			// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
 			if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
