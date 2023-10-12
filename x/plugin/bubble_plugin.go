@@ -617,7 +617,8 @@ func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) err
 
 // PostReleaseBubbleEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) error {
-	if err := bp.eventMux.Post(task); nil != err {
+	log.Debug("PostCreateBubbleEvent", *task)
+	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post ReleaseBubble task failed", "err", err)
 		return err
 	}
