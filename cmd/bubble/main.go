@@ -187,8 +187,6 @@ var (
 	}
 	frpsFlags = []cli.Flag{
 		utils.FrpsFlag,
-		utils.FrpsPathFlag,
-		utils.FrpsHostFlag,
 	}
 )
 

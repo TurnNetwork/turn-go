@@ -230,8 +230,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "Frps",
 		Flags: []cli.Flag{
 			utils.FrpsFlag,
-			utils.FrpsPathFlag,
-			utils.FrpsHostFlag,
 		},
 	},
 	{

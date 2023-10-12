@@ -644,14 +644,6 @@ var (
 		Name:  "frps",
 		Usage: "Enable the frps service",
 	}
-	FrpsPathFlag = cli.StringFlag{
-		Name:  "frps.filePath",
-		Usage: "frps profile path",
-	}
-	FrpsHostFlag = cli.StringFlag{
-		Name:  "frps.host",
-		Usage: "The local ip address that the frps service listens to, used when no configuration file is specified, and other parameters use default values",
-	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1234,14 +1226,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 func SetFrpsConfig(ctx *cli.Context, stack *node.Node) {
 	if ctx.GlobalIsSet(FrpsFlag.Name) {
 		stack.Server().FrpsFlag = ctx.GlobalBool(FrpsFlag.Name)
-	}
-
-	if ctx.GlobalIsSet(FrpsPathFlag.Name) {
-		stack.Server().FrpsFilePath = ctx.GlobalString(FrpsPathFlag.Name)
-	}
-
-	if ctx.GlobalIsSet(FrpsHostFlag.Name) {
-		stack.Server().FrpsHost = ctx.GlobalString(FrpsHostFlag.Name)
 	}
 }
 
