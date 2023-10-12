@@ -154,7 +154,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, bubbleConfig) {
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-
+	utils.SetFrpsConfig(ctx, stack)
 	// pass on the rpc port to mpc pool conf.
 	//cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
 
