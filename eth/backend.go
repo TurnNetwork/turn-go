@@ -98,6 +98,10 @@ type Ethereum struct {
 
 // Generate the frps profile
 func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, string) {
+	if nil == frps {
+		log.Error("The frp server configuration is nil.")
+		return errors.New("The frp server configuration is nil"), nil, ""
+	}
 	// Create a new INI file
 	frpDir := dataDir + "/bubble/frp/"
 	if err := os.MkdirAll(frpDir, 0700); err != nil {
@@ -108,13 +112,8 @@ func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, s
 	filePath := common.AbsolutePath(frpDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
-		log.Error("failed to create Frp config file:", err)
+		log.Error("failed to create Frps config file:", err)
 		return err, file, filePath
-	}
-
-	if nil == frps {
-		log.Error("The frp server configuration is nil.")
-		return errors.New("The frp server configuration is nil"), file, filePath
 	}
 
 	// Create a writer
@@ -122,8 +121,8 @@ func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, s
 
 	// Write the frp server configuration
 	fmt.Fprintln(writer, "[common]")
-	fmt.Fprintln(writer, "server_addr =", frps.ServerIP)
-	fmt.Fprintln(writer, "server_port =", frps.ServerPort)
+	// fmt.Fprintln(writer, "bind_addr =", frps.ServerIP)
+	fmt.Fprintln(writer, "bind_port =", frps.ServerPort)
 	if nil != frps.Auth {
 		fmt.Fprintln(writer, "authentication_method =", frps.Auth.Method)
 		fmt.Fprintln(writer, "authenticate_heartbeats =", frps.Auth.HeartBeats)
@@ -252,13 +251,8 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	// Handle the frps configuration
 	p2pServer := stack.Server()
-	if p2pServer.FrpsFlag && "" == p2pServer.FrpsFilePath {
-		if "" == p2pServer.FrpsHost {
-			log.Error("Error command-line: frps.host is required.")
-			return nil, errors.New("Error command-line: frps.host is required")
-		}
+	if p2pServer.FrpsFlag {
 		frpsCfg := params.DefaultFrpsCfg
-		frpsCfg.ServerIP = p2pServer.FrpsHost
 		// Create and generate configuration files
 		dataDir := stack.Config().DataDir
 		err, file, filePath := genFrpsCfgFile(frpsCfg, dataDir)

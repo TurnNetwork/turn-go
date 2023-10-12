@@ -146,8 +146,6 @@ type Config struct {
 	FrpsFlag bool
 	// frp server configuration file path to record frp configuration information
 	FrpsFilePath string
-	// Manually specify the ip for the frps to listen to
-	FrpsHost string
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
 	// Internet.

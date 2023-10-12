@@ -148,7 +148,7 @@ var (
 	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
 
 	// DefaultFrpsCfg Default frps configuration
-	DefaultFrpsCfg = &FrpsConfig{"", 7000, &AuthConfig{"token", true, true, "12345678_"}}
+	DefaultFrpsCfg = &FrpsConfig{"0.0.0.0", 7000, &AuthConfig{"token", true, true, "12345678_"}}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
