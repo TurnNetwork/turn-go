@@ -116,7 +116,6 @@ func (bc *BubbleContract) createBubble() ([]byte, error) {
 
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.CreateBubbleTask{
-		BubInfo:  *bub,
 		BubbleID: bub.Basics.BubbleId,
 		TxHash:   txHash,
 	}
