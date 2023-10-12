@@ -166,14 +166,15 @@ func (bcr *BlockChainReactor) handleTask() {
 			}
 			CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to receive CreateBubbleTask task")
+				log.Error("blockchain_reactor failed to receive CreateBubbleTask")
 				continue
 			}
 			// handle task
 			err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process CreateBubbleTask task")
+				log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
 				// TODO: write the failed task back into the source channel
+				continue
 			}
 			log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
 		case msg := <-bcr.releaseBubbleTaskSub.Chan():
@@ -182,14 +183,15 @@ func (bcr *BlockChainReactor) handleTask() {
 			}
 			ReleaseBubbleTask, ok := msg.Data.(bubble.ReleaseBubbleTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask task")
+				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
 				continue
 			}
 			// handle task
 			err := plugin.BubbleInstance().HandleReleaseBubbleTask(&ReleaseBubbleTask)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask task")
+				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
 				// TODO: write the failed task back into the source channel
+				continue
 			}
 			log.Info("process ReleaseBubbleTask succeeded", "tx hash", ReleaseBubbleTask.TxHash)
 		}
