@@ -205,7 +205,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "", "", TxCreateStakingL2, common.NoErr)
 }
 
-func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail *string) ([]byte, error) {
+func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddress *common.Address, name, detail, rpcURI *string) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	blockNumber := stk.Evm.Context.BlockNumber
@@ -214,7 +214,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 
 	log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
-		"name", name, "detail", detail)
+		"name", name, "detail", detail, "rpcURI", rpcURI)
 
 	if !stk.Contract.UseGas(params.EditCandidateL2Gas) {
 		return nil, ErrOutOfGas
@@ -261,6 +261,9 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	}
 	if detail != nil {
 		canOld.Detail = *detail
+	}
+	if rpcURI != nil {
+		canOld.RPCURI = *rpcURI
 	}
 	if err := canOld.CheckDescription(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",

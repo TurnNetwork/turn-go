@@ -752,6 +752,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
 			ChainID: bub.Basics.BubbleId,
+			Frps:    params.DefaultFrpsCfg,
 			Cbft: &params.CbftConfig{
 				Period:        10000,
 				Amount:        10,
@@ -778,7 +779,17 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 		GasUsed:    0,
 		ParentHash: common.ZeroHash,
 	}
-
+	// The ip address of the frps is updated to be the ip address of the operating node of L1
+	rpcUrl := bub.Basics.OperatorsL1[0].RPC
+	index := strings.Index(rpcUrl, "//")
+	if index != -1 {
+		rpcUrl = rpcUrl[index+2:]
+	}
+	index = strings.Index(rpcUrl, ":")
+	if index != -1 {
+		rpcUrl = rpcUrl[0:index]
+	}
+	genesisL2.Config.Frps.ServerIP = rpcUrl
 	return genesisL2
 }
 
