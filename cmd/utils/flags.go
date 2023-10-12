@@ -639,6 +639,11 @@ var (
 		Name:  "op.prikey",
 		Usage: "Private key of main-chain operation address (pledged address of operation node)",
 	}
+	// FrpsFlag frp server parameters
+	FrpsFlag = cli.BoolFlag{
+		Name:  "frps",
+		Usage: "Enable the frps service",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1214,6 +1219,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Private key of main-chain operation address (pledged address of operation node)
 	if ctx.GlobalIsSet(OpPriKeyFlag.Name) {
 		cfg.OpPriKey = ctx.GlobalString(OpPriKeyFlag.Name)
+	}
+}
+
+// SetFrpsConfig Set the relevant configuration for frps.
+func SetFrpsConfig(ctx *cli.Context, stack *node.Node) {
+	if ctx.GlobalIsSet(FrpsFlag.Name) {
+		stack.Server().FrpsFlag = ctx.GlobalBool(FrpsFlag.Name)
 	}
 }
 
