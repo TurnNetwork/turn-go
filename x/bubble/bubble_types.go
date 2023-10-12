@@ -107,7 +107,6 @@ type MintTokenTask struct {
 }
 
 type CreateBubbleTask struct {
-	BubInfo  Bubble
 	BubbleID *big.Int
 	TxHash   common.Hash // The transaction hash of the createBubbleTask
 }
