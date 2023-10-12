@@ -227,6 +227,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "Frps",
+		Flags: []cli.Flag{
+			utils.FrpsFlag,
+		},
+	},
+	{
 		Name: "ALIASED (deprecated)",
 		Flags: append([]cli.Flag{
 			utils.LegacyRPCEnabledFlag,

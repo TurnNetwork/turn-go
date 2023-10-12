@@ -18,6 +18,7 @@
 package eth
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math/big"
@@ -93,6 +94,50 @@ type Ethereum struct {
 	p2pServer *p2p.Server
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+}
+
+// Generate the frps profile
+func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, string) {
+	if nil == frps {
+		log.Error("The frp server configuration is nil.")
+		return errors.New("The frp server configuration is nil"), nil, ""
+	}
+	// Create a new INI file
+	frpDir := dataDir + "/bubble/frp/"
+	if err := os.MkdirAll(frpDir, 0700); err != nil {
+		log.Error(fmt.Sprintf("Failed to create directory: %v", err))
+		return err, nil, ""
+	}
+	fileName := "config.ini"
+	filePath := common.AbsolutePath(frpDir, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Error("failed to create Frps config file:", err)
+		return err, file, filePath
+	}
+
+	// Create a writer
+	writer := bufio.NewWriter(file)
+
+	// Write the frp server configuration
+	fmt.Fprintln(writer, "[common]")
+	// fmt.Fprintln(writer, "bind_addr =", frps.ServerIP)
+	fmt.Fprintln(writer, "bind_port =", frps.ServerPort)
+	if nil != frps.Auth {
+		fmt.Fprintln(writer, "authentication_method =", frps.Auth.Method)
+		fmt.Fprintln(writer, "authenticate_heartbeats =", frps.Auth.HeartBeats)
+		fmt.Fprintln(writer, "authenticate_new_work_conns =", frps.Auth.NewWorkConns)
+		fmt.Fprintln(writer, "token =", frps.Auth.Token)
+	}
+
+	// Flush the buffer and write the data to the file
+	err = writer.Flush()
+	if err != nil {
+		fmt.Println("Failure to flush the buffer and write data to the file:", err)
+		return err, file, filePath
+	}
+
+	return nil, file, filePath
 }
 
 // New creates a new Ethereum object (including the
@@ -203,6 +248,22 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	log.Info("Initialised chain configuration", "config", chainConfig)
 	stack.SetP2pChainID(chainConfig.ChainID)
+
+	// Handle the frps configuration
+	p2pServer := stack.Server()
+	if p2pServer.FrpsFlag {
+		frpsCfg := params.DefaultFrpsCfg
+		// Create and generate configuration files
+		dataDir := stack.Config().DataDir
+		err, file, filePath := genFrpsCfgFile(frpsCfg, dataDir)
+		if err != nil || nil == file {
+			fmt.Println("failed to generate config file:", err)
+			return nil, err
+		}
+		defer file.Close()
+		// Save the configuration file path
+		p2pServer.FrpsFilePath = filePath
+	}
 
 	eth := &Ethereum{
 		config:            config,

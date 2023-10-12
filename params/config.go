@@ -146,6 +146,9 @@ var (
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+
+	// DefaultFrpsCfg Default frps configuration
+	DefaultFrpsCfg = &FrpsConfig{"0.0.0.0", 7000, &AuthConfig{"token", true, true, "12345678_"}}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -187,6 +190,21 @@ type InitNode struct {
 	Enode     string
 	BlsPubkey string
 	RPC       string
+}
+
+// AuthConfig frp server authenticate struct:Enable token authentication
+type AuthConfig struct {
+	Method       string // authentication method
+	HeartBeats   bool   // authenticate heartbeats
+	NewWorkConns bool   // authenticate_new_work_conns
+	Token        string // token authentication
+}
+
+// FrpsConfig frp server configuration structure
+type FrpsConfig struct {
+	ServerIP   string      // frp server ip
+	ServerPort uint16      // frp server port
+	Auth       *AuthConfig // Enable authentication mode
 }
 
 type CbftConfig struct {
