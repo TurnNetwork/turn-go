@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -200,42 +201,9 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 	// Configuring frps
 	if nil != chainConfig && nil != chainConfig.Frps && nil != chainConfig.Cbft {
-		nodeCfg := stack.Config()
-		// Local node ID
-		nodeId := discover.PubkeyID(&nodeCfg.P2P.PrivateKey.PublicKey)
-		// 1.Assemble and generate the frpc profile
-		// 1.1 Create frp configuration file and assemble frp server configuration information and p2p listening information of local node
-		listenAddr := nodeCfg.P2P.ListenAddr
-		dataDir := nodeCfg.DataDir
-		err, file, writer, filePath := genFrpCfgFile(chainConfig.Frps, listenAddr, dataDir, nodeId)
-		defer file.Close()
-		if err != nil && nil != writer {
-			fmt.Println("failed to generate config file:", err)
+		if err := genFrpCfgFile(stack, chainConfig); err != nil {
 			return nil, err
 		}
-		// The frp configuration is initialized according to the set maximum number of peer connections
-		maxCount := len(chainConfig.Cbft.InitialNodes)
-		if maxCount > nodeCfg.P2P.MaxPeers {
-			maxCount = nodeCfg.P2P.MaxPeers
-		}
-		for i := 0; i < maxCount; i++ {
-			cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
-			// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
-			if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
-				if err := addFrpVisitor(cbftNode, writer); nil != err {
-					return nil, err
-				}
-			}
-		}
-		// 1.3 Add the rpc proxy configuration
-		if 0 != nodeCfg.HTTPPort && 0 != nodeCfg.ProxyRpcPort {
-			if err := addFrpProxy(nodeCfg.HTTPPort, nodeCfg.ProxyRpcPort, "rpc_proxy", writer); nil != err {
-				return nil, err
-			}
-		}
-
-		// 2.Save the configuration file path to the node configuration
-		stack.Server().FrpFilePath = filePath
 	}
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
@@ -409,7 +377,61 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 }
 
 // Generate the frp profile
-func genFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId discover.NodeID) (error, *os.File, *bufio.Writer, string) {
+func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
+	nodeCfg := stack.Config()
+	// Local node ID
+	nodeId := discover.PubkeyID(&nodeCfg.P2P.PrivateKey.PublicKey)
+	// 1.Assemble and generate the frpc profile
+	// 1.1 Create frp configuration file and assemble frp server configuration information and p2p listening information of local node
+	listenAddr := nodeCfg.P2P.ListenAddr
+	dataDir := nodeCfg.DataDir
+	err, file, writer, filePath := newFrpCfgFile(chainConfig.Frps, listenAddr, dataDir, nodeId)
+	defer file.Close()
+	if err != nil && nil != writer {
+		fmt.Println("failed to generate config file:", err)
+		return err
+	}
+	// The frp configuration is initialized according to the set maximum number of peer connections
+	maxCount := len(chainConfig.Cbft.InitialNodes)
+	if maxCount > nodeCfg.P2P.MaxPeers {
+		maxCount = nodeCfg.P2P.MaxPeers
+	}
+	// Gets the allowed port range
+	beginPort := 0
+	startPort := 0
+	endPort := 0
+	if "" != nodeCfg.AllowPorts {
+		if err := getAllowPorts(nodeCfg.AllowPorts, &startPort, &endPort); err != nil {
+			return err
+		}
+		beginPort = startPort
+	}
+	for i := 0; i < maxCount; i++ {
+		cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
+		// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
+		if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
+			if err := addFrpVisitor(cbftNode, writer, &startPort, &endPort); nil != err {
+				return err
+			}
+			if startPort > endPort {
+				startPort = beginPort
+			}
+		}
+	}
+	// 1.3 Add the rpc proxy configuration
+	if 0 != nodeCfg.HTTPPort && 0 != nodeCfg.ProxyRpcPort {
+		if err := addFrpProxy(nodeCfg.HTTPPort, nodeCfg.ProxyRpcPort, "rpc_proxy", writer); nil != err {
+			return err
+		}
+	}
+
+	// 2.Save the configuration file path to the node configuration
+	stack.Server().FrpFilePath = filePath
+	return nil
+}
+
+// Create a new frp file
+func newFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId discover.NodeID) (error, *os.File, *bufio.Writer, string) {
 	// Create a new INI file
 	frpDir := dataDir + "/bubble/frp/"
 	if err := os.MkdirAll(frpDir, 0700); err != nil {
@@ -470,25 +492,56 @@ func genFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId d
 	return nil, file, writer, filePath
 }
 
-// Add the visitor entry to the frp configuration file
-func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
-	if nil == cbftNode || nil == writer {
-		return nil
+// Gets the unused port number from the specified range
+func getUnusedPortByRange(start, end int) (int, error) {
+	for i := start; i <= end; i++ {
+		port := i
+		address := fmt.Sprintf(":%d", port)
+		listener, err := net.Listen("tcp", address)
+		if err == nil {
+			listener.Close()
+			return port, nil
+		}
 	}
+
+	return 0, errors.New("unable to find an unused port")
+}
+
+// Get the unused port numbers at random
+func getUnusedPortByRandom() (int, error) {
 	// Create a TCP listener that listens on a random local port
 	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
 	if err != nil {
 		log.Error("Failed to get an unused port:", err)
-		return err
+		return 0, err
 	}
 
 	// Get the local address of the listener
 	address := listener.Addr().(*net.TCPAddr)
 	// log.Debug("Available local address: %s:%d\n", address.IP.String(), address.Port)
+	return address.Port, nil
+}
+
+// Add the visitor entry to the frp configuration file
+func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer, startPort, endPort *int) error {
+	if nil == cbftNode || nil == writer {
+		return errors.New("peer is nil or file writer is nil")
+	}
+	port := 0
+	err := errors.New("")
+	if *startPort < *endPort {
+		port, err = getUnusedPortByRange(*startPort, *endPort)
+	} else {
+		port, err = getUnusedPortByRandom()
+	}
+	if nil != err {
+		return err
+	}
+
 	// Set the p2p port number
-	cbftNode.UDP = uint16(address.Port)
-	cbftNode.TCP = uint16(address.Port)
+	cbftNode.UDP = uint16(port)
+	cbftNode.TCP = uint16(port)
 
 	visitorNode := cbftNode.ID.ShortString()
 	visitorLabel := "[" + visitorNode + "_visitor]"
@@ -498,7 +551,7 @@ func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
 	fmt.Fprintln(writer, "server_name =", visitorNode)
 	fmt.Fprintln(writer, "sk =", visitorNode)
 	fmt.Fprintln(writer, "bind_addr = 127.0.0.1")
-	fmt.Fprintln(writer, "bind_port =", address.Port)
+	fmt.Fprintln(writer, "bind_port =", port)
 	//fmt.Fprintln(writer, "use_encryption = false")
 	//fmt.Fprintln(writer, "use_compression = false")
 	fmt.Fprintln(writer, "")
@@ -506,6 +559,9 @@ func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
 	if err != nil {
 		fmt.Println("Failure to flush the buffer and write data to the file:", err)
 		return err
+	}
+	if *startPort != 0 {
+		*startPort = port + 1
 	}
 	return nil
 }
@@ -522,6 +578,24 @@ func addFrpProxy(localPort, proxyPort int, proxyName string, writer *bufio.Write
 	if err := writer.Flush(); err != nil {
 		fmt.Println("Failure to flush the buffer and write data to the file:", err)
 		return err
+	}
+	return nil
+}
+
+func getAllowPorts(allowPorts string, startPort, endPort *int) error {
+	index := strings.Index(allowPorts, "-")
+	if index != -1 {
+		port, err := strconv.Atoi(allowPorts[0:index])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+		*startPort = port
+		*endPort, err = strconv.Atoi(allowPorts[index+1:])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
 	}
 	return nil
 }
