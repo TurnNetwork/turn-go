@@ -67,7 +67,8 @@ type Bubble struct {
 }
 
 const (
-	OperatorNode = 1
+	OperatorNode    = 1
+	MaxNodeUseRatio = 0.75
 )
 
 // Operator Includes the operator's node ID, rpc url, operation address,

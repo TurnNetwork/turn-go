@@ -276,6 +276,32 @@ func (db *StakingDB) DelCommitteeStore(blockHash common.Hash, addr common.NodeAd
 	return db.del(blockHash, CommitteeKeyByAddr(addr))
 }
 
+func (db *StakingDB) GetCommitteeCount(blockHash common.Hash) (int32, error) {
+	count, err := db.db.Get(blockHash, CommitteeCountKey)
+	if nil != err {
+		return 0, err
+	}
+
+	return common.BytesToInt32(count), nil
+}
+
+func (db *StakingDB) SetCommitteeCount(blockHash common.Hash, count int32) error {
+	return db.db.Put(blockHash, CommitteeCountKey, common.Int32ToBytes(count))
+}
+
+func (db *StakingDB) GetUsedCommitteeCount(blockHash common.Hash) (int32, error) {
+	count, err := db.db.Get(blockHash, UsedCommitteeCountKey)
+	if nil != err {
+		return 0, err
+	}
+
+	return common.BytesToInt32(count), nil
+}
+
+func (db *StakingDB) SetUsedCommitteeCount(blockHash common.Hash, count int32) error {
+	return db.db.Put(blockHash, CommitteeCountKey, common.Int32ToBytes(count))
+}
+
 // about UnStakeRecord ...
 
 func (db *StakingDB) AddUnStakeRecordStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64) error {

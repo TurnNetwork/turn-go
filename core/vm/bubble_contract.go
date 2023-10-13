@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	TxCreateBubble        = 8001
+	TxAllotBubble         = 8001
 	TxReleaseBubble       = 8002
 	TxStakingToken        = 8003
 	TxWithdrewToken       = 8004
@@ -63,7 +63,7 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxCreateBubble:  bc.createBubble,
+		TxAllotBubble:   bc.allotBubble,
 		TxReleaseBubble: bc.releaseBubble,
 		TxStakingToken:  bc.stakingToken,
 		TxWithdrewToken: bc.withdrewToken,
@@ -79,9 +79,7 @@ func (bc *BubbleContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 
-// createBubble create a Bubble chain using operator nodes and candidate nodes
-func (bc *BubbleContract) createBubble() ([]byte, error) {
-
+func (bc *BubbleContract) allotBubble(bubbleSize uint8) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
@@ -89,46 +87,48 @@ func (bc *BubbleContract) createBubble() ([]byte, error) {
 	currentNonce := bc.Evm.StateDB.GetNonce(from)
 	parentHash := bc.Evm.Context.ParentHash
 
-	log.Debug("Call createBubble of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
+	log.Debug("Call AllotBubble of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
 		"txHash", txHash.Hex(), "from", from.String())
 
-	if !bc.Contract.UseGas(params.CreateBubbleGas) {
+	if !bc.Contract.UseGas(params.AllotBubbleGas) {
 		return nil, ErrOutOfGas
 	}
 
-	if bizErr := bc.Plugin.CheckBubbleElements(blockHash); bizErr != nil {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "createBubble", bizErr.Error(), TxCreateBubble, bizErr)
+	useRatio, err := bc.Plugin.GetNodeUseRatio(blockHash)
+	if err != nil {
+		log.Error("Failed to GetNodeUseRatio", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+		return nil, err
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
+	if useRatio < bubble.MaxNodeUseRatio {
 
-	bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
-	if nil != err {
-		if bizErr, ok := err.(*common.BizError); ok {
-			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "createBubble", bizErr.Error(), TxCreateBubble, bizErr)
-		} else {
+		if err := bc.Plugin.CheckBubbleElements(blockHash); err != nil {
 			log.Error("Failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-			return nil, err
-		}
-	}
 
-	// send create bubble event to the blockchain Mux if local node is operator
-	task := &bubble.CreateBubbleTask{
-		BubbleID: bub.Basics.BubbleId,
-		TxHash:   txHash,
-	}
-
-	for _, operators := range bub.Basics.OperatorsL1 {
-		if operators.NodeId == bc.Plugin.NodeID {
-			if err := bc.Plugin.PostCreateBubbleEvent(task); err != nil {
-				return nil, err
+		} else {
+			if txHash == common.ZeroHash {
+				return nil, nil
+			}
+			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
+			if err != nil {
+				log.Error("Failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			} else {
+				return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxAllotBubble, int(common.NoErr.Code), bub.Basics.BubbleId), nil
 			}
 		}
 	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxCreateBubble, int(common.NoErr.Code), bub.Basics.BubbleId), nil
+	bubbleId, err := bc.Plugin.ElectBubble(bubbleSize)
+	if err != nil {
+		if bizErr, ok := err.(*common.BizError); ok {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "allotBubble", bizErr.Error(), TxAllotBubble, bizErr)
+		} else {
+			log.Error("Failed to allotBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxAllotBubble, int(common.NoErr.Code), bubbleId), nil
 }
 
 // releaseBubble release the node resources of a bubble chain and delete it`s information
