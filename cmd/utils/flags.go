@@ -639,6 +639,12 @@ var (
 		Name:  "op.prikey",
 		Usage: "Private key of sub-chain operation address (pledged address of operation node)",
 	}
+
+	FrpsProxyRpcPort = cli.IntFlag{
+		Name:   "proxy.rpc.port",
+		Usage:  "The frps service proxies the rpc port",
+		EnvVar: "",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -806,6 +812,10 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPPortFlag.Name) {
 		cfg.HTTPPort = ctx.GlobalInt(HTTPPortFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(FrpsProxyRpcPort.Name) {
+		cfg.ProxyRpcPort = ctx.GlobalInt(FrpsProxyRpcPort.Name)
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {

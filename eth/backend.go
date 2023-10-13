@@ -222,12 +222,18 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
 			// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
 			if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
-				err := addFrpVisitor(cbftNode, writer)
-				if nil != err {
+				if err := addFrpVisitor(cbftNode, writer); nil != err {
 					return nil, err
 				}
 			}
 		}
+		// 1.3 Add the rpc proxy configuration
+		if 0 != nodeCfg.HTTPPort && 0 != nodeCfg.ProxyRpcPort {
+			if err := addFrpProxy(nodeCfg.HTTPPort, nodeCfg.ProxyRpcPort, "rpc_proxy", writer); nil != err {
+				return nil, err
+			}
+		}
+
 		// 2.Save the configuration file path to the node configuration
 		stack.Server().FrpFilePath = filePath
 	}
@@ -466,6 +472,9 @@ func genFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId d
 
 // Add the visitor entry to the frp configuration file
 func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
+	if nil == cbftNode || nil == writer {
+		return nil
+	}
 	// Create a TCP listener that listens on a random local port
 	listener, err := net.Listen("tcp", "localhost:0")
 	defer listener.Close()
@@ -495,6 +504,22 @@ func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer) error {
 	fmt.Fprintln(writer, "")
 	err = writer.Flush()
 	if err != nil {
+		fmt.Println("Failure to flush the buffer and write data to the file:", err)
+		return err
+	}
+	return nil
+}
+
+// Add the frpc agent configuration
+func addFrpProxy(localPort, proxyPort int, proxyName string, writer *bufio.Writer) error {
+	labelName := "[" + proxyName + "]"
+	fmt.Fprintln(writer, labelName)
+	fmt.Fprintln(writer, "type = tcp")
+	fmt.Fprintln(writer, "local_ip = 127.0.0.1")
+	fmt.Fprintln(writer, "local_port =", localPort)
+	fmt.Fprintln(writer, "remote_port =", proxyPort)
+	fmt.Fprintln(writer, "")
+	if err := writer.Flush(); err != nil {
 		fmt.Println("Failure to flush the buffer and write data to the file:", err)
 		return err
 	}

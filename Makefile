@@ -42,7 +42,6 @@ bubble-with-mv:
 all:
 	build/build_deps.sh
 	$(GORUN) build/ci.go install
-	@mv $(GOBIN)/keytool $(GOBIN)/keytool
 
 all-debug:
 	build/build_deps.sh

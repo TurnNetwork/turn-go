@@ -148,6 +148,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
+			utils.FrpsProxyRpcPort,
 		},
 	},
 	{

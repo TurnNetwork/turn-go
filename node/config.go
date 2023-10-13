@@ -112,6 +112,10 @@ type Config struct {
 	// for ephemeral nodes).
 	HTTPPort int `toml:",omitempty"`
 
+	// ProxyRpcPort is the proxy service port of the node rpc on the frps service.
+	// The default value is 0, which means that the proxy service port is not used.
+	ProxyRpcPort int
+
 	// HTTPCors is the Cross-Origin Resource Sharing header to send to requesting
 	// clients. Please be aware that CORS is a browser enforced security, it's fully
 	// useless for custom HTTP clients.
