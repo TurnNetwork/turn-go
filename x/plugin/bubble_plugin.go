@@ -617,7 +617,8 @@ func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) err
 
 // PostReleaseBubbleEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) error {
-	if err := bp.eventMux.Post(task); nil != err {
+	log.Debug("PostCreateBubbleEvent", *task)
+	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post ReleaseBubble task failed", "err", err)
 		return err
 	}
@@ -784,65 +785,49 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 // HandleCreateBubbleTask Handle create bubble task
 func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
 	if task == nil {
-		log.Error("create bubble task is nil")
-		return errors.New("CreateBubbleTask is empty")
+		log.Error("CreateBubbleTask is nil")
+		return errors.New("CreateBubbleTask is nil")
 	}
 
-	var bub *bubble.Bubble
-	var err error
-
 	// wait for blocks to be written to the db
+	// TODO：if not, panic by BLS segmentation violation
 	time.Sleep(3 * time.Second)
-	bub, err = bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
 	genesisL2 := makeGenesisL2(bub)
-
-	args, err := json.Marshal(genesisL2)
+	genesisData, err := json.Marshal(genesisL2)
 	if err != nil {
-		log.Warn("failed to marshal genesis", "error", err.Error())
+		log.Error("failed to marshal genesis", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
 	}
 
-	var resp *http.Response
-	var errNum uint8
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	waitGroup := &sync.WaitGroup{}
+	waitGroup.Add(len(bub.Basics.MicroNodes))
 
+	client := &http.Client{}
+	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(genesisData))
+
+	// make request
 	for _, microNode := range bub.Basics.MicroNodes {
-		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(args)))
-
 		// send and retry CreateBubbleTask
-		log.Debug("prepare to send BubbleGenesisMsg", "ElectronURI", microNode.ElectronURI, "req", req)
-
-		for i := 0; i < 3; i++ {
-			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
-			if err != nil {
-				log.Debug("failed to connect to the microNode when HandleCreateBubbleTask", "retry times", i)
-				time.Sleep(time.Duration(3) * time.Second)
-				continue
-			}
-			log.Debug("send BubbleGenesisMsg succeed", "ElectronURI", microNode.ElectronURI, "req", req)
-			break
-
-		}
-
-		if err != nil {
-			log.Error("failed to connect to the microNode when HandleCreateBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "error", err.Error())
-			errNum++
-			continue
-		}
-
-		if resp.StatusCode != 200 {
-			log.Error("microNode response exception when HandleCreateBubbleTask", "NodeId", microNode.NodeId, "NodeId", microNode.ElectronURI, "response", resp)
-		}
-
-		resp.Body.Close()
+		log.Debug("prepare to send CreateBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
+		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
 	}
 
-	if errNum > 0 {
-		return errors.New("some node connections failed when HandleCreateBubbleTask")
+	// wait task done
+	go func() {
+		waitGroup.Wait()
+		cancel()
+	}()
+	<-ctx.Done()
+	if ctx.Err().Error() == "context deadline exceeded" {
+		return errors.New("task timeout")
 	}
 
 	return nil
@@ -851,48 +836,43 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 // HandleReleaseBubbleTask Handle release bubble task
 func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) error {
 	if task == nil {
-		return errors.New("releaseBubbleTask is empty")
+		return errors.New("releaseBubbleTask is nil")
 	}
 
+	// wait for blocks to be written to the db
+	// TODO：if not, panic by BLS segmentation violation
+	time.Sleep(5 * time.Second)
 	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
-	var resp *http.Response
-	var errNum uint8
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	waitGroup := &sync.WaitGroup{}
+	waitGroup.Add(len(bub.Basics.MicroNodes))
 
+	client := &http.Client{}
+	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId)
+
+	// make request
 	for _, microNode := range bub.Basics.MicroNodes {
-		req := strings.NewReader(fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId))
-		log.Debug("prepare to send ReleaseBubbleMsg", "ElectronURI", microNode.ElectronURI, "req", req)
-
-		// send and retry CreateBubbleTask
-		for i := 0; i < 3; i++ {
-			resp, err = http.Post(microNode.ElectronURI, "application/json", req)
-			if err != nil {
-				log.Debug("failed to connect to the microNode when HandleReleaseBubbleTask", "retry times", i)
-				time.Sleep(time.Duration(3) * time.Second)
-				continue
-			}
-		}
-
-		if err != nil {
-			log.Error("failed to connect to the microNode when HandleReleaseBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "error", err.Error())
-			errNum++
-			continue
-		}
-
-		if resp.StatusCode != 200 {
-			log.Error("microNode response exception when HandleReleaseBubbleTask", "NodeId", microNode.NodeId, "ElectronURI", microNode.ElectronURI, "response", resp)
-		}
-
-		resp.Body.Close()
+		// send and retry ReleaseBubbleTask
+		log.Debug("prepare to send ReleaseBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
+		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
 	}
 
-	if errNum > 0 {
-		return errors.New("some node connections failed when HandleReleaseBubbleTask")
+	// wait task done
+	go func() {
+		waitGroup.Wait()
+		cancel()
+	}()
+	<-ctx.Done()
+	if ctx.Err().Error() == "context deadline exceeded" {
+		return errors.New("task timeout")
 	}
+
 	return nil
 }
 
@@ -1001,4 +981,30 @@ func VRF(vrfQueue VRFQueue, number uint, curNonce []byte, preNonces [][]byte) (V
 	sort.Sort(vrfQueue)
 
 	return vrfQueue[:number], nil
+}
+
+func sendTask(ctx context.Context, waitGroup *sync.WaitGroup, client *http.Client, url string, data string) {
+
+	for i := 0; i < 10; i++ {
+		// new request
+		dataReader := strings.NewReader(data)
+		req, err := http.NewRequest(http.MethodPost, url, dataReader)
+		if err != nil {
+			log.Error("new http request failed", "err", err)
+		}
+		req.WithContext(ctx)
+		req.Header.Set("Content-Type", "application/json")
+
+		// send request
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != 200 {
+			log.Debug("send task to microNode failed", "retry", i, "error", err, "response", resp)
+			time.Sleep(time.Duration(3) * time.Second)
+			continue
+		}
+		log.Info("send task to microNode succeed", "ElectronURI", url, "req", req)
+		resp.Body.Close()
+		waitGroup.Done()
+		break
+	}
 }
