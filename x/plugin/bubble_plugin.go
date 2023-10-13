@@ -89,6 +89,20 @@ func (bp *BubblePlugin) SetOpPriKey(opPriKey string) error {
 	return nil
 }
 
+func (bp *BubblePlugin) GetNodeUseRatio(blockHash common.Hash) (float32, error) {
+	used, err := bp.stk2Plugin.db.GetUsedCommitteeCount(blockHash)
+	if err != nil {
+		return 0, err
+	}
+
+	total, err := bp.stk2Plugin.db.GetCommitteeCount(blockHash)
+	if err != nil {
+		return 0, err
+	}
+
+	return float32(used) / float32(total), nil
+}
+
 // GetBubbleInfo return the bubble information by bubble ID
 func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.Bubble, error) {
 	// return bp.db.GetBubbleStore(blockHash, bubbleID)
@@ -173,7 +187,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 
 	// elect the operatorsL2 by VRF
-	candidateL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, blockNumber, common.Uint64ToBytes(nonce), preNonces)
+	candidateL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +202,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 
 	// elect the microNodesL2 by VRF
-	microNodes, err := bp.ElectBubbleMicroNodes(blockHash, blockNumber, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
+	microNodes, err := bp.ElectBubbleMicroNodes(blockHash, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +218,6 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 	basics := &bubble.BubBasics{
 		BubbleId:    bubbleID,
-		Creator:     from,
 		CreateBlock: blockNumber.Uint64(),
 		OperatorsL1: OperatorsL1,
 		OperatorsL2: OperatorsL2,
@@ -294,7 +307,7 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 }
 
 // ElectOperatorL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, blockNumber *big.Int, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
 	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash)
 	if err != nil {
 		return nil, err
@@ -357,7 +370,7 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 }
 
 // ElectBubbleMicroNodes Elect the Committee nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber *big.Int, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
 	committeeQueue, err := bp.stk2Plugin.GetCommitteeList(blockHash)
 	if err != nil {
 		return nil, err
@@ -416,6 +429,10 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, blockNumber
 	}
 
 	return committees, nil
+}
+
+func (bp *BubblePlugin) ElectBubble(bubbleSize uint8) (*big.Int, error) {
+	return nil, nil
 }
 
 // ReleaseBubble run the non-business logic to release the bubble
