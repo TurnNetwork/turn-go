@@ -644,6 +644,11 @@ var (
 		Name:  "frps",
 		Usage: "Enable the frps service",
 	}
+
+	AllowPorts = cli.StringFlag{
+		Name:  "allow_ports",
+		Usage: "Allowed open port number range (format: 1000-2000)",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -811,6 +816,10 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPPortFlag.Name) {
 		cfg.HTTPPort = ctx.GlobalInt(HTTPPortFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(AllowPorts.Name) {
+		cfg.AllowPorts = ctx.GlobalString(AllowPorts.Name)
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {

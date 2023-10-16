@@ -19,7 +19,9 @@ package crypto
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -32,6 +34,16 @@ import (
 
 var testAddrString = "0x970E8128AB834E8EAC17Ab8E3812F010678CF791"
 var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
+
+// node private key
+var testNodePriKeyHex = "c728ad2c6131c9dc440f09ec210a469c427171541e6073744c8384b8e3fcbfd5"
+
+// node public key
+var testNodePubKeyHex = "6cdd796e1e46365a6e4099a01e346d3252b09152982ef421444a91f19319a62d6b6008ebd64ea1e7bd9fab6c3fb7fe2ef974a5473a561ebccca88378d67ef93f"
+
+const NodeIDBits = 512
+
+type NodeID [NodeIDBits / 8]byte
 
 // These tests are sanity checks.
 // They should ensure that we don't e.g. use Sha3-224 instead of Sha3-256
@@ -113,6 +125,37 @@ func TestSign(t *testing.T) {
 	if addr != recoveredAddr2 {
 		t.Errorf("Address mismatch: want: %x have: %x", addr, recoveredAddr2)
 	}
+}
+
+func TestSignData(t *testing.T) {
+	key, _ := HexToECDSA(testNodePriKeyHex)
+	portNum := 2
+	msg := Keccak256([]byte(fmt.Sprintf("%d", portNum)))
+	sig, err := Sign(msg, key)
+	if err != nil {
+		t.Errorf("Sign error: %s", err)
+	}
+	t.Logf("sign data:%v\n", hex.EncodeToString(sig))
+	// should be equal to SigToPub
+	rpk, err := SigToPub(msg, sig)
+	if err != nil {
+		t.Errorf("SigToPub error: %s", err)
+	}
+	publicKey := PubkeyID(rpk)
+	if publicKey != testNodePubKeyHex {
+		t.Errorf("public key mismatch: want: %s have: %s", testNodePubKeyHex, publicKey)
+	}
+}
+
+func PubkeyID(pub *ecdsa.PublicKey) string {
+
+	var id NodeID
+	pbytes := elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+	if len(pbytes)-1 != len(id) {
+		panic(fmt.Errorf("need %d bit pubkey, got %d bits", (len(id)+1)*8, len(pbytes)))
+	}
+	copy(id[:], pbytes[1:])
+	return fmt.Sprintf("%x", id[:])
 }
 
 func TestInvalidSign(t *testing.T) {
