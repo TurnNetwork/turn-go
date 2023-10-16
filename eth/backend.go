@@ -376,6 +376,22 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	return eth, nil
 }
 
+func getFilterPorts(p2pPort string, rpcPort int, wsPort int) (error, []int) {
+	var filterPorts []int
+	port, err := strconv.Atoi(p2pPort)
+	if err != nil {
+		log.Error("Unable to convert string to integer:", err)
+		return err, nil
+	}
+	// add rpc port/p2p port/ws port
+	filterPorts = append(filterPorts, port)
+	// add rpc port
+	filterPorts = append(filterPorts, rpcPort)
+	// add ws port
+	filterPorts = append(filterPorts, wsPort)
+	return nil, filterPorts
+}
+
 // Generate the frp profile
 func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
 	nodeCfg := stack.Config()
@@ -385,7 +401,7 @@ func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
 	// 1.1 Create frp configuration file and assemble frp server configuration information and p2p listening information of local node
 	listenAddr := nodeCfg.P2P.ListenAddr
 	dataDir := nodeCfg.DataDir
-	err, file, writer, filePath := newFrpCfgFile(chainConfig.Frps, listenAddr, dataDir, nodeId)
+	err, file, writer, filePath := newFrpCfgFile(chainConfig.Frps, &listenAddr, dataDir, nodeId)
 	defer file.Close()
 	if err != nil && nil != writer {
 		fmt.Println("failed to generate config file:", err)
@@ -397,24 +413,31 @@ func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
 		maxCount = nodeCfg.P2P.MaxPeers
 	}
 	// Gets the allowed port range
-	beginPort := 0
 	startPort := 0
 	endPort := 0
+	// Get a list of locally occupied port numbers, which need to be filtered
+	err, filterPorts := getFilterPorts(listenAddr, nodeCfg.HTTPPort, nodeCfg.WSPort)
+	if nil != err || 0 == len(filterPorts) {
+		return err
+	}
 	if "" != nodeCfg.AllowPorts {
+		// Gets the range of ports the user is allowed to use
 		if err := getAllowPorts(nodeCfg.AllowPorts, &startPort, &endPort); err != nil {
 			return err
 		}
-		beginPort = startPort
+	} else {
+		// The user did not specify a range of allowed ports
+		// Start by adding 1 to the p2p port
+		startPort = filterPorts[0] + 1
+		// Maximum port number
+		endPort = 65535
 	}
 	for i := 0; i < maxCount; i++ {
 		cbftNode := &chainConfig.Cbft.InitialNodes[i].Node
 		// 1.2 Assemble visitor information for connecting to other peers, Only nodes with peer-to-peer p2p port 0 are processed
 		if cbftNode.ID != nodeId && (0 == cbftNode.TCP || 0 == cbftNode.UDP) {
-			if err := addFrpVisitor(cbftNode, writer, &startPort, &endPort); nil != err {
+			if err := addFrpVisitor(cbftNode, writer, &startPort, &endPort, filterPorts); nil != err {
 				return err
-			}
-			if startPort > endPort {
-				startPort = beginPort
 			}
 		}
 	}
@@ -431,7 +454,7 @@ func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
 }
 
 // Create a new frp file
-func newFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId discover.NodeID) (error, *os.File, *bufio.Writer, string) {
+func newFrpCfgFile(frps *params.FrpsConfig, listenAddr *string, dataDir string, nodeId discover.NodeID) (error, *os.File, *bufio.Writer, string) {
 	// Create a new INI file
 	frpDir := dataDir + "/bubble/frp/"
 	if err := os.MkdirAll(frpDir, 0700); err != nil {
@@ -467,9 +490,9 @@ func newFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId d
 	fmt.Fprintln(writer, "")
 
 	// Write the frp configuration that the node listens to
-	startIndex := strings.Index(listenAddr, ":")
+	startIndex := strings.Index(*listenAddr, ":")
 	if startIndex != -1 {
-		listenAddr = listenAddr[startIndex+1:]
+		*listenAddr = (*listenAddr)[startIndex+1:]
 	}
 	shortKey := nodeId.ShortString()
 	nodeLabel := "[" + shortKey + "]"
@@ -477,7 +500,7 @@ func newFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId d
 	fmt.Fprintln(writer, "type = xtcp")
 	fmt.Fprintln(writer, "sk =", shortKey)
 	fmt.Fprintln(writer, "local_ip = 127.0.0.1")
-	fmt.Fprintln(writer, "local_port =", listenAddr)
+	fmt.Fprintln(writer, "local_port =", *listenAddr)
 	fmt.Fprintln(writer, "use_encryption = false")
 	fmt.Fprintln(writer, "use_compression = false")
 	fmt.Fprintln(writer, "")
@@ -492,49 +515,38 @@ func newFrpCfgFile(frps *params.FrpsConfig, listenAddr, dataDir string, nodeId d
 	return nil, file, writer, filePath
 }
 
+func containsElement(slice []int, element int) bool {
+	for _, item := range slice {
+		if item == element {
+			return true
+		}
+	}
+	return false
+}
+
 // Gets the unused port number from the specified range
-func getUnusedPortByRange(start, end int) (int, error) {
+func getUnusedPortByRange(start, end int, filterPorts []int) (int, error) {
 	for i := start; i <= end; i++ {
 		port := i
-		address := fmt.Sprintf(":%d", port)
-		listener, err := net.Listen("tcp", address)
-		if err == nil {
-			listener.Close()
-			return port, nil
+		if !containsElement(filterPorts, port) {
+			address := fmt.Sprintf(":%d", port)
+			listener, err := net.Listen("tcp", address)
+			if err == nil {
+				listener.Close()
+				return port, nil
+			}
 		}
 	}
 
 	return 0, errors.New("unable to find an unused port")
 }
 
-// Get the unused port numbers at random
-func getUnusedPortByRandom() (int, error) {
-	// Create a TCP listener that listens on a random local port
-	listener, err := net.Listen("tcp", "localhost:0")
-	defer listener.Close()
-	if err != nil {
-		log.Error("Failed to get an unused port:", err)
-		return 0, err
-	}
-
-	// Get the local address of the listener
-	address := listener.Addr().(*net.TCPAddr)
-	// log.Debug("Available local address: %s:%d\n", address.IP.String(), address.Port)
-	return address.Port, nil
-}
-
 // Add the visitor entry to the frp configuration file
-func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer, startPort, endPort *int) error {
+func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer, startPort, endPort *int, filterPorts []int) error {
 	if nil == cbftNode || nil == writer {
 		return errors.New("peer is nil or file writer is nil")
 	}
-	port := 0
-	err := errors.New("")
-	if *startPort < *endPort {
-		port, err = getUnusedPortByRange(*startPort, *endPort)
-	} else {
-		port, err = getUnusedPortByRandom()
-	}
+	port, err := getUnusedPortByRange(*startPort, *endPort, filterPorts)
 	if nil != err {
 		return err
 	}
@@ -560,9 +572,7 @@ func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer, startPort, end
 		fmt.Println("Failure to flush the buffer and write data to the file:", err)
 		return err
 	}
-	if *startPort != 0 {
-		*startPort = port + 1
-	}
+	*startPort = port + 1
 	return nil
 }
 
