@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/bubblenet/bubble/x/handler"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -79,7 +80,7 @@ func (bc *BubbleContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 
-func (bc *BubbleContract) allotBubble(bubbleSize uint8) ([]byte, error) {
+func (bc *BubbleContract) allotBubble(sizeCode uint8) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
@@ -100,16 +101,22 @@ func (bc *BubbleContract) allotBubble(bubbleSize uint8) ([]byte, error) {
 		return nil, err
 	}
 
+	// get the nonces of the historical block
+	parentNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
+	if err != nil {
+		return nil, err
+	}
+
 	if useRatio < bubble.MaxNodeUseRatio {
 
-		if err := bc.Plugin.CheckBubbleElements(blockHash); err != nil {
+		if err := bc.Plugin.CheckBubbleElements(blockHash, sizeCode); err != nil {
 			log.Error("Failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 
 		} else {
 			if txHash == common.ZeroHash {
 				return nil, nil
 			}
-			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentHash)
+			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentNonces, sizeCode)
 			if err != nil {
 				log.Error("Failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			} else {
@@ -118,7 +125,7 @@ func (bc *BubbleContract) allotBubble(bubbleSize uint8) ([]byte, error) {
 		}
 	}
 
-	bubbleId, err := bc.Plugin.ElectBubble(bubbleSize)
+	bubbleId, err := bc.Plugin.ElectBubble(blockHash, currentNonce, parentNonces, sizeCode)
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "allotBubble", bizErr.Error(), TxAllotBubble, bizErr)
@@ -157,10 +164,10 @@ func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
 			fmt.Sprintf("bubble %d is not exist", bubbleID), TxReleaseBubble, bubble.ErrBubbleNotExist)
 	}
 
-	if from != bub.Basics.Creator {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-			fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Basics.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
-	}
+	//if from != bub.Basics.Creator {
+	//	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
+	//		fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Basics.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
+	//}
 
 	if bub.State == bubble.ReleasedStatus {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d is released ", bub.Basics.BubbleId),

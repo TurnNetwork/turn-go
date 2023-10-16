@@ -1,6 +1,7 @@
 package bubble
 
 import (
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -68,6 +69,26 @@ func (bdb *BubbleDB) StoreBubState(blockHash common.Hash, bubbleId *big.Int, sta
 	} else {
 		return bdb.db.Put(blockHash, getBubStateKey(bubbleId), data)
 	}
+}
+
+func (bdb *BubbleDB) IteratorSizedBubbleID(blockHash common.Hash, sizeCode uint8, ranges int) iterator.Iterator {
+	return bdb.db.Ranking(blockHash, getSizedBubblePrefix(sizeCode), ranges)
+
+}
+
+func (bdb *BubbleDB) StoreSizedBubbleID(blockHash common.Hash, sizeCode uint8, bubbleId *big.Int) error {
+	if data, err := rlp.EncodeToBytes(bubbleId); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, getSizedBubbleKey(sizeCode, bubbleId), data)
+	}
+}
+
+func (bdb *BubbleDB) DelSizedBubbleID(blockHash common.Hash, sizeCode uint8, bubbleID *big.Int) error {
+	if err := bdb.db.Del(blockHash, getSizedBubbleKey(sizeCode, bubbleID)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {
