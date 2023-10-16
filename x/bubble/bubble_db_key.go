@@ -7,12 +7,13 @@ import (
 )
 
 var (
-	AccListKeyPrefix    = []byte("AccList")  // the key prefix of the accounts list of the staking token
-	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
-	TxHashKeyPrefix     = []byte("TxHash")
-	TxHashListKeyPrefix = []byte("TxHashList") // The key prefix of the transaction hash list
-	BubBasicsKeyPrefix  = []byte("BubBasics")  // The key prefix of the bubble basics
-	BubStateKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
+	AccListKeyPrefix     = []byte("AccList")  // the key prefix of the accounts list of the staking token
+	AccAssetKeyPrefix    = []byte("AccAsset") // key prefix of the asset information of the pledge account
+	TxHashKeyPrefix      = []byte("TxHash")
+	TxHashListKeyPrefix  = []byte("TxHashList") // The key prefix of the transaction hash list
+	BubBasicsKeyPrefix   = []byte("BubBasics")  // The key prefix of the bubble basics
+	BubStateKeyPrefix    = []byte("BubState")   // The key prefix of the bubble state
+	BubbleSizeBasePrefix = []byte("BubbleSize")
 )
 
 // getBubBasicsKey bubble basics that press bubbleId key
@@ -31,6 +32,23 @@ func getBubStateKey(bubbleID *big.Int) []byte {
 		return nil
 	}
 	return append(BubStateKeyPrefix, bid...)
+}
+
+func getSizedBubblePrefix(sizeCode uint8) []byte {
+	size, err := rlp.EncodeToBytes(sizeCode)
+	if nil != err {
+		return nil
+	}
+	return append(BubbleSizeBasePrefix, size...)
+}
+
+func getSizedBubbleKey(sizeCode uint8, bubbleID *big.Int) []byte {
+	bid, err := rlp.EncodeToBytes(bubbleID)
+	if nil != err {
+		return nil
+	}
+
+	return append(getSizedBubblePrefix(sizeCode), bid...)
 }
 
 // AccListByBubKey List of accounts that press bubble's key

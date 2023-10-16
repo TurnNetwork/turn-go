@@ -1,6 +1,7 @@
 package bubble
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -14,12 +15,35 @@ import (
 	"github.com/bubblenet/bubble/x/xcom"
 )
 
-// bubble chain size
-const (
-	CommitteeSize  = 3
-	OperatorL1Size = 1
-	OperatorL2Size = 1
+// BubbleSize is bubble chain size
+type BubbleSize struct {
+	OperatorL1Size uint
+	OperatorL2Size uint
+	CommitteeSize  uint
+}
+
+var (
+	microBubble  = &BubbleSize{1, 1, 3}
+	miniBubble   = &BubbleSize{1, 1, 6}
+	mediumBubble = &BubbleSize{1, 1, 12}
+	maxBubble    = &BubbleSize{1, 1, 24}
+
+	sizeInfo = map[uint8]*BubbleSize{
+		1: microBubble,
+		2: miniBubble,
+		3: mediumBubble,
+		4: maxBubble,
+	}
 )
+
+func GetBubbleSize(sizeCode uint8) (*BubbleSize, error) {
+	size := sizeInfo[sizeCode]
+	if size == nil {
+		return nil, errors.New("unrecognized bubble size")
+	}
+
+	return size, nil
+}
 
 // BubState bubble chain status
 type BubState uint8
@@ -51,7 +75,7 @@ type CommitteeQueue []*stakingL2.Candidate
 // and the data will not be updated and changed during the operation of the bubble network
 type BubBasics struct {
 	BubbleId    *big.Int
-	Creator     common.Address
+	Size        uint8
 	CreateBlock uint64
 	OperatorsL1 []*Operator
 	OperatorsL2 []*Operator

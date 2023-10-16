@@ -276,30 +276,78 @@ func (db *StakingDB) DelCommitteeStore(blockHash common.Hash, addr common.NodeAd
 	return db.del(blockHash, CommitteeKeyByAddr(addr))
 }
 
-func (db *StakingDB) GetCommitteeCount(blockHash common.Hash) (int32, error) {
+func (db *StakingDB) GetCommitteeCount(blockHash common.Hash) (uint32, error) {
 	count, err := db.db.Get(blockHash, CommitteeCountKey)
 	if nil != err {
 		return 0, err
 	}
 
-	return common.BytesToInt32(count), nil
+	return common.BytesToUint32(count), nil
 }
 
-func (db *StakingDB) SetCommitteeCount(blockHash common.Hash, count int32) error {
-	return db.db.Put(blockHash, CommitteeCountKey, common.Int32ToBytes(count))
+func (db *StakingDB) SetCommitteeCount(blockHash common.Hash, count uint32) error {
+	return db.db.Put(blockHash, CommitteeCountKey, common.Uint32ToBytes(count))
 }
 
-func (db *StakingDB) GetUsedCommitteeCount(blockHash common.Hash) (int32, error) {
+func (db *StakingDB) AddCommitteeCount(blockHash common.Hash, number uint32) error {
+	count, err := db.GetCommitteeCount(blockHash)
+	if err != nil {
+		return err
+	}
+	if err := db.SetCommitteeCount(blockHash, count+number); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *StakingDB) SubCommitteeCount(blockHash common.Hash, number uint32) error {
+	count, err := db.GetCommitteeCount(blockHash)
+	if err != nil {
+		return err
+	}
+	if err := db.SetCommitteeCount(blockHash, count-number); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *StakingDB) GetUsedCommitteeCount(blockHash common.Hash) (uint32, error) {
 	count, err := db.db.Get(blockHash, UsedCommitteeCountKey)
 	if nil != err {
 		return 0, err
 	}
 
-	return common.BytesToInt32(count), nil
+	return common.BytesToUint32(count), nil
 }
 
-func (db *StakingDB) SetUsedCommitteeCount(blockHash common.Hash, count int32) error {
-	return db.db.Put(blockHash, CommitteeCountKey, common.Int32ToBytes(count))
+func (db *StakingDB) SetUsedCommitteeCount(blockHash common.Hash, count uint32) error {
+	return db.db.Put(blockHash, CommitteeCountKey, common.Uint32ToBytes(count))
+}
+
+func (db *StakingDB) AddUsedCommitteeCount(blockHash common.Hash, number uint32) error {
+	count, err := db.GetUsedCommitteeCount(blockHash)
+	if err != nil {
+		return err
+	}
+	if err := db.SetUsedCommitteeCount(blockHash, count+number); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *StakingDB) SubUsedCommitteeCount(blockHash common.Hash, number uint32) error {
+	count, err := db.GetUsedCommitteeCount(blockHash)
+	if err != nil {
+		return err
+	}
+	if err := db.SetUsedCommitteeCount(blockHash, count-number); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // about UnStakeRecord ...

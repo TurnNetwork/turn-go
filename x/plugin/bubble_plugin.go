@@ -32,7 +32,6 @@ import (
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/gov"
-	"github.com/bubblenet/bubble/x/handler"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
 	"github.com/bubblenet/bubble/x/xutil"
@@ -154,17 +153,21 @@ func (bp *BubblePlugin) GetBubState(blockHash common.Hash, bubbleID *big.Int) (*
 	return bp.db.GetBubState(blockHash, bubbleID)
 }
 
-func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash) *common.BizError {
+func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, sizeCode uint8) error {
+	bubbleSize, err := bubble.GetBubbleSize(sizeCode)
+	if err != nil {
+		return err
+	}
 	// check L1 operators
-	if operators, err := bp.stkPlugin.db.GetOperatorArrStore(blockHash); err != nil || len(operators) < int(bubble.OperatorL1Size) {
+	if operators, err := bp.stkPlugin.db.GetOperatorArrStore(blockHash); err != nil || len(operators) < int(bubbleSize.OperatorL1Size) {
 		return bubble.ErrOperatorL1IsInsufficient
 	}
 	// check L2 operators
-	if operators, err := bp.stk2Plugin.GetOperatorList(blockHash); err != nil || len(operators) < int(bubble.OperatorL2Size) {
+	if operators, err := bp.stk2Plugin.GetOperatorList(blockHash); err != nil || len(operators) < int(bubbleSize.OperatorL2Size) {
 		return bubble.ErrOperatorL2IsInsufficient
 	}
 	// check L2 committees
-	if committees, err := bp.stk2Plugin.GetCommitteeList(blockHash); err != nil || len(committees) < int(bubble.CommitteeSize) {
+	if committees, err := bp.stk2Plugin.GetCommitteeList(blockHash); err != nil || len(committees) < int(bubbleSize.CommitteeSize) {
 		return bubble.ErrMicroNodeIsInsufficient
 	}
 
@@ -172,22 +175,20 @@ func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash) *common.BizEr
 }
 
 // CreateBubble run the non-business logic to create bubble
-func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentHash common.Hash) (*bubble.Bubble, error) {
-
-	// get the nonces of the historical block
-	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
+func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentNonce [][]byte, sizeCode uint8) (*bubble.Bubble, error) {
+	bubbleSize, err := bubble.GetBubbleSize(sizeCode)
 	if err != nil {
 		return nil, err
 	}
 
 	// elect the operatorsL1 by VRF
-	OperatorsL1, err := bp.ElectOperatorL1(blockHash, bubble.OperatorL1Size, common.Uint64ToBytes(nonce), preNonces)
+	OperatorsL1, err := bp.ElectOperatorL1(blockHash, bubbleSize.OperatorL1Size, common.Uint64ToBytes(nonce), parentNonce)
 	if err != nil {
 		return nil, err
 	}
 
 	// elect the operatorsL2 by VRF
-	candidateL2, err := bp.ElectOperatorL2(blockHash, bubble.OperatorL2Size, common.Uint64ToBytes(nonce), preNonces)
+	candidateL2, err := bp.ElectOperatorL2(blockHash, bubbleSize.OperatorL2Size, common.Uint64ToBytes(nonce), parentNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -202,10 +203,15 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 
 	// elect the microNodesL2 by VRF
-	microNodes, err := bp.ElectBubbleMicroNodes(blockHash, bubble.CommitteeSize, common.Uint64ToBytes(nonce), preNonces)
+	microNodes, err := bp.ElectBubbleMicroNodes(blockHash, bubbleSize.CommitteeSize, common.Uint64ToBytes(nonce), parentNonce)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := bp.stk2Plugin.db.AddUsedCommitteeCount(blockHash, uint32(len(microNodes))); err != nil {
+		return nil, err
+	}
+
 	microNodes = append(microNodes, candidateL2...)
 
 	// build bubble infos
@@ -238,6 +244,12 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	// store bubble state
 	if err := bp.db.StoreBubState(blockHash, basics.BubbleId, bub.State); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble state failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
+		return nil, err
+	}
+
+	if err := bp.db.StoreSizedBubbleID(blockHash, sizeCode, basics.BubbleId); err != nil {
+		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble sized info failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
 		return nil, err
 	}
@@ -431,8 +443,61 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNu
 	return committees, nil
 }
 
-func (bp *BubblePlugin) ElectBubble(bubbleSize uint8) (*big.Int, error) {
-	return nil, nil
+func (bp *BubblePlugin) GetSizedBubbleIDs(blockHash common.Hash, sizeCode uint8) ([]*big.Int, error) {
+	iter := bp.db.IteratorSizedBubbleID(blockHash, sizeCode, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	queue := make([]*big.Int, 0)
+	for iter.Valid(); iter.Next(); {
+		data := iter.Value()
+		bubID := new(big.Int)
+		if err := rlp.DecodeBytes(data, bubID); err != nil {
+			return nil, err
+		}
+		queue = append(queue, bubID)
+	}
+
+	return queue, nil
+}
+
+func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonces [][]byte, sizeCode uint8) (*big.Int, error) {
+	bubIDs, err := bp.GetSizedBubbleIDs(blockHash, sizeCode)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(preNonces) < len(bubIDs) {
+		fitNonces := make([][]byte, len(bubIDs))
+		fitNonces = append(fitNonces, preNonces...)
+		preNonces = fitNonces
+	}
+
+	vrfQueue, err := VRFQueueWrapper(bubIDs, func(item interface{}) *VRFItem {
+		w, _ := new(big.Int).SetString("1200000000000000000000000", 10)
+		return &VRFItem{
+			v: item,
+			w: w,
+		}
+	})
+
+	electedVrfQueue, err := VRF(vrfQueue, 1, common.Uint64ToBytes(nonce), preNonces)
+	if err != nil {
+		return nil, err
+	}
+	if len(electedVrfQueue) != 1 {
+		return nil, errors.New("the number of bubbles elected is not correct")
+	}
+
+	// unwrap the VRF able queue
+	vrfItem := electedVrfQueue[0]
+	if bubID, ok := (vrfItem.v).(*big.Int); ok {
+		return bubID, nil
+	} else {
+		return nil, errors.New("type error")
+	}
 }
 
 // ReleaseBubble run the non-business logic to release the bubble
@@ -442,6 +507,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
+	var committeeCount uint32
 	// release the committeeL2 nodes to the DB
 	for _, microNode := range bub.Basics.MicroNodes {
 		addr, err := xutil.NodeId2Addr(microNode.NodeId)
@@ -468,6 +534,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 				return err
 			}
 		} else {
+			committeeCount += 1
 			Committee, _ := bp.stk2Plugin.db.GetCommitteeStore(blockHash, addr)
 			if Committee != nil {
 				log.Error("Failed to SetCommitteeStore on ReleaseBubble: Committee info is exist",
@@ -476,7 +543,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 			}
 
 			if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
-				log.Error("Failed to SetCandidateStore on ReleaseBubble: Store Candidate info is failed",
+				log.Error("Failed to SetCommitteeStore on ReleaseBubble: Store Committee info is failed",
 					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err)
 				return err
 			}
@@ -485,6 +552,20 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	}
 
 	if err := bp.db.StoreBubState(blockHash, bubbleID, bubble.ReleasedStatus); err != nil {
+		log.Error("Failed to StoreBubState on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+		return err
+	}
+
+	if err := bp.db.DelSizedBubbleID(blockHash, bub.Basics.Size, bub.Basics.BubbleId); err != nil {
+		log.Error("Failed to DelSizedBubbleID on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+		return err
+	}
+
+	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
+		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
 		return err
 	}
 
