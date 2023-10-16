@@ -112,6 +112,9 @@ type Config struct {
 	// for ephemeral nodes).
 	HTTPPort int `toml:",omitempty"`
 
+	// AllowPorts is the range of port numbers allowed to be open to the public (format: 1000-2000, StartPort-EndPort).
+	AllowPorts string
+
 	// HTTPCors is the Cross-Origin Resource Sharing header to send to requesting
 	// clients. Please be aware that CORS is a browser enforced security, it's fully
 	// useless for custom HTTP clients.

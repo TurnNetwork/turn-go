@@ -146,6 +146,10 @@ type Config struct {
 	FrpsFlag bool
 	// frp server configuration file path to record frp configuration information
 	FrpsFilePath string
+	StartPort    int   // The start port on which access is allowed
+	EndPort      int   // The end port on which access is allowed
+	FilterPorts  []int // a list of locally occupied port numbers, which need to be filtered
+
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
 	// Internet.

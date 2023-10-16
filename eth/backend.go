@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -138,6 +140,69 @@ func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, s
 	}
 
 	return nil, file, filePath
+}
+
+// Get a list of locally occupied port numbers, which need to be filtered
+func getFilterPorts(p2pPort string, rpcPort int, wsPort int) (error, []int) {
+	startIndex := strings.Index(p2pPort, ":")
+	if startIndex != -1 {
+		p2pPort = p2pPort[startIndex+1:]
+	}
+	var filterPorts []int
+	port, err := strconv.Atoi(p2pPort)
+	if err != nil {
+		log.Error("Unable to convert string to integer:", err)
+		return err, nil
+	}
+	// add rpc port/p2p port/ws port
+	filterPorts = append(filterPorts, port)
+	// add rpc port
+	filterPorts = append(filterPorts, rpcPort)
+	// add ws port
+	filterPorts = append(filterPorts, wsPort)
+	return nil, filterPorts
+}
+
+func getAllowPorts(allowPorts string, startPort, endPort *int) error {
+	index := strings.Index(allowPorts, "-")
+	if index != -1 {
+		port, err := strconv.Atoi(allowPorts[0:index])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+		*startPort = port
+		*endPort, err = strconv.Atoi(allowPorts[index+1:])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func SetAllowPorts(stack *node.Node) error {
+	nodeCfg := stack.Config()
+	svrCfg := stack.Server()
+	// Get a list of locally occupied port numbers, which need to be filtered
+	err, filterPorts := getFilterPorts(nodeCfg.P2P.ListenAddr, nodeCfg.HTTPPort, nodeCfg.WSPort)
+	if nil != err || 0 == len(filterPorts) {
+		return err
+	}
+	if "" != nodeCfg.AllowPorts {
+		// Gets the range of ports the user is allowed to use
+		if err := getAllowPorts(nodeCfg.AllowPorts, &svrCfg.StartPort, &svrCfg.EndPort); err != nil {
+			return err
+		}
+	} else {
+		// The user did not specify a range of allowed ports
+		// Start by adding 1 to the p2p port
+		svrCfg.StartPort = filterPorts[0] + 1
+		// Maximum port number
+		svrCfg.EndPort = 65535
+	}
+	svrCfg.FilterPorts = filterPorts
+	return nil
 }
 
 // New creates a new Ethereum object (including the
@@ -263,6 +328,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		defer file.Close()
 		// Save the configuration file path
 		p2pServer.FrpsFilePath = filePath
+		// Sets the range of allowed ports
+		if err = SetAllowPorts(stack); err != nil {
+			return nil, err
+		}
 	}
 
 	eth := &Ethereum{
@@ -416,8 +485,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 	// Start the RPC service
-	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, eth.NetVersion())
-
+	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, xplugin.BubbleInstance(), eth.NetVersion())
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
 	stack.RegisterProtocols(eth.Protocols())
