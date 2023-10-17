@@ -137,7 +137,6 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	opL2s = append(opL2s, &opL2)
 	basics := BubBasics{
 		BubbleId:    testBubbleId,
-		Creator:     Op1Addr,
 		CreateBlock: 1,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
@@ -155,7 +154,6 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	assert.True(t, nil == err)
 	assert.True(t, nil != basic)
 	assert.Equal(t, basic.BubbleId, testBubbleId, "Query Bubble ID error")
-	assert.Equal(t, basic.Creator, Op1Addr, "Query Bubble Creator error")
 	assert.Equal(t, basic.CreateBlock, uint64(1), "Query Bubble CreateBlock error")
 
 	assert.Equal(t, basic.OperatorsL1[0].NodeId, Op1NodeId, "Query Bubble main-chain Operator NodeID error")

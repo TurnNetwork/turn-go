@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/console/prompt"
+	"github.com/bubblenet/bubble/x/xcom"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -94,6 +95,7 @@ type tester struct {
 // newTester creates a test environment based on which the console can operate.
 // Please ensure you call Close() on the returned tester to avoid leaks.
 func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	// Create a temporary storage for the node keys and initialize it
 	workspace, err := ioutil.TempDir("", "console-tester-")
 	if err != nil {
@@ -199,39 +201,39 @@ func TestApi(t *testing.T) {
 	_, err := tester.console.jsre.Run(`
 		console.log("aaaaaaa");
 		console.log("instance: " + web3.version.node);
-		console.log("at block: " + bubble.blockNumber + " (" + new Date(1000 * bubble.getBlock(bubble.blockNumber).timestamp) + ")");
+		console.log("at block: " + bub.blockNumber + " (" + new Date(1000 * bub.getBlock(bub.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
-		console.log(" protocolVersion: " + bubble.protocolVersion);
-		console.log(" sync: " + bubble.syncing);
-		console.log("",bubble.protocolVersion)
-		console.log("syncing",bubble.syncing)
-		console.log("gasPrice",bubble.gasPrice)
-		console.log("accounts",bubble.accounts)
-		console.log("blockNumber",bubble.blockNumber)
-		console.log("getBalance",bubble.getBalance("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getStorageAt",bubble.getStorageAt("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getTransactionCount",bubble.getTransactionCount("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
-		console.log("getBlockTransactionCountByHash or ByNumber",bubble.getBlockTransactionCount("1234"))
-		//console.log("getCode",bubble.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log(" protocolVersion: " + bub.protocolVersion);
+		console.log(" sync: " + bub.syncing);
+		console.log("",bub.protocolVersion)
+		console.log("syncing",bub.syncing)
+		console.log("gasPrice",bub.gasPrice)
+		console.log("accounts",bub.accounts)
+		console.log("blockNumber",bub.blockNumber)
+		console.log("getBalance",bub.getBalance("0x07057110239Af04F2584407db34048Ee5bcAf753"))
+		console.log("getStorageAt",bub.getStorageAt("0x07057110239Af04F2584407db34048Ee5bcAf753"))
+		console.log("getTransactionCount",bub.getTransactionCount("0x07057110239Af04F2584407db34048Ee5bcAf753"))
+		console.log("getBlockTransactionCountByHash or ByNumber",bub.getBlockTransactionCount("1234"))
+		//console.log("getCode",bub.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")
 		//personal.unlockAccount(adr,"123456",30)
-		//console.log("sign",bubble.sign(adr, "0xdeadbeaf"))
-		//console.log("sendTransaction",bubble.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
-		//console.log("sendRawTransaction",bubble.sendRawTransaction({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("call",bubble.call({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("estimateGas",bubble.estimateGas({from:bubble.accounts[0],to:bubble.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		//console.log("getBlockByHash or number",bubble.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
-		//console.log("getTransactionByHash",bubble.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
-		//console.log("getTransactionByBlockHashAndIndex",bubble.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
-		//console.log("getTransactionReceipt",bubble.getTransactionReceipt())
-		//console.log("newFilter",bubble.newFilter())
-		//console.log("newBlockFilter",bubble.newBlockFilter())
-		//console.log("newPendingTransactionFilter",bubble.newPendingTransactionFilter())
-		//console.log("uninstallFilter",bubble.uninstallFilter())
-		//console.log("getFilterChanges",bubble.getFilterChanges())
-		//console.log("getFilterLogs",bubble.getFilterLogs())
-		//console.log("getLogs",bubble.getLogs({"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}))
-		//console.log("signTransaction",bubble.signTransaction())
+		//console.log("sign",bub.sign(adr, "0xdeadbeaf"))
+		//console.log("sendTransaction",bub.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
+		//console.log("sendRawTransaction",bub.sendRawTransaction({from:bub.accounts[0],to:bub.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("call",bub.call({from:bub.accounts[0],to:bub.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("estimateGas",bub.estimateGas({from:bub.accounts[0],to:bub.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("getBlockByHash or number",bub.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByHash",bub.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
+		//console.log("getTransactionByBlockHashAndIndex",bub.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
+		//console.log("getTransactionReceipt",bub.getTransactionReceipt())
+		//console.log("newFilter",bub.newFilter())
+		//console.log("newBlockFilter",bub.newBlockFilter())
+		//console.log("newPendingTransactionFilter",bub.newPendingTransactionFilter())
+		//console.log("uninstallFilter",bub.uninstallFilter())
+		//console.log("getFilterChanges",bub.getFilterChanges())
+		//console.log("getFilterLogs",bub.getFilterLogs())
+		//console.log("getLogs",bub.getLogs({"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}))
+		//console.log("signTransaction",bub.signTransaction())
 		//console.log("test personal",personal.openWallet("adad"))
 	`)
 	if err != nil {
