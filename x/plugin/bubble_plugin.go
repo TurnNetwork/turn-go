@@ -145,7 +145,31 @@ func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) 
 
 // GetBubBasics return the bubble basics by bubble ID
 func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (*bubble.BubBasics, error) {
-	return bp.db.GetBubBasics(blockHash, bubbleID)
+	bubBasic, err := bp.db.GetBubBasics(blockHash, bubbleID)
+	if err != nil || nil == bubBasic {
+		return nil, err
+	}
+	// The rpc of the bubble-chain operator node is obtained from the verifier
+	if "" == bubBasic.OperatorsL2[0].RPC {
+		sk := StakingL2Instance()
+		nodeId := bubBasic.OperatorsL2[0].NodeId
+		canAddr, err := xutil.NodeId2Addr(nodeId)
+		if nil != err {
+			return nil, err
+		}
+		base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
+		if nil != err {
+			return nil, err
+		}
+		bubBasic.OperatorsL2[0].RPC = base.RPCURI
+
+		// update bubble basic
+		if err := bp.db.StoreBubBasics(blockHash, bubbleID, bubBasic); nil != err {
+			return nil, err
+		}
+	}
+
+	return bubBasic, nil
 }
 
 // GetBubState return the bubble state by bubble ID
