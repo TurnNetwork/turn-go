@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/mattn/go-colorable"
 	"math/rand"
 	"net/http/httptest"
 	"os"

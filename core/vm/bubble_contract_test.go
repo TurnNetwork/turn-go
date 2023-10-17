@@ -334,7 +334,6 @@ func build_bubble_data(block uint64, parentHash common.Hash) {
 	opL2s = append(opL2s, &opL2)
 	basics := bubble.BubBasics{
 		BubbleId:    testBubbleId,
-		Creator:     sender,
 		CreateBlock: block,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
@@ -681,7 +680,8 @@ func decode_and_verify_settleBubble_tx_receipt(bubContract *BubbleContract, txIn
 	}
 }
 
-/**
+/*
+*
 Standard test cases
 */
 func TestBubbleContract_createBubble(t *testing.T) {
