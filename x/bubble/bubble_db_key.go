@@ -14,6 +14,7 @@ var (
 	BubBasicsKeyPrefix   = []byte("BubBasics")  // The key prefix of the bubble basics
 	BubStatusKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
 	BubbleSizeBasePrefix = []byte("BubbleSize")
+	ByteCodePrefix       = []byte("Bytecode")
 )
 
 // getBubBasicsKey bubble basics that press bubbleId key
@@ -49,6 +50,10 @@ func getSizedBubbleKey(sizeCode uint8, bubbleID *big.Int) []byte {
 	}
 
 	return append(getSizedBubblePrefix(sizeCode), bid...)
+}
+
+func getByteCodeKey(address common.Address) []byte {
+	return append(ByteCodePrefix, address.Bytes()...)
 }
 
 // AccListByBubKey List of accounts that press bubble's key

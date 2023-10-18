@@ -9,6 +9,7 @@ var (
 	ErrOperatorL1IsInsufficient = common.NewBizError(322004, "The operator of layer 1 is insufficient")
 	ErrOperatorL2IsInsufficient = common.NewBizError(322005, "The operator of layer 2 is insufficient")
 	ErrMicroNodeIsInsufficient  = common.NewBizError(322006, "The micro node is insufficient")
+	ErrCodeException            = common.NewBizError(322007, "The contract code is empty or abnormal")
 	ErrAccountNoEnough          = common.NewBizError(330000, "The account balance is insufficient")
 	ErrStakingAccount           = common.NewBizError(330001, "The sender of the pledged token transaction is not the person of the pledged account")
 	ErrERC20NoExist             = common.NewBizError(330002, "erc20 contract address does not exist")
