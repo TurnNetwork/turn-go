@@ -99,6 +99,14 @@ func (bdb *BubbleDB) DelSizedBubbleID(blockHash common.Hash, sizeCode uint8, bub
 	return nil
 }
 
+func (bdb *BubbleDB) GetByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
+	return bdb.db.Get(blockHash, getByteCodeKey(address))
+}
+
+func (bdb *BubbleDB) StoreByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
+	return bdb.db.Put(blockHash, getByteCodeKey(address), byteCode)
+}
+
 func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {
 	data, err := bdb.db.Get(blockHash, AccListByBubKey(bubbleId))
 	if err != nil {

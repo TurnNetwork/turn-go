@@ -683,6 +683,14 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	return nil
 }
 
+func (bp *BubblePlugin) GetByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
+	return bp.db.GetByteCode(blockHash, address)
+}
+
+func (bp *BubblePlugin) StoreByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
+	return bp.db.StoreByteCode(blockHash, address, byteCode)
+}
+
 // GetAccListOfBub Get the list of accounts inside bubble
 // An account is activated within a bubble by staking tokens with a specified bubbleId
 func (bp *BubblePlugin) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {

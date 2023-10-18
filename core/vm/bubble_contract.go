@@ -32,6 +32,7 @@ import (
 
 const (
 	TxAllotBubble         = 8001
+	TxSetupRemoteContract = 8002
 	TxStakingToken        = 8003
 	TxWithdrewToken       = 8004
 	TxSettleBubble        = 8005
@@ -63,10 +64,11 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxAllotBubble:   bc.allotBubble,
-		TxStakingToken:  bc.stakingToken,
-		TxWithdrewToken: bc.withdrewToken,
-		TxSettleBubble:  bc.settleBubble,
+		TxAllotBubble:         bc.allotBubble,
+		TxSetupRemoteContract: bc.setupRemoteContract,
+		TxStakingToken:        bc.stakingToken,
+		TxWithdrewToken:       bc.withdrewToken,
+		TxSettleBubble:        bc.settleBubble,
 		// Get
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
@@ -147,6 +149,40 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
+}
+
+func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.Address, data []byte) ([]byte, error) {
+	from := bc.Contract.CallerAddress
+	txHash := bc.Evm.StateDB.TxHash()
+	blockNumber := bc.Evm.Context.BlockNumber
+	blockHash := bc.Evm.Context.BlockHash
+
+	log.Debug("Failed to setupRemoteContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID,
+		"address", address)
+
+	if !bc.Contract.UseGas(params.SetupRemoteContractGas) {
+		return nil, ErrOutOfGas
+	}
+
+	byteCode, err := bc.Plugin.GetByteCode(blockHash, address)
+	if err != nil || len(byteCode) == 0 {
+		// get bytecode again from evm
+		byteCode = bc.Evm.StateDB.GetCode(address)
+		if len(byteCode) == 0 {
+
+			log.Error("Call setupRemoteContract of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
+				"txHash", txHash.Hex(), "from", from.String())
+			return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "setupRemoteContract", "the contract code is empty or abnormal",
+				TxSetupRemoteContract, bubble.ErrCodeException)
+		}
+		if txHash == common.ZeroHash {
+			return nil, nil
+		}
+		// restore the bytecode
+		bc.Plugin.StoreByteCode(blockHash, address, byteCode)
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxSetupRemoteContract, int(common.NoErr.Code), bubbleID, address, data), nil
 }
 
 // getL1HashByL2Hash The settlement transaction hash of the main chain is obtained according to the sub-chain settlement transaction hash
