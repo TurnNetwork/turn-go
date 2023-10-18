@@ -45,14 +45,14 @@ func GetBubbleSize(sizeCode uint8) (*BubbleSize, error) {
 	return size, nil
 }
 
-// BubState bubble chain status
-type BubState uint8
+// Status bubble chain status
+type State uint8
 
 const (
 	//BuildingStatus   = 0
-	ActiveStatus     BubState = 1
-	PreReleaseStatus          = 2
-	ReleasedStatus            = 3
+	ActiveStatus     State = 1
+	PreReleaseStatus       = 2
+	ReleasedStatus         = 3
 )
 
 // BubTxType Define the Bubble's trade type
@@ -76,18 +76,30 @@ type CommitteeQueue []*stakingL2.Candidate
 type BubBasics struct {
 	BubbleId    *big.Int
 	Size        uint8
-	CreateBlock uint64
 	OperatorsL1 []*Operator
 	OperatorsL2 []*Operator
 	MicroNodes  CandidateQueue
 }
 
-type Bubble struct {
-	Basics                  *BubBasics // Bubble Basics
-	State                   BubState
+type BubStatus struct {
+	BubbleId        *big.Int
+	State           State
+	ContractCount   int
+	CreateBlock     uint64
+	PreReleaseBlock uint64
+	ReleaseBlock    uint64
+}
+
+type BubMutable struct {
 	StakingTokenTxHashList  []common.Hash // List of stakingToken transaction hashes
 	WithdrewTokenTxHashList []common.Hash // List of withdrewToken transaction hashes
 	SettleBubbleTxHashList  []common.Hash // List of settleBubble transaction hashes
+}
+
+type Bubble struct {
+	Basics *BubBasics // Bubble Basics
+	*BubStatus
+	*BubMutable
 }
 
 const (
