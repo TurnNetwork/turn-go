@@ -203,7 +203,7 @@ type AuthConfig struct {
 // FrpsConfig frp server configuration structure
 type FrpsConfig struct {
 	ServerIP   string      // frp server ip
-	ServerPort uint16      // frp server port
+	ServerPort int         // frp server port
 	Auth       *AuthConfig // Enable authentication mode
 }
 

@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/x/handler"
 	"math/big"
@@ -382,6 +383,8 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	}
 
 	// Staking ERC20 Token
+	// Determines if it is an estimated gas operation
+	isEstimateGas := bc.Evm.StateDB.TxHash() == common.ZeroHash
 	for _, tokenAsset := range stakingAsset.TokenAssets {
 		// ERC20 Address
 		erc20Addr := tokenAsset.TokenAddr
@@ -406,13 +409,20 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
-			log.Error("Failed to Staking ERC20 Token", "error", err)
-			return nil, bubble.ErrEVMExecERC20
+			errMsg := fmt.Sprintf("Failed to Staking ERC20 Token, error:%v", err)
+			log.Error(errMsg)
+			if isEstimateGas {
+				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+				// otherwise the estimated process will be interrupted
+				return nil, errors.New(errMsg)
+			} else {
+				return nil, bubble.ErrEVMExecERC20
+			}
 		}
 	}
 
 	// The transaction hash is empty when gas is estimated
-	if bc.Evm.StateDB.TxHash() == common.ZeroHash {
+	if isEstimateGas {
 		return nil, nil
 	}
 
@@ -483,6 +493,8 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	}
 
 	// withdrew ERC20 tokens
+	// Determines if it is an estimated gas operation
+	isEstimateGas := bc.Evm.StateDB.TxHash() == common.ZeroHash
 	for _, tokenAsset := range accAsset.TokenAssets {
 		// ERC20 Address
 		erc20Addr := tokenAsset.TokenAddr
@@ -512,14 +524,21 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
-			log.Error("Failed to Withdrew ERC20 Token", "error", err)
-			return nil, bubble.ErrEVMExecERC20
+			errMsg := fmt.Sprintf("Failed to Withdrew ERC20 Token, error:%v", err)
+			log.Error(errMsg)
+			if isEstimateGas {
+				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+				// otherwise the estimated process will be interrupted
+				return nil, errors.New(errMsg)
+			} else {
+				return nil, bubble.ErrEVMExecERC20
+			}
 		}
 		resetAsset.TokenAssets = append(resetAsset.TokenAssets, bubble.AccTokenAsset{TokenAddr: erc20Addr, Balance: common.Big0})
 	}
 
 	// The transaction hash is empty when gas is estimated
-	if bc.Evm.StateDB.TxHash() == common.ZeroHash {
+	if isEstimateGas {
 		return nil, nil
 	}
 

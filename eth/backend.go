@@ -143,7 +143,7 @@ func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, s
 }
 
 // Get a list of locally occupied port numbers, which need to be filtered
-func getFilterPorts(p2pPort string, rpcPort int, wsPort int) (error, []int) {
+func getFilterPorts(p2pPort string, frpsPort, rpcPort, wsPort int) (error, []int) {
 	startIndex := strings.Index(p2pPort, ":")
 	if startIndex != -1 {
 		p2pPort = p2pPort[startIndex+1:]
@@ -154,8 +154,10 @@ func getFilterPorts(p2pPort string, rpcPort int, wsPort int) (error, []int) {
 		log.Error("Unable to convert string to integer:", err)
 		return err, nil
 	}
-	// add rpc port/p2p port/ws port
+	// add p2p port
 	filterPorts = append(filterPorts, port)
+	// add frps port
+	filterPorts = append(filterPorts, frpsPort)
 	// add rpc port
 	filterPorts = append(filterPorts, rpcPort)
 	// add ws port
@@ -181,11 +183,11 @@ func getAllowPorts(allowPorts string, startPort, endPort *int) error {
 	return nil
 }
 
-func SetAllowPorts(stack *node.Node) error {
+func SetAllowPorts(stack *node.Node, frpsPort int) error {
 	nodeCfg := stack.Config()
 	svrCfg := stack.Server()
 	// Get a list of locally occupied port numbers, which need to be filtered
-	err, filterPorts := getFilterPorts(nodeCfg.P2P.ListenAddr, nodeCfg.HTTPPort, nodeCfg.WSPort)
+	err, filterPorts := getFilterPorts(nodeCfg.P2P.ListenAddr, frpsPort, nodeCfg.HTTPPort, nodeCfg.WSPort)
 	if nil != err || 0 == len(filterPorts) {
 		return err
 	}
@@ -329,7 +331,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		// Save the configuration file path
 		p2pServer.FrpsFilePath = filePath
 		// Sets the range of allowed ports
-		if err = SetAllowPorts(stack); err != nil {
+		if err = SetAllowPorts(stack, frpsCfg.ServerPort); err != nil {
 			return nil, err
 		}
 	}
