@@ -843,6 +843,17 @@ func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) e
 	return nil
 }
 
+// PostSetupRemoteContractEvent Send the setup remote contract event and wait for the task to be processed
+func (bp *BubblePlugin) PostSetupRemoteContractEvent(task *bubble.SetupRemoteContractTask) error {
+	log.Debug("PostSetupRemoteContractEvent", *task)
+	if err := bp.eventMux.Post(*task); nil != err {
+		log.Error("post SetupRemoteContract task failed", "err", err)
+		return err
+	}
+
+	return nil
+}
+
 // Generate the rlp encoding of the sub-chain minting transaction
 func genMintTokenRlpData(mintToken bubble.MintTokenTask) []byte {
 	var params [][]byte
@@ -940,6 +951,112 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 
 	hash := signedTx.Hash()
 	log.Debug("mintToken tx hash", hash.Hex())
+	return hash.Bytes(), nil
+}
+
+func encodeSetupTxData(task *bubble.SetupRemoteContractTask) []byte {
+	s := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(6000))
+	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	address, _ := rlp.EncodeToBytes(task.Address)
+
+	rtCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
+	if err != nil {
+		return nil
+	}
+	bytecode, _ := rlp.EncodeToBytes(rtCode)
+
+	data, _ := rlp.EncodeToBytes(task.Data)
+	s = append(s, fnType)
+	s = append(s, txHash)
+	s = append(s, address)
+	s = append(s, bytecode)
+	s = append(s, data)
+
+	buf := new(bytes.Buffer)
+	err = rlp.Encode(buf, data)
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// HandleSetupRemoteContractTask Handle SetupRemoteContract task
+func (bp *BubblePlugin) HandleSetupRemoteContractTask(task *bubble.SetupRemoteContractTask) ([]byte, error) {
+	if nil == task {
+		return nil, errors.New("SetupRemoteContractTask is empty")
+	}
+	client, err := ethclient.Dial(task.RPC)
+	if err != nil || client == nil {
+		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
+	}
+	// Construct transaction parameters
+	priKey := bp.opPriKey
+	// Call the sub-chain system contract SetupRemoteContract interface
+	toAddr := common.HexToAddress(SubChainSysAddr)
+	privateKey, err := crypto.HexToECDSA(priKey)
+	if err != nil {
+		log.Error("Wrong private key", "err", err)
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
+	}
+
+	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
+	// The staking address of the operation node is taken as the operation node address
+	// It is determined whether the main chain operation node signs the transaction
+	if fromAddr != task.OpAddr {
+		log.Error("The transaction sender is not the main-chain operation address")
+		return nil, errors.New("the transaction sender is not the main-chain operation address")
+	}
+	// get account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
+	if err != nil {
+		log.Error("Failed to obtain the account nonce", "err", err)
+		return nil, err
+	}
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Error("Failed to get gasPrice", "err", err)
+		return nil, err
+	}
+	value := big.NewInt(0)
+	gasLimit := uint64(300000)
+	data := encodeSetupTxData(task)
+	if nil == data {
+		return nil, errors.New("encode setup transaction data failed")
+	}
+	// Creating transaction objects
+	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
+
+	// The sender's private key is used to sign the transaction
+	chainID, err := client.ChainID(context.Background())
+	if err != nil || chainID != task.BubbleID {
+		return nil, errors.New("chainID is wrong")
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Error("Signing setupRemoteContract transaction failed", "err", err)
+		return nil, err
+	}
+
+	// Sending transactions
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Error("Failed to send setupRemoteContract transaction", "err", err)
+		return nil, err
+	}
+
+	hash := signedTx.Hash()
+	log.Debug("setupRemoteContract tx hash", hash.Hex())
 	return hash.Bytes(), nil
 }
 
