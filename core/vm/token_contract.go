@@ -17,6 +17,8 @@
 package vm
 
 import (
+	"errors"
+	"fmt"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/log"
@@ -130,6 +132,8 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 	}
 
 	// Get the account's ERC20 Token
+	// Determines if it is an estimated gas operation
+	isEstimateGas := tkc.Evm.StateDB.TxHash() == common.ZeroHash
 	for _, tokenAddr := range mintAccInfo.TokenAddrList {
 		code := tkc.Evm.StateDB.GetCode(tokenAddr)
 		if len(code) > 0 {
@@ -147,8 +151,15 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 			// Execute EVM
 			ret, err := RunEvm(tkc.Evm, contract, input)
 			if err != nil {
-				log.Error("Failed to Mint ERC20 Token", "error", err)
-				return nil, token.ErrEVMExecERC20
+				errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
+				log.Error(errMsg)
+				if isEstimateGas {
+					// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+					// otherwise the estimated process will be interrupted
+					return nil, errors.New(errMsg)
+				} else {
+					return nil, token.ErrEVMExecERC20
+				}
 			}
 			// Parse byte array to uint256 array,
 			// the first 32 bytes value indicates how many bytes to store the length of the array,
@@ -191,7 +202,7 @@ func SettleBubble(tkc *TokenContract) (*token.SettlementInfo, error) {
 	}
 
 	// The transaction hash is empty when gas is estimated
-	if tkc.Evm.StateDB.TxHash() == common.ZeroHash {
+	if isEstimateGas {
 		return nil, nil
 	}
 
@@ -238,6 +249,8 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 	}
 
 	// Minting ERC20 tokens (default decimal is 6)
+	// Determines if it is an estimated gas operation
+	isEstimateGas := tkc.Evm.StateDB.TxHash() == common.ZeroHash
 	for _, tokenAsset := range accAsset.TokenAssets {
 		// ERC20 address
 		erc20Addr := tokenAsset.TokenAddr
@@ -271,15 +284,23 @@ func MintToken(tkc *TokenContract, L1StakingTokenTxHash common.Hash, accAsset to
 			log.Error("Failed to Mint ERC20 Token", "error", err)
 			return nil, token.ErrEncodeMintData
 		}
-		ret, err := RunEvm(tkc.Evm, contract, input)
+		// Execute EVM
+		_, err = RunEvm(tkc.Evm, contract, input)
 		if err != nil {
-			log.Error("Failed to Mint ERC20 Token", "error", err, "ret", ret)
-			return nil, token.ErrEVMExecERC20
+			errMsg := fmt.Sprintf("Failed to Mint ERC20 Token, error:%v", err)
+			log.Error(errMsg)
+			if isEstimateGas {
+				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+				// otherwise the estimated process will be interrupted
+				return nil, errors.New(errMsg)
+			} else {
+				return nil, token.ErrEVMExecERC20
+			}
 		}
 	}
 
 	// The transaction hash is empty when gas is estimated
-	if tkc.Evm.StateDB.TxHash() == common.ZeroHash {
+	if isEstimateGas {
 		return nil, nil
 	}
 
