@@ -137,7 +137,6 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	opL2s = append(opL2s, &opL2)
 	basics := BubBasics{
 		BubbleId:    testBubbleId,
-		CreateBlock: 1,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
 		MicroNodes:  nil,
@@ -154,7 +153,6 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	assert.True(t, nil == err)
 	assert.True(t, nil != basic)
 	assert.Equal(t, basic.BubbleId, testBubbleId, "Query Bubble ID error")
-	assert.Equal(t, basic.CreateBlock, uint64(1), "Query Bubble CreateBlock error")
 
 	assert.Equal(t, basic.OperatorsL1[0].NodeId, Op1NodeId, "Query Bubble main-chain Operator NodeID error")
 	assert.Equal(t, basic.OperatorsL1[0].ElectronRPC, Op1ElectronRPC, "Query Bubble main-chain Operator ElectronRPC error")
@@ -170,15 +168,23 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 
 }
 
-func TestBubbleDB_StoreBubState_GetBubState(t *testing.T) {
+func TestBubbleDB_StoreBubStatus_GetBubStatus(t *testing.T) {
 	newBlockHash := newFirstBlock()
 	bubDB := NewBubbleDB()
 	// store bubble state
-	if err := bubDB.StoreBubState(newBlockHash, testBubbleId, ActiveStatus); err != nil {
+	status := &BubStatus{
+		BubbleId:        testBubbleId,
+		State:           ActiveStatus,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	if err := bubDB.StoreBubStatus(newBlockHash, testBubbleId, status); err != nil {
 		fmt.Errorf("failed to StoreBubBasics, %v", err)
 	}
 
-	state, err := bubDB.GetBubState(newBlockHash, testBubbleId)
+	state, err := bubDB.GetBubStatus(newBlockHash, testBubbleId)
 	if state == nil || err != nil {
 		fmt.Errorf("failed to get bubble state, %v", err)
 	}
