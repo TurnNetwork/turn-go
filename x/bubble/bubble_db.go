@@ -20,6 +20,10 @@ func NewBubbleDB() *BubbleDB {
 	}
 }
 
+func (bdb *BubbleDB) IteratorBubBasics(blockHash common.Hash, ranges int) iterator.Iterator {
+	return bdb.db.Ranking(blockHash, BubBasicsKeyPrefix, ranges)
+}
+
 func (bdb *BubbleDB) GetBubBasics(blockHash common.Hash, bubbleId *big.Int) (*BubBasics, error) {
 	data, err := bdb.db.Get(blockHash, getBubBasicsKey(bubbleId))
 	if err != nil {
@@ -50,24 +54,28 @@ func (bdb *BubbleDB) DelBubBasics(blockHash common.Hash, bubbleID *big.Int) erro
 	return nil
 }
 
-func (bdb *BubbleDB) GetBubState(blockHash common.Hash, bubbleId *big.Int) (*BubState, error) {
-	data, err := bdb.db.Get(blockHash, getBubStateKey(bubbleId))
+func (bdb *BubbleDB) IteratorBubStatus(blockHash common.Hash, ranges int) iterator.Iterator {
+	return bdb.db.Ranking(blockHash, BubStatusKeyPrefix, ranges)
+}
+
+func (bdb *BubbleDB) GetBubStatus(blockHash common.Hash, bubbleId *big.Int) (*BubStatus, error) {
+	data, err := bdb.db.Get(blockHash, getBubStatusKey(bubbleId))
 	if err != nil {
 		return nil, err
 	}
-	var state BubState
-	if err := rlp.DecodeBytes(data, &state); err != nil {
+	var bubStatus BubStatus
+	if err := rlp.DecodeBytes(data, &bubStatus); err != nil {
 		return nil, err
 	} else {
-		return &state, nil
+		return &bubStatus, nil
 	}
 }
 
-func (bdb *BubbleDB) StoreBubState(blockHash common.Hash, bubbleId *big.Int, state BubState) error {
-	if data, err := rlp.EncodeToBytes(state); err != nil {
+func (bdb *BubbleDB) StoreBubStatus(blockHash common.Hash, bubbleId *big.Int, bubStatus *BubStatus) error {
+	if data, err := rlp.EncodeToBytes(bubStatus); err != nil {
 		return err
 	} else {
-		return bdb.db.Put(blockHash, getBubStateKey(bubbleId), data)
+		return bdb.db.Put(blockHash, getBubStatusKey(bubbleId), data)
 	}
 }
 

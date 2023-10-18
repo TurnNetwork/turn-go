@@ -39,6 +39,7 @@ const (
 	GovernanceRule
 	CollectDeclareVersionRule
 	StakingL2Rule
+	BubbleRule
 )
 
 const (
