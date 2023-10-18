@@ -164,6 +164,12 @@ func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.
 		return nil, ErrOutOfGas
 	}
 
+	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	if err != nil {
+		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "setupRemoteContract", "the bubble is not exist",
+			TxSetupRemoteContract, bubble.ErrBubbleNotExist)
+	}
+
 	byteCode, err := bc.Plugin.GetByteCode(blockHash, address)
 	if err != nil || len(byteCode) == 0 {
 		// get bytecode again from evm
@@ -180,6 +186,25 @@ func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.
 		}
 		// restore the bytecode
 		bc.Plugin.StoreByteCode(blockHash, address, byteCode)
+	}
+
+	// send create bubble event to the blockchain Mux if local node is operator
+	task := &bubble.SetupRemoteContractTask{
+		BubbleID:  bubbleID,
+		TxHash:    txHash,
+		BlockHash: blockHash,
+		Address:   address,
+		Data:      data,
+		RPC:       bub.Basics.OperatorsL2[0].RPC,
+		OpAddr:    bub.Basics.OperatorsL1[0].OpAddr,
+	}
+
+	for _, operators := range bub.Basics.OperatorsL1 {
+		if operators.NodeId == bc.Plugin.NodeID {
+			if err := bc.Plugin.PostSetupRemoteContractEvent(task); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxSetupRemoteContract, int(common.NoErr.Code), bubbleID, address, data), nil

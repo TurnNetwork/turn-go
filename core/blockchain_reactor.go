@@ -46,20 +46,21 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh                   *handler.VrfHandler
-	eventMux             *event.TypeMux
-	bftResultSub         *event.TypeMuxSubscription
-	mintTokenTaskSub     *event.TypeMuxSubscription // MintToken task subscription
-	createBubbleTaskSub  *event.TypeMuxSubscription // create bubble task subscription
-	releaseBubbleTaskSub *event.TypeMuxSubscription // release bubble task subscription
-	basePluginMap        map[int]plugin.BasePlugin  // xxPlugin container
-	beginRule            []int                      // Order rules for xxPlugins called in BeginBlocker
-	endRule              []int                      // Order rules for xxPlugins called in EndBlocker
-	validatorMode        string                     // mode: static, inner, dpos
-	NodeId               discover.NodeID            // The nodeId of current node
-	exitCh               chan chan struct{}         // Used to receive an exit signal
-	exitOnce             sync.Once
-	chainID              *big.Int
+	vh               *handler.VrfHandler
+	eventMux         *event.TypeMux
+	bftResultSub     *event.TypeMuxSubscription
+	mintTokenTaskSub *event.TypeMuxSubscription // MintToken task subscription
+	//createBubbleTaskSub    *event.TypeMuxSubscription // create bubble task subscription
+	//releaseBubbleTaskSub   *event.TypeMuxSubscription // release bubble task subscription
+	setupRemoteContractSub *event.TypeMuxSubscription // setup remote contract task subscription
+	basePluginMap          map[int]plugin.BasePlugin  // xxPlugin container
+	beginRule              []int                      // Order rules for xxPlugins called in BeginBlocker
+	endRule                []int                      // Order rules for xxPlugins called in EndBlocker
+	validatorMode          string                     // mode: static, inner, dpos
+	NodeId                 discover.NodeID            // The nodeId of current node
+	exitCh                 chan chan struct{}         // Used to receive an exit signal
+	exitOnce               sync.Once
+	chainID                *big.Int
 }
 
 var (
@@ -86,8 +87,9 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 		bcr.mintTokenTaskSub = bcr.eventMux.BufferSubscribe(1000, bubble.MintTokenTask{})
-		bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
-		bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
+		//bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
+		//bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
+		bcr.setupRemoteContractSub = bcr.eventMux.BufferSubscribe(1000, bubble.SetupRemoteContractTask{})
 		// start the loop
 		go bcr.loop()
 		go bcr.handleTask()
@@ -160,40 +162,56 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
-		case msg := <-bcr.createBubbleTaskSub.Chan():
+		case msg := <-bcr.setupRemoteContractSub.Chan():
 			if msg == nil {
 				continue
 			}
-			CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
+			task, ok := msg.Data.(bubble.SetupRemoteContractTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to receive CreateBubbleTask")
+				log.Error("blockchain_reactor failed to receive mintToken data conversion type")
 				continue
 			}
 			// handle task
-			err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
+			hash, err := plugin.BubbleInstance().HandleSetupRemoteContractTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
-				// TODO: write the failed task back into the source channel
+				log.Error("blockchain_reactor failed to process SetupRemoteContract task")
 				continue
 			}
-			log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
-		case msg := <-bcr.releaseBubbleTaskSub.Chan():
-			if msg == nil {
-				continue
-			}
-			ReleaseBubbleTask, ok := msg.Data.(bubble.ReleaseBubbleTask)
-			if !ok {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
-				continue
-			}
-			// handle task
-			err := plugin.BubbleInstance().HandleReleaseBubbleTask(&ReleaseBubbleTask)
-			if err != nil {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
-				// TODO: write the failed task back into the source channel
-				continue
-			}
-			log.Info("process ReleaseBubbleTask succeeded", "tx hash", ReleaseBubbleTask.TxHash)
+			log.Info("The processing and SetupRemoteContract task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+			//case msg := <-bcr.createBubbleTaskSub.Chan():
+			//	if msg == nil {
+			//		continue
+			//	}
+			//	CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
+			//	if !ok {
+			//		log.Error("blockchain_reactor failed to receive CreateBubbleTask")
+			//		continue
+			//	}
+			//	// handle task
+			//	err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
+			//	if err != nil {
+			//		log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
+			//		// TODO: write the failed task back into the source channel
+			//		continue
+			//	}
+			//	log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
+			//case msg := <-bcr.releaseBubbleTaskSub.Chan():
+			//	if msg == nil {
+			//		continue
+			//	}
+			//	ReleaseBubbleTask, ok := msg.Data.(bubble.ReleaseBubbleTask)
+			//	if !ok {
+			//		log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
+			//		continue
+			//	}
+			//	// handle task
+			//	err := plugin.BubbleInstance().HandleReleaseBubbleTask(&ReleaseBubbleTask)
+			//	if err != nil {
+			//		log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
+			//		// TODO: write the failed task back into the source channel
+			//		continue
+			//	}
+			//	log.Info("process ReleaseBubbleTask succeeded", "tx hash", ReleaseBubbleTask.TxHash)
 		}
 	}
 }
