@@ -747,6 +747,8 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 
+	reactor.RegisterPlugin(xcom.BubbleRule, xplugin.BubbleInstance())
+
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
@@ -762,6 +764,6 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
-	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule, xcom.StakingL2Rule})
+	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule, xcom.StakingL2Rule, xcom.BubbleRule})
 
 }

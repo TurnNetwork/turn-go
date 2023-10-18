@@ -12,7 +12,7 @@ var (
 	TxHashKeyPrefix      = []byte("TxHash")
 	TxHashListKeyPrefix  = []byte("TxHashList") // The key prefix of the transaction hash list
 	BubBasicsKeyPrefix   = []byte("BubBasics")  // The key prefix of the bubble basics
-	BubStateKeyPrefix    = []byte("BubState")   // The key prefix of the bubble state
+	BubStatusKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
 	BubbleSizeBasePrefix = []byte("BubbleSize")
 )
 
@@ -25,13 +25,13 @@ func getBubBasicsKey(bubbleID *big.Int) []byte {
 	return append(BubBasicsKeyPrefix, bid...)
 }
 
-// getBubStateKey bubble state that press bubbleId key
-func getBubStateKey(bubbleID *big.Int) []byte {
+// getBubStatusKey bubble state that press bubbleId key
+func getBubStatusKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil
 	}
-	return append(BubStateKeyPrefix, bid...)
+	return append(BubStatusKeyPrefix, bid...)
 }
 
 func getSizedBubblePrefix(sizeCode uint8) []byte {

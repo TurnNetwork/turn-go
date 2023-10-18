@@ -23,7 +23,6 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
-	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/x/bubble"
@@ -32,7 +31,6 @@ import (
 
 const (
 	TxAllotBubble         = 8001
-	TxReleaseBubble       = 8002
 	TxStakingToken        = 8003
 	TxWithdrewToken       = 8004
 	TxSettleBubble        = 8005
@@ -65,7 +63,6 @@ func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
 		TxAllotBubble:   bc.allotBubble,
-		TxReleaseBubble: bc.releaseBubble,
 		TxStakingToken:  bc.stakingToken,
 		TxWithdrewToken: bc.withdrewToken,
 		TxSettleBubble:  bc.settleBubble,
@@ -136,67 +133,6 @@ func (bc *BubbleContract) allotBubble(sizeCode uint8) ([]byte, error) {
 	}
 
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxAllotBubble, int(common.NoErr.Code), bubbleId), nil
-}
-
-// releaseBubble release the node resources of a bubble chain and delete it`s information
-func (bc *BubbleContract) releaseBubble(bubbleID *big.Int) ([]byte, error) {
-
-	txHash := bc.Evm.StateDB.TxHash()
-	blockNumber := bc.Evm.Context.BlockNumber
-	blockHash := bc.Evm.Context.BlockHash
-	from := bc.Contract.CallerAddress
-
-	log.Debug("Call releaseBubble of bubbleContract", "blockNumber", blockNumber.Uint64(),
-		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
-
-	if !bc.Contract.UseGas(params.ReleaseBubbleGas) {
-		return nil, ErrOutOfGas
-	}
-
-	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
-	if snapshotdb.NonDbNotFoundErr(err) {
-		log.Error("Failed to releaseBubble by GetBubbleInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "bubbleID", bubbleID, "err", "bubble is not exist")
-		return nil, err
-	}
-	if bub == nil {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-			fmt.Sprintf("bubble %d is not exist", bubbleID), TxReleaseBubble, bubble.ErrBubbleNotExist)
-	}
-
-	//if from != bub.Basics.Creator {
-	//	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble",
-	//		fmt.Sprintf("txSender: %s, bubble Creator: %s", from, bub.Basics.Creator), TxReleaseBubble, bubble.ErrSenderIsNotCreator)
-	//}
-
-	if bub.State == bubble.ReleasedStatus {
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "releaseBubble", fmt.Sprintf("bubble %d is released ", bub.Basics.BubbleId),
-			TxReleaseBubble, bubble.ErrBubbleUnableRelease)
-	}
-
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
-	if err := bc.Plugin.ReleaseBubble(blockHash, blockNumber, bubbleID); err != nil {
-		return nil, err
-	}
-
-	// send release bubble event to the blockchain Mux if local node is operator
-	task := &bubble.ReleaseBubbleTask{
-		BubbleID: bub.Basics.BubbleId,
-		TxHash:   txHash,
-	}
-
-	for _, operators := range bub.Basics.OperatorsL1 {
-		if operators.NodeId == bc.Plugin.NodeID {
-			if err := bc.Plugin.PostReleaseBubbleEvent(task); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxReleaseBubble, common.NoErr)
 }
 
 // getBubbleInfo return the bubble information by bubble ID
@@ -355,11 +291,11 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	}
 
 	// check bubble state
-	bubState, err := bp.GetBubState(blockHash, bubbleID)
+	bubState, err := bp.GetBubStatus(blockHash, bubbleID)
 	if nil != err || nil == bubState {
 		return nil, bubble.ErrBubbleNotExist
 	}
-	if *bubState == bubble.ReleasedStatus {
+	if bubState.State == bubble.ReleasedStatus {
 		return nil, bubble.ErrBubbleIsRelease
 	}
 
@@ -457,12 +393,12 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	}
 
 	// check bubble state
-	bubState, err := bp.GetBubState(blockHash, bubbleID)
-	if nil != err || nil == bubState {
+	bubStatus, err := bp.GetBubStatus(blockHash, bubbleID)
+	if nil != err || nil == bubStatus {
 		return nil, bubble.ErrBubbleNotExist
 	}
 	// check bubble state
-	if *bubState != bubble.ReleasedStatus {
+	if bubStatus.State != bubble.ReleasedStatus {
 		return nil, bubble.ErrBubbleIsNotRelease
 	}
 
@@ -547,11 +483,11 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 	}
 
 	// check bubble state
-	bubState, err := bp.GetBubState(blockHash, bubbleID)
-	if nil != err || nil == bubState {
+	bubStatus, err := bp.GetBubStatus(blockHash, bubbleID)
+	if nil != err || nil == bubStatus {
 		return nil, bubble.ErrBubbleNotExist
 	}
-	if *bubState == bubble.ReleasedStatus {
+	if bubStatus.State == bubble.ReleasedStatus {
 		return nil, bubble.ErrBubbleIsRelease
 	}
 
