@@ -21,8 +21,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/crypto/bls12381"
 	"math/big"
+
+	"github.com/bubblenet/bubble/crypto/bls12381"
 
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/x/handler"
@@ -100,6 +101,7 @@ func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
 
 var BubblePrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.TokenContractAddr:          &TokenContract{},
+	vm.TempPrivateKeyContractAddr: &TempPrivateKeyContract{},
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},

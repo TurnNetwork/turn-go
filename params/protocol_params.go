@@ -167,6 +167,11 @@ const (
 	WithdrewDelegationGas uint64 = 8000  // Gas needed for withdrewDelegate
 	RedeemDelegationGas   uint64 = 6000  // Gas needed for RedeemDelegation
 
+	// temporary private key gas
+	BindTempPrivateKeyGas       uint64 = 6000 // Gas needed for BindTempPrivateKeyGas
+	ChangeTempPrivateKeyGas     uint64 = 6000 // Gas needed for ChangeTempPrivateKeyGas
+	InvalidateTempPrivateKeyGas uint64 = 6000 // Gas needed for InvalidateTempPrivateKeyGas
+
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
 	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion

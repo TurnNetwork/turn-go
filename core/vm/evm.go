@@ -75,6 +75,13 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunBubblePrecompiledContract(token, input, contract)
+			case *TempPrivateKeyContract:
+				token := &TempPrivateKeyContract{
+					Plugin:   plugin.TempPrivateKeyContractInstance(),
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunBubblePrecompiledContract(token, input, contract)
 			case *StakingContract:
 				staking := &StakingContract{
 					Plugin:   plugin.StakingInstance(),

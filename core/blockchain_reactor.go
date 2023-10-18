@@ -22,9 +22,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/x/token"
 	"math/big"
 	"sync"
+
+	"github.com/bubblenet/bubble/x/token"
 
 	"github.com/bubblenet/bubble/common"
 	cvm "github.com/bubblenet/bubble/common/vm"
@@ -374,6 +375,9 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 	switch to {
 	case cvm.TokenContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.TokenContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
+	case cvm.TempPrivateKeyContractAddr:
+		c := vm.BubblePrecompiledContracts[cvm.TempPrivateKeyContractAddr]
 		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.StakingContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.StakingContractAddr]
