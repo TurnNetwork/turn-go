@@ -32,10 +32,11 @@ import (
 
 const (
 	TxAllotBubble         = 8001
-	TxSetupRemoteContract = 8002
 	TxStakingToken        = 8003
 	TxWithdrewToken       = 8004
 	TxSettleBubble        = 8005
+	TxRemoteDeploy        = 8006
+	TxRemoteCall          = 8007
 	CallGetBubbleInfo     = 8100
 	CallGetL1HashByL2Hash = 8101
 	CallGetBubTxHashList  = 8102
@@ -64,11 +65,12 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxAllotBubble:         bc.allotBubble,
-		TxSetupRemoteContract: bc.setupRemoteContract,
-		TxStakingToken:        bc.stakingToken,
-		TxWithdrewToken:       bc.withdrewToken,
-		TxSettleBubble:        bc.settleBubble,
+		TxAllotBubble:   bc.allotBubble,
+		TxStakingToken:  bc.stakingToken,
+		TxWithdrewToken: bc.withdrewToken,
+		TxSettleBubble:  bc.settleBubble,
+		TxRemoteDeploy:  bc.remoteDeploy,
+		TxRemoteCall:    bc.remoteCall,
 		// Get
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
@@ -151,23 +153,23 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
 }
 
-func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, address common.Address, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 
-	log.Debug("Failed to setupRemoteContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID,
+	log.Debug("Failed to remoteDeploy", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID,
 		"address", address)
 
-	if !bc.Contract.UseGas(params.SetupRemoteContractGas) {
+	if !bc.Contract.UseGas(params.RemoteDeployGas) {
 		return nil, ErrOutOfGas
 	}
 
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
-		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "setupRemoteContract", "the bubble is not exist",
-			TxSetupRemoteContract, bubble.ErrBubbleNotExist)
+		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the bubble is not exist",
+			TxRemoteDeploy, bubble.ErrBubbleNotExist)
 	}
 
 	byteCode, err := bc.Plugin.GetByteCode(blockHash, address)
@@ -176,10 +178,10 @@ func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.
 		byteCode = bc.Evm.StateDB.GetCode(address)
 		if len(byteCode) == 0 {
 
-			log.Error("Call setupRemoteContract of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
+			log.Error("Call remoteDeploy of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
 				"txHash", txHash.Hex(), "from", from.String())
-			return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "setupRemoteContract", "the contract code is empty or abnormal",
-				TxSetupRemoteContract, bubble.ErrCodeException)
+			return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the contract code is empty or abnormal",
+				TxRemoteDeploy, bubble.ErrCodeException)
 		}
 		if txHash == common.ZeroHash {
 			return nil, nil
@@ -189,10 +191,10 @@ func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.
 	}
 
 	// send create bubble event to the blockchain Mux if local node is operator
-	task := &bubble.SetupRemoteContractTask{
-		BubbleID:  bubbleID,
+	task := &bubble.RemoteDeployTask{
 		TxHash:    txHash,
 		BlockHash: blockHash,
+		BubbleID:  bubbleID,
 		Address:   address,
 		Data:      data,
 		RPC:       bub.Basics.OperatorsL2[0].RPC,
@@ -201,13 +203,57 @@ func (bc *BubbleContract) setupRemoteContract(bubbleID *big.Int, address common.
 
 	for _, operators := range bub.Basics.OperatorsL1 {
 		if operators.NodeId == bc.Plugin.NodeID {
-			if err := bc.Plugin.PostSetupRemoteContractEvent(task); err != nil {
+			if err := bc.Plugin.PostRemoteDeployEvent(task); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxSetupRemoteContract, int(common.NoErr.Code), bubbleID, address, data), nil
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteDeploy, int(common.NoErr.Code), bubbleID, address, data), nil
+}
+
+func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address, caller common.Address, data []byte) ([]byte, error) {
+	from := bc.Contract.CallerAddress
+	txHash := bc.Evm.StateDB.TxHash()
+	blockNumber := bc.Evm.Context.BlockNumber
+	blockHash := bc.Evm.Context.BlockHash
+
+	log.Debug("Failed to remoteDeploy", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
+
+	if !bc.Contract.UseGas(params.RemoteCallGas) {
+		return nil, ErrOutOfGas
+	}
+
+	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	if err != nil {
+		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the bubble is not exist", TxRemoteCall, bubble.ErrBubbleNotExist)
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
+	// send create bubble event to the blockchain Mux if local node is operator
+	task := &bubble.RemoteCallTask{
+		TxHash:   txHash,
+		Caller:   caller,
+		BubbleID: bubbleID,
+		Contract: contract,
+		Data:     data,
+		RPC:      bub.Basics.OperatorsL2[0].RPC,
+		OpAddr:   bub.Basics.OperatorsL1[0].OpAddr,
+	}
+
+	for _, operators := range bub.Basics.OperatorsL1 {
+		if operators.NodeId == bc.Plugin.NodeID {
+			if err := bc.Plugin.PostRemoteCallEvent(task); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, int(common.NoErr.Code), from, bubbleID, contract, data), nil
+
 }
 
 // getL1HashByL2Hash The settlement transaction hash of the main chain is obtained according to the sub-chain settlement transaction hash
