@@ -2,8 +2,6 @@ package vm
 
 import (
 	"errors"
-	"fmt"
-
 	"github.com/bubblenet/bubble/params"
 )
 
@@ -43,43 +41,45 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // considered a revert-and-consume-all-gas operations except for
 // ErrExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			switch e := r.(type) {
-			case error:
-				ret, err = nil, e
-			default:
-				ret, err = nil, fmt.Errorf("WASM: execute fail, %v", e)
-			}
-		}
-	}()
-
-	in.evm.depth++
-	defer func() {
-		in.evm.depth--
-	}()
-
-	//// Don't bother with the execution if there's no code.
-	//if len(contract.Code) == 0 {
-	//	return nil, nil
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		switch e := r.(type) {
+	//		case error:
+	//			ret, err = nil, e
+	//		default:
+	//			ret, err = nil, fmt.Errorf("WASM: execute fail, %v", e)
+	//		}
+	//	}
+	//}()
+	//
+	//in.evm.depth++
+	//defer func() {
+	//	in.evm.depth--
+	//}()
+	//
+	////// Don't bother with the execution if there's no code.
+	////if len(contract.Code) == 0 {
+	////	return nil, nil
+	////}
+	//
+	//creator, err := NewWasmEngineCreator(in.cfg.WasmType)
+	//if err != nil {
+	//	return nil, err
 	//}
+	//
+	//engine, err := creator.Create(in.evm, in.cfg, in.gasTable, contract)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//ret, err = engine.Run(input, readOnly)
+	//if err != nil {
+	//	return ret, err
+	//}
+	//
+	//return ret, nil
 
-	creator, err := NewWasmEngineCreator(in.cfg.WasmType)
-	if err != nil {
-		return nil, err
-	}
-
-	engine, err := creator.Create(in.evm, in.cfg, in.gasTable, contract)
-	if err != nil {
-		return nil, err
-	}
-
-	ret, err = engine.Run(input, readOnly)
-	if err != nil {
-		return ret, err
-	}
-
-	return ret, nil
+	return nil, nil
 }
 
 // CanRun tells if the contract, passed as an argument, can be run
@@ -113,18 +113,18 @@ func Str2WasmType(str string) WasmInsType {
 	}
 }
 
-var creators = map[WasmInsType]wasmEngineCreator{
-	Wagon: &wagonEngineCreator{},
-}
-
-func NewWasmEngineCreator(vm WasmInsType) (wasmEngineCreator, error) {
-
-	if creator, ok := creators[vm]; ok {
-		return creator, nil
-	}
-	return nil, fmt.Errorf("unsupport wasm type: %d", vm)
-}
-
-type wasmEngineCreator interface {
-	Create(evm *EVM, config Config, gasTable params.GasTable, contract *Contract) (wasmEngine, error)
-}
+//var creators = map[WasmInsType]wasmEngineCreator{
+//	Wagon: &wagonEngineCreator{},
+//}
+//
+//func NewWasmEngineCreator(vm WasmInsType) (wasmEngineCreator, error) {
+//
+//	if creator, ok := creators[vm]; ok {
+//		return creator, nil
+//	}
+//	return nil, fmt.Errorf("unsupport wasm type: %d", vm)
+//}
+//
+//type wasmEngineCreator interface {
+//	Create(evm *EVM, config Config, gasTable params.GasTable, contract *Contract) (wasmEngine, error)
+//}
