@@ -52,15 +52,16 @@ type BlockChainReactor struct {
 	mintTokenTaskSub *event.TypeMuxSubscription // MintToken task subscription
 	//createBubbleTaskSub    *event.TypeMuxSubscription // create bubble task subscription
 	//releaseBubbleTaskSub   *event.TypeMuxSubscription // release bubble task subscription
-	setupRemoteContractSub *event.TypeMuxSubscription // setup remote contract task subscription
-	basePluginMap          map[int]plugin.BasePlugin  // xxPlugin container
-	beginRule              []int                      // Order rules for xxPlugins called in BeginBlocker
-	endRule                []int                      // Order rules for xxPlugins called in EndBlocker
-	validatorMode          string                     // mode: static, inner, dpos
-	NodeId                 discover.NodeID            // The nodeId of current node
-	exitCh                 chan chan struct{}         // Used to receive an exit signal
-	exitOnce               sync.Once
-	chainID                *big.Int
+	remoteDeploySub *event.TypeMuxSubscription // remote deploy contract task subscription
+	remoteCallSub   *event.TypeMuxSubscription //  remote call contract function task subscription
+	basePluginMap   map[int]plugin.BasePlugin  // xxPlugin container
+	beginRule       []int                      // Order rules for xxPlugins called in BeginBlocker
+	endRule         []int                      // Order rules for xxPlugins called in EndBlocker
+	validatorMode   string                     // mode: static, inner, dpos
+	NodeId          discover.NodeID            // The nodeId of current node
+	exitCh          chan chan struct{}         // Used to receive an exit signal
+	exitOnce        sync.Once
+	chainID         *big.Int
 }
 
 var (
@@ -89,7 +90,8 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		bcr.mintTokenTaskSub = bcr.eventMux.BufferSubscribe(1000, bubble.MintTokenTask{})
 		//bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
 		//bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
-		bcr.setupRemoteContractSub = bcr.eventMux.BufferSubscribe(1000, bubble.SetupRemoteContractTask{})
+		bcr.remoteDeploySub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteDeployTask{})
+		bcr.remoteCallSub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteCallTask{})
 		// start the loop
 		go bcr.loop()
 		go bcr.handleTask()
@@ -162,22 +164,38 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
-		case msg := <-bcr.setupRemoteContractSub.Chan():
+		case msg := <-bcr.remoteDeploySub.Chan():
 			if msg == nil {
 				continue
 			}
-			task, ok := msg.Data.(bubble.SetupRemoteContractTask)
+			task, ok := msg.Data.(bubble.RemoteDeployTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to receive mintToken data conversion type")
+				log.Error("blockchain_reactor failed to receive remoteDeploy data conversion type")
 				continue
 			}
 			// handle task
-			hash, err := plugin.BubbleInstance().HandleSetupRemoteContractTask(&task)
+			hash, err := plugin.BubbleInstance().HandleRemoteDeployTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process SetupRemoteContract task")
+				log.Error("blockchain_reactor failed to process RemoteDeploy task")
 				continue
 			}
-			log.Info("The processing and SetupRemoteContract task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+			log.Info("The processing and RemoteDeploy task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+		case msg := <-bcr.remoteCallSub.Chan():
+			if msg == nil {
+				continue
+			}
+			task, ok := msg.Data.(bubble.RemoteCallTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to receive remoteCall data conversion type")
+				continue
+			}
+			// handle task
+			hash, err := plugin.BubbleInstance().HandleRemoteCallTask(&task)
+			if err != nil {
+				log.Error("blockchain_reactor failed to process RemoteCall task")
+				continue
+			}
+			log.Info("The processing and RemoteCall task succeeded, tx hash:", common.BytesToHash(hash).Hex())
 			//case msg := <-bcr.createBubbleTaskSub.Chan():
 			//	if msg == nil {
 			//		continue

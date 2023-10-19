@@ -153,14 +153,24 @@ type ReleaseBubbleTask struct {
 	TxHash   common.Hash // The transaction hash of the releaseBubbleTask
 }
 
-type SetupRemoteContractTask struct {
-	BubbleID  *big.Int
-	TxHash    common.Hash // The transaction hash of the setupRemoteContractTask
+type RemoteDeployTask struct {
+	TxHash    common.Hash // The transaction hash of the remoteDeployTask
 	BlockHash common.Hash
+	BubbleID  *big.Int
 	Address   common.Address
 	Data      []byte
 	RPC       string         // Bubble The bubble sub-chain operates the node rpc
 	OpAddr    common.Address // Bubble The bubble main-chain operates address
+}
+
+type RemoteCallTask struct {
+	TxHash   common.Hash // The transaction hash of the remoteDeployTask
+	Caller   common.Address
+	BubbleID *big.Int
+	Contract common.Address
+	Data     []byte
+	RPC      string         // Bubble The bubble sub-chain operates the node rpc
+	OpAddr   common.Address // Bubble The bubble main-chain operates address
 }
 
 type SettlementInfo struct {

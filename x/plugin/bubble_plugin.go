@@ -843,11 +843,22 @@ func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) e
 	return nil
 }
 
-// PostSetupRemoteContractEvent Send the setup remote contract event and wait for the task to be processed
-func (bp *BubblePlugin) PostSetupRemoteContractEvent(task *bubble.SetupRemoteContractTask) error {
-	log.Debug("PostSetupRemoteContractEvent", *task)
+// PostRemoteDeployEvent Send the remote deploy contract event and wait for the task to be processed
+func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) error {
+	log.Debug("PostRemoteDeployEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post SetupRemoteContract task failed", "err", err)
+		log.Error("post RemoteDeployTask failed", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+// PostRemoteCallEvent Send the remote call contract function event and wait for the task to be processed
+func (bp *BubblePlugin) PostRemoteCallEvent(task *bubble.RemoteCallTask) error {
+	log.Debug("PostRemoteCallEvent", *task)
+	if err := bp.eventMux.Post(*task); nil != err {
+		log.Error("post RemoteCallTask failed", "err", err)
 		return err
 	}
 
@@ -954,18 +965,18 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	return hash.Bytes(), nil
 }
 
-func encodeSetupTxData(task *bubble.SetupRemoteContractTask) []byte {
+func encodeRemoteDeploy(task *bubble.RemoteDeployTask) []byte {
 	s := make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(6000))
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
 	address, _ := rlp.EncodeToBytes(task.Address)
 
-	rtCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
+	runtimeCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
 	if err != nil {
 		return nil
 	}
-	bytecode, _ := rlp.EncodeToBytes(rtCode)
+	bytecode, _ := rlp.EncodeToBytes(runtimeCode)
 
 	data, _ := rlp.EncodeToBytes(task.Data)
 	s = append(s, fnType)
@@ -975,17 +986,39 @@ func encodeSetupTxData(task *bubble.SetupRemoteContractTask) []byte {
 	s = append(s, data)
 
 	buf := new(bytes.Buffer)
-	err = rlp.Encode(buf, data)
+	err = rlp.Encode(buf, s)
 	if err != nil {
 		return nil
 	}
 	return buf.Bytes()
 }
 
-// HandleSetupRemoteContractTask Handle SetupRemoteContract task
-func (bp *BubblePlugin) HandleSetupRemoteContractTask(task *bubble.SetupRemoteContractTask) ([]byte, error) {
+func encodeRemoteCall(task *bubble.RemoteCallTask) []byte {
+	s := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(6000))
+	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	caller, _ := rlp.EncodeToBytes(task.Caller)
+	Contract, _ := rlp.EncodeToBytes(task.Contract)
+	data, _ := rlp.EncodeToBytes(task.Data)
+	s = append(s, fnType)
+	s = append(s, txHash)
+	s = append(s, caller)
+	s = append(s, Contract)
+	s = append(s, data)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, s)
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// HandleRemoteDeployTask Handle RemoteDeploy task
+func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([]byte, error) {
 	if nil == task {
-		return nil, errors.New("SetupRemoteContractTask is empty")
+		return nil, errors.New("RemoteDeployTask is empty")
 	}
 	client, err := ethclient.Dial(task.RPC)
 	if err != nil || client == nil {
@@ -994,7 +1027,7 @@ func (bp *BubblePlugin) HandleSetupRemoteContractTask(task *bubble.SetupRemoteCo
 	}
 	// Construct transaction parameters
 	priKey := bp.opPriKey
-	// Call the sub-chain system contract SetupRemoteContract interface
+	// Call the sub-chain system contract RemoteDeploy interface
 	toAddr := common.HexToAddress(SubChainSysAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
@@ -1029,9 +1062,9 @@ func (bp *BubblePlugin) HandleSetupRemoteContractTask(task *bubble.SetupRemoteCo
 	}
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
-	data := encodeSetupTxData(task)
+	data := encodeRemoteDeploy(task)
 	if nil == data {
-		return nil, errors.New("encode setup transaction data failed")
+		return nil, errors.New("encode remoteDeploy transaction failed")
 	}
 	// Creating transaction objects
 	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
@@ -1044,19 +1077,97 @@ func (bp *BubblePlugin) HandleSetupRemoteContractTask(task *bubble.SetupRemoteCo
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing setupRemoteContract transaction failed", "err", err)
+		log.Error("Signing remoteDeploy transaction failed", "err", err)
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send setupRemoteContract transaction", "err", err)
+		log.Error("Failed to send remoteDeploy transaction", "err", err)
 		return nil, err
 	}
 
 	hash := signedTx.Hash()
-	log.Debug("setupRemoteContract tx hash", hash.Hex())
+	log.Debug("remoteDeploy tx hash", hash.Hex())
+	return hash.Bytes(), nil
+}
+
+// HandleRemoteCallTask Handle RemoteDeploy task
+func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byte, error) {
+	if nil == task {
+		return nil, errors.New("RemoteCallTask is empty")
+	}
+	client, err := ethclient.Dial(task.RPC)
+	if err != nil || client == nil {
+		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
+	}
+	// Construct transaction parameters
+	priKey := bp.opPriKey
+	// Call the sub-chain system contract RemoteDeploy interface
+	toAddr := common.HexToAddress(SubChainSysAddr)
+	privateKey, err := crypto.HexToECDSA(priKey)
+	if err != nil {
+		log.Error("Wrong private key", "err", err)
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
+	}
+
+	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
+	// The staking address of the operation node is taken as the operation node address
+	// It is determined whether the main chain operation node signs the transaction
+	if fromAddr != task.OpAddr {
+		log.Error("The transaction sender is not the main-chain operation address")
+		return nil, errors.New("the transaction sender is not the main-chain operation address")
+	}
+	// get account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
+	if err != nil {
+		log.Error("Failed to obtain the account nonce", "err", err)
+		return nil, err
+	}
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Error("Failed to get gasPrice", "err", err)
+		return nil, err
+	}
+	value := big.NewInt(0)
+	gasLimit := uint64(300000)
+	data := encodeRemoteCall(task)
+	if nil == data {
+		return nil, errors.New("encode remoteCall transaction failed")
+	}
+	// Creating transaction objects
+	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
+
+	// The sender's private key is used to sign the transaction
+	chainID, err := client.ChainID(context.Background())
+	if err != nil || chainID != task.BubbleID {
+		return nil, errors.New("chainID is wrong")
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Error("Signing remoteCall transaction failed", "err", err)
+		return nil, err
+	}
+
+	// Sending transactions
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Error("Failed to send remoteCall transaction", "err", err)
+		return nil, err
+	}
+
+	hash := signedTx.Hash()
+	log.Debug("remoteCall tx hash", hash.Hex())
 	return hash.Bytes(), nil
 }
 
