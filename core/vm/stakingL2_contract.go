@@ -18,7 +18,6 @@ package vm
 
 import (
 	"fmt"
-	"github.com/bubblenet/bubble/node"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -106,24 +105,12 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	}
 
 	// parse bls publickey
-	blsPk, err := blsPubKey.ParseBlsPubKey()
+	_, err := blsPubKey.ParseBlsPubKey()
 	if nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
 			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKey)
 	}
 
-	// verify bls proof
-	if err := verifyBlsProof(blsProof, blsPk); nil != err {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
-			TxCreateStakingL2, stakingL2.ErrWrongBlsPubKeyProof)
-
-	}
-
-	// validate programVersion sign
-	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
-		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", "call IsSignedByNodeID is failed",
-			TxCreateStakingL2, stakingL2.ErrWrongProgramVersionSign)
-	}
 	if !stk.Plugin.CheckStakeThresholdL2(amount) {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("staking threshold: %d, deposit: %d", plugin.StakeThresholdL2, amount),
 			TxCreateStakingL2, stakingL2.ErrStakeVonTooLow)
