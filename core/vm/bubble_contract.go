@@ -37,6 +37,7 @@ const (
 	TxSettleBubble        = 8005
 	TxRemoteDeploy        = 8006
 	TxRemoteCall          = 8007
+	TxRemoteCallReceive   = 8008
 	CallGetBubbleInfo     = 8100
 	CallGetL1HashByL2Hash = 8101
 	CallGetBubTxHashList  = 8102
@@ -65,12 +66,13 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxAllotBubble:   bc.allotBubble,
-		TxStakingToken:  bc.stakingToken,
-		TxWithdrewToken: bc.withdrewToken,
-		TxSettleBubble:  bc.settleBubble,
-		TxRemoteDeploy:  bc.remoteDeploy,
-		TxRemoteCall:    bc.remoteCall,
+		TxAllotBubble:       bc.allotBubble,
+		TxStakingToken:      bc.stakingToken,
+		TxWithdrewToken:     bc.withdrewToken,
+		TxSettleBubble:      bc.settleBubble,
+		TxRemoteDeploy:      bc.remoteDeploy,
+		TxRemoteCall:        bc.remoteCall,
+		TxRemoteCallReceive: bc.remoteCallReceive,
 		// Get
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
@@ -168,8 +170,22 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, address common.Address
 
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
-		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the bubble is not exist",
-			TxRemoteDeploy, bubble.ErrBubbleNotExist)
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeploy", "the bubble is not exist", TxRemoteDeploy, bubble.ErrBubbleNotExist)
+	}
+
+	if bub.State >= bubble.PreReleaseStatus {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeploy", "the bubble is ready to release", TxRemoteDeploy, bubble.ErrBubbleIsPreRelease)
+	}
+
+	contractInfo, err := bc.Plugin.GetBubContract(blockHash, bubbleID, address)
+	if err != nil {
+		return nil, err
+	}
+	if contractInfo != nil {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeploy", "the bubble is really exist", TxRemoteDeploy, bubble.ErrContractIsExist)
+	}
+	if err := bc.Plugin.StoreBubContract(blockHash, bubbleID, contractInfo); err != nil {
+		return nil, err
 	}
 
 	byteCode, err := bc.Plugin.GetByteCode(blockHash, address)
@@ -180,8 +196,8 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, address common.Address
 
 			log.Error("Call remoteDeploy of bubbleContract", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.TerminalString(),
 				"txHash", txHash.Hex(), "from", from.String())
-			return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the contract code is empty or abnormal",
-				TxRemoteDeploy, bubble.ErrCodeException)
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeploy", "the contract code is empty or abnormal",
+				TxRemoteDeploy, bubble.ErrEmptyContractCode)
 		}
 		if txHash == common.ZeroHash {
 			return nil, nil
@@ -212,13 +228,33 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, address common.Address
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteDeploy, int(common.NoErr.Code), bubbleID, address, data), nil
 }
 
-func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address, caller common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteClear(bubbleID *big.Int, address common.Address) ([]byte, error) {
 	from := bc.Contract.CallerAddress
+	blockHash := bc.Evm.Context.BlockHash
+
+	contractInfo, err := bc.Plugin.GetBubContract(blockHash, bubbleID, address)
+	if err != nil {
+		return nil, err
+	}
+
+	if from != contractInfo.Creator {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteClear", "the sender is not the creator", TxRemoteDeploy, bubble.ErrSenderIsNotCreator)
+	}
+
+	if err := bc.Plugin.DelBubContract(blockHash, bubbleID, address); err != nil {
+		return nil, err
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteDeploy, int(common.NoErr.Code)), nil
+
+}
+
+func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address, caller common.Address, data []byte) ([]byte, error) {
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 
-	log.Debug("Failed to remoteDeploy", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
+	log.Debug("Failed to remoteCall", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
 
 	if !bc.Contract.UseGas(params.RemoteCallGas) {
 		return nil, ErrOutOfGas
@@ -226,14 +262,13 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 
 	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
-		return txResultHandler(vm.StakingL2ContractAddr, bc.Evm, "remoteDeploy", "the bubble is not exist", TxRemoteCall, bubble.ErrBubbleNotExist)
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCall", "the bubble is not exist", TxRemoteCall, bubble.ErrBubbleNotExist)
 	}
 
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
 
-	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteCallTask{
 		TxHash:   txHash,
 		Caller:   caller,
@@ -252,7 +287,43 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 		}
 	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, int(common.NoErr.Code), from, bubbleID, contract, data), nil
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, int(common.NoErr.Code), bubbleID, caller, txHash, contract, data), nil
+
+}
+
+func (bc *BubbleContract) remoteCallReceive(bubbleID *big.Int, remoteTxHash common.Hash, caller common.Address, contract common.Address, data []byte) ([]byte, error) {
+	txHash := bc.Evm.StateDB.TxHash()
+	blockNumber := bc.Evm.Context.BlockNumber
+
+	log.Debug("Failed to remoteCallReceive", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
+
+	if !bc.Contract.UseGas(params.RemoteCallReceiveGas) {
+		return nil, ErrOutOfGas
+	}
+
+	if code := bc.Evm.StateDB.GetCode(contract); len(code) == 0 {
+		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallReceive", "the contract is not exist", TxRemoteCallReceive, bubble.ErrEmptyContractCode)
+	}
+
+	// manual switch to the evm runtime
+	bc.Contract.caller = AccountRef(caller)
+	bc.Contract.CallerAddress = caller
+	bc.Contract.self = AccountRef(contract)
+	bc.Contract.SetCallCode(&contract, bc.Evm.StateDB.GetCodeHash(contract), bc.Evm.StateDB.GetCode(contract))
+	isEstimateGas := txHash == common.ZeroHash
+
+	_, err := RunEvm(bc.Evm, bc.Contract, data)
+	if err != nil {
+		log.Error("call contract error", "contract", contract, "error", err)
+		if isEstimateGas {
+			return nil, errors.New(fmt.Sprintf("call contract error: %s", err.Error()))
+		} else {
+			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallReceive", "the contract returned an error", TxRemoteCallReceive,
+				bubble.ErrContractReturns.Wrap(err.Error()))
+		}
+	}
+
+	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, int(common.NoErr.Code), bubbleID, caller, remoteTxHash, contract, data), nil
 
 }
 

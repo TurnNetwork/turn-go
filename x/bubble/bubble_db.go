@@ -99,12 +99,42 @@ func (bdb *BubbleDB) DelSizedBubbleID(blockHash common.Hash, sizeCode uint8, bub
 	return nil
 }
 
-func (bdb *BubbleDB) GetByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
+func (bdb *BubbleDB) GetContractByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
 	return bdb.db.Get(blockHash, getByteCodeKey(address))
 }
 
-func (bdb *BubbleDB) StoreByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
+func (bdb *BubbleDB) StoreContractByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
 	return bdb.db.Put(blockHash, getByteCodeKey(address), byteCode)
+}
+
+func (bdb *BubbleDB) IteratorBubContract(blockHash common.Hash, bubbleID *big.Int, ranges int) iterator.Iterator {
+	return bdb.db.Ranking(blockHash, getBubContractKey(bubbleID), ranges)
+}
+
+func (bdb *BubbleDB) GetBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) (*ContractInfo, error) {
+	data, err := bdb.db.Get(blockHash, getContractInfoKey(bubbleID, address))
+	if err != nil {
+		return nil, err
+	}
+
+	var contractInfo ContractInfo
+	if err := rlp.DecodeBytes(data, &contractInfo); err != nil {
+		return nil, err
+	} else {
+		return &contractInfo, nil
+	}
+}
+
+func (bdb *BubbleDB) StoreBubContract(blockHash common.Hash, bubbleID *big.Int, contractInfo *ContractInfo) error {
+	if data, err := rlp.EncodeToBytes(contractInfo); err != nil {
+		return err
+	} else {
+		return bdb.db.Put(blockHash, getContractInfoKey(bubbleID, contractInfo.Address), data)
+	}
+}
+
+func (bdb *BubbleDB) DelBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) error {
+	return bdb.db.Del(blockHash, getContractInfoKey(bubbleID, address))
 }
 
 func (bdb *BubbleDB) GetAccListOfBub(blockHash common.Hash, bubbleId *big.Int) ([]common.Address, error) {

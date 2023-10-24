@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	AccListKeyPrefix     = []byte("AccList")  // the key prefix of the accounts list of the staking token
-	AccAssetKeyPrefix    = []byte("AccAsset") // key prefix of the asset information of the pledge account
-	TxHashKeyPrefix      = []byte("TxHash")
-	TxHashListKeyPrefix  = []byte("TxHashList") // The key prefix of the transaction hash list
-	BubBasicsKeyPrefix   = []byte("BubBasics")  // The key prefix of the bubble basics
-	BubStatusKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
-	BubbleSizeBasePrefix = []byte("BubbleSize")
-	ByteCodePrefix       = []byte("Bytecode")
+	AccListKeyPrefix    = []byte("AccList")  // the key prefix of the accounts list of the staking token
+	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
+	TxHashKeyPrefix     = []byte("TxHash")
+	TxHashListKeyPrefix = []byte("TxHashList") // The key prefix of the transaction hash list
+	BubBasicsKeyPrefix  = []byte("BubBasics")  // The key prefix of the bubble basics
+	BubStatusKeyPrefix  = []byte("BubState")   // The key prefix of the bubble state
+	BubSizeBasePrefix   = []byte("BubbleSize")
+	ByteCodePrefix      = []byte("Bytecode")
+	BubContractPrefix   = []byte("BubbleContract")
 )
 
 // getBubBasicsKey bubble basics that press bubbleId key
@@ -40,16 +41,19 @@ func getSizedBubblePrefix(sizeCode uint8) []byte {
 	if nil != err {
 		return nil
 	}
-	return append(BubbleSizeBasePrefix, size...)
+	return append(BubSizeBasePrefix, size...)
 }
 
 func getSizedBubbleKey(sizeCode uint8, bubbleID *big.Int) []byte {
-	bid, err := rlp.EncodeToBytes(bubbleID)
-	if nil != err {
-		return nil
-	}
+	return append(getSizedBubblePrefix(sizeCode), bubbleID.Bytes()...)
+}
 
-	return append(getSizedBubblePrefix(sizeCode), bid...)
+func getBubContractKey(bubbleID *big.Int) []byte {
+	return append(BubContractPrefix, bubbleID.Bytes()...)
+}
+
+func getContractInfoKey(bubbleID *big.Int, address common.Address) []byte {
+	return append(getBubContractKey(bubbleID), address.Bytes()...)
 }
 
 func getByteCodeKey(address common.Address) []byte {

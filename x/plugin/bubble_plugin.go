@@ -684,11 +684,45 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 }
 
 func (bp *BubblePlugin) GetByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
-	return bp.db.GetByteCode(blockHash, address)
+	return bp.db.GetContractByteCode(blockHash, address)
 }
 
 func (bp *BubblePlugin) StoreByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
-	return bp.db.StoreByteCode(blockHash, address, byteCode)
+	return bp.db.StoreContractByteCode(blockHash, address, byteCode)
+}
+
+func (bp *BubblePlugin) GetBubContracts(blockHash common.Hash, bubbleID *big.Int) ([]*bubble.ContractInfo, error) {
+	iter := bp.db.IteratorBubContract(blockHash, bubbleID, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	queue := make([]*bubble.ContractInfo, 0)
+	for iter.Valid(); iter.Next(); {
+		data := iter.Value()
+		contractInfo := new(bubble.ContractInfo)
+		err := rlp.DecodeBytes(data, contractInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		queue = append(queue, contractInfo)
+	}
+
+	return queue, nil
+}
+
+func (bp *BubblePlugin) GetBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) (*bubble.ContractInfo, error) {
+	return bp.db.GetBubContract(blockHash, bubbleID, address)
+}
+
+func (bp *BubblePlugin) StoreBubContract(blockHash common.Hash, bubbleID *big.Int, contractInfo *bubble.ContractInfo) error {
+	return bp.db.StoreBubContract(blockHash, bubbleID, contractInfo)
+}
+
+func (bp *BubblePlugin) DelBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) error {
+	return bp.db.DelBubContract(blockHash, bubbleID, address)
 }
 
 // GetAccListOfBub Get the list of accounts inside bubble
@@ -972,7 +1006,7 @@ func encodeRemoteDeploy(task *bubble.RemoteDeployTask) []byte {
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
 	address, _ := rlp.EncodeToBytes(task.Address)
 
-	runtimeCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
+	runtimeCode, err := BubbleInstance().db.GetContractByteCode(task.BlockHash, task.Address)
 	if err != nil {
 		return nil
 	}
