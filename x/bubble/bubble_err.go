@@ -4,12 +4,15 @@ import "github.com/bubblenet/bubble/common"
 
 var (
 	ErrBubbleNotExist           = common.NewBizError(322001, "The bubble is not exist")
-	ErrSenderIsNotCreator       = common.NewBizError(322002, "transaction sender must be the bubble creator")
+	ErrSenderIsNotCreator       = common.NewBizError(322002, "transaction sender must be the contract creator")
 	ErrBubbleUnableRelease      = common.NewBizError(322003, "The bubble is unable to release")
 	ErrOperatorL1IsInsufficient = common.NewBizError(322004, "The operator of layer 1 is insufficient")
 	ErrOperatorL2IsInsufficient = common.NewBizError(322005, "The operator of layer 2 is insufficient")
 	ErrMicroNodeIsInsufficient  = common.NewBizError(322006, "The micro node is insufficient")
-	ErrCodeException            = common.NewBizError(322007, "The contract code is empty or abnormal")
+	ErrEmptyContractCode        = common.NewBizError(322007, "The contract code is empty or abnormal")
+	ErrContractReturns          = common.NewBizError(322008, "The contract code is empty or abnormal")
+	ErrBubbleIsPreRelease       = common.NewBizError(322009, "the bubble is ready to release")
+	ErrContractIsExist          = common.NewBizError(322010, "the bubble is ready to release")
 	ErrAccountNoEnough          = common.NewBizError(330000, "The account balance is insufficient")
 	ErrStakingAccount           = common.NewBizError(330001, "The sender of the pledged token transaction is not the person of the pledged account")
 	ErrERC20NoExist             = common.NewBizError(330002, "erc20 contract address does not exist")

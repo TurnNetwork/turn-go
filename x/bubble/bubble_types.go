@@ -185,6 +185,11 @@ func (s SettlementInfo) Hash() (common.Hash, error) {
 	return crypto.Keccak256Hash(enVal), nil
 }
 
+type ContractInfo struct {
+	Creator common.Address
+	Address common.Address
+}
+
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
