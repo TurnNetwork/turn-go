@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 
@@ -28,10 +29,22 @@ import (
 )
 
 const (
-	TxBindTempPrivateKey       = 6000
-	TxChangeTempPrivateKey     = 6001
-	TxBehalfSignature          = 6002
-	TxInvalidateTempPrivateKey = 6003
+	TxBindTempPrivateKey       = 7000
+	TxBehalfSignature          = 7001
+	TxInvalidateTempPrivateKey = 7002
+)
+
+const (
+	tempPrivateKeyPrefix = "TempPrivateKey"
+	lineOfCreditPrefix   = "LineOfCredit"
+)
+
+var (
+	ErrInvalidPeriod      = common.NewBizError(700000, "invalid period")
+	ErrGetCurrentGasPrice = common.NewBizError(700001, "Failed to get current gas price")
+	ErrGetGameOperator    = common.NewBizError(700002, "Failed to get game operator")
+	ErrGetLineOfCredit    = common.NewBizError(700003, "Failed to get line of credit")
+	ErrCallGameContract   = common.NewBizError(700004, "Failed to call game contract")
 )
 
 type TempPrivateKeyContract struct {
@@ -66,18 +79,25 @@ func (tpkc *TempPrivateKeyContract) FnSigns() map[uint16]interface{} {
 func (tpkc *TempPrivateKeyContract) FnSignsV1() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		TxBindTempPrivateKey:       tpkc.bindTempPrivateKey,
-		TxChangeTempPrivateKey:     tpkc.changeTempPrivateKey,
-		TxInvalidateTempPrivateKey: tpkc.invalidateTempPrivateKey,
 		TxBehalfSignature:          tpkc.behalfSignature,
+		TxInvalidateTempPrivateKey: tpkc.invalidateTempPrivateKey,
 	}
 }
 
-func getDBKey(workAddress, gameContractAddress common.Address) []byte {
-	return append(workAddress.Bytes(), gameContractAddress.Bytes()...)
+func getTempPrivateKeyDBKey(workAddress, gameContractAddress common.Address) []byte {
+	key := append(workAddress.Bytes(), gameContractAddress.Bytes()...)
+	prefix := []byte(tempPrivateKeyPrefix)
+	return append(prefix, key...)
 }
 
-func getDBValue(tempAddress common.Address, period []byte) []byte {
+func getTempPrivateKeyDBValue(tempAddress common.Address, period []byte) []byte {
 	return append(tempAddress.Bytes(), period...)
+}
+
+func getLineOfCreditDBKey(workAddress, gameContractAddress common.Address) []byte {
+	key := append(workAddress.Bytes(), gameContractAddress.Bytes()...)
+	prefix := []byte(lineOfCreditPrefix)
+	return append(prefix, key...)
 }
 
 // Set temporary private key
@@ -89,6 +109,7 @@ func (tpkc *TempPrivateKeyContract) bindTempPrivateKey(gameContractAddress, temp
 	log.Debug("Call bindTempPrivateKey of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress,
 		"period", hex.EncodeToString(period))
+
 	// Calculating gas
 	if !tpkc.Contract.UseGas(params.BindTempPrivateKeyGas) {
 		return nil, ErrOutOfGas
@@ -96,56 +117,9 @@ func (tpkc *TempPrivateKeyContract) bindTempPrivateKey(gameContractAddress, temp
 
 	// Call handling logic
 	state := tpkc.Evm.StateDB
-	state.SetState(vm.TempPrivateKeyContractAddr, getDBKey(workAddress, gameContractAddress), getDBValue(tempAddress, period))
-
-	// // estimate gas
-	// if err == nil && ret == nil {
-	// 	return nil, nil
-	// }
-	// if nil != err {
-	// 	if bizErr, ok := err.(*common.BizError); ok {
-	// 		return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "bindTempPrivateKey", bizErr.Error(), TxBindTempPrivateKey, bizErr)
-	// 	} else {
-	// 		log.Error("Failed to bindTempPrivateKey", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-	// 		return nil, err
-	// 	}
-	// }
+	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), getTempPrivateKeyDBValue(tempAddress, period))
 
 	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "bindTempPrivateKey", "", TxBindTempPrivateKey, nil)
-}
-
-// change temporary private key
-func (tpkc *TempPrivateKeyContract) changeTempPrivateKey(gameContractAddress, tempAddress common.Address, period []byte) ([]byte, error) {
-	txHash := tpkc.Evm.StateDB.TxHash()
-	blockNumber := tpkc.Evm.Context.BlockNumber
-	workAddress := tpkc.Contract.CallerAddress
-	blockHash := tpkc.Evm.Context.BlockHash
-	log.Debug("Call changeTempPrivateKey of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress,
-		"period", hex.EncodeToString(period))
-	// Calculating gas
-	if !tpkc.Contract.UseGas(params.ChangeTempPrivateKeyGas) {
-		return nil, ErrOutOfGas
-	}
-
-	// Call handling logic
-	state := tpkc.Evm.StateDB
-	state.SetState(vm.TempPrivateKeyContractAddr, getDBKey(workAddress, gameContractAddress), getDBValue(tempAddress, period))
-
-	// // estimate gas
-	// if err == nil && ret == nil {
-	// 	return nil, nil
-	// }
-	// if nil != err {
-	// 	if bizErr, ok := err.(*common.BizError); ok {
-	// 		return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "changeTempPrivateKey", bizErr.Error(), TxChangeTempPrivateKey, bizErr)
-	// 	} else {
-	// 		log.Error("Failed to changeTempPrivateKey", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-	// 		return nil, err
-	// 	}
-	// }
-
-	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "changeTempPrivateKey", "", TxChangeTempPrivateKey, nil)
 }
 
 // invalidate temporary private key
@@ -156,6 +130,7 @@ func (tpkc *TempPrivateKeyContract) invalidateTempPrivateKey(gameContractAddress
 	blockHash := tpkc.Evm.Context.BlockHash
 	log.Debug("Call invalidateTempPrivateKey of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress)
+
 	// Calculating gas
 	if !tpkc.Contract.UseGas(params.InvalidateTempPrivateKeyGas) {
 		return nil, ErrOutOfGas
@@ -163,63 +138,98 @@ func (tpkc *TempPrivateKeyContract) invalidateTempPrivateKey(gameContractAddress
 
 	// Call handling logic
 	state := tpkc.Evm.StateDB
-	state.SetState(vm.TempPrivateKeyContractAddr, getDBKey(workAddress, gameContractAddress), []byte{})
-
-	// // estimate gas
-	// if err == nil && ret == nil {
-	// 	return nil, nil
-	// }
-	// if nil != err {
-	// 	if bizErr, ok := err.(*common.BizError); ok {
-	// 		return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "invalidateTempPrivateKey", bizErr.Error(), TxInvalidateTempPrivateKey, bizErr)
-	// 	} else {
-	// 		log.Error("Failed to invalidateTempPrivateKey", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-	// 		return nil, err
-	// 	}
-	// }
-
+	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), []byte{})
 	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "invalidateTempPrivateKey", "", TxInvalidateTempPrivateKey, nil)
 }
 
-// sign on behalf of workAddress
-
-func (tpkc *TempPrivateKeyContract) defaultGasPrice() (*big.Int, error) {
-	return big.NewInt(int64(0)), nil
+func (tpkc *TempPrivateKeyContract) defaultGasPrice() *big.Int {
+	return big.NewInt(50000000000)
 }
 
-func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAddress, gamePublisherAddress common.Address, periodArg []byte, callData []byte, signedData []byte) ([]byte, error) {
+// sign on behalf of workAddress
+func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAddress common.Address, periodArg []byte, input []byte) ([]byte, error) {
 	txHash := tpkc.Evm.StateDB.TxHash()
 	blockNumber := tpkc.Evm.Context.BlockNumber
 	blockHash := tpkc.Evm.Context.BlockHash
 	state := tpkc.Evm.StateDB
-	dbValue := state.GetState(vm.GovContractAddr, getDBKey(workAddress, gameContractAddress))
+
+	// get temporary private key information
+	dbValue := state.GetState(vm.GovContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
 	tempAddressBytes := dbValue[0:common.AddressLength]
 	tempAddress := common.BytesToAddress(tempAddressBytes)
 	period := dbValue[common.AddressLength:]
+
 	log.Debug("Call behalfSignature of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress)
-	// Calculating gas
-	if !tpkc.Contract.UseGas(params.InvalidateTempPrivateKeyGas) {
-		return nil, ErrOutOfGas
+
+	// get gas price
+	gasprice, err := tpkc.Plugin.SuggestPrice()
+	if err != nil {
+		// gasprice = tpkc.defaultGasPrice()
+		if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
+			return nil, ErrOutOfGas
+		}
+		log.Error("Failed to behal fSignatur", "error", err)
+		return nil, ErrGetCurrentGasPrice
+	}
+
+	// get game contract operator
+	operatorAddress, err := tpkc.Plugin.GetGameContractOperator(tpkc.Evm.Context.BlockNumber.Uint64(), workAddress, gameContractAddress, gasprice)
+	if err != nil {
+		if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
+			return nil, ErrOutOfGas
+		}
+		log.Error("Failed to behal fSignatur", "error", err)
+		return nil, ErrGetGameOperator
 	}
 
 	// Call handling logic
-	periodArg = period
-	// check temp address
-	// get gas price
+	if bytes.Compare(period, periodArg) != 0 {
+		log.Error("invalid period")
+		err = ErrInvalidPeriod
+	}
 
-	// estimate gas
-	// if err == nil && ret == nil {
-	// 	return nil, nil
-	// }
-	// if nil != err {
-	// 	if bizErr, ok := err.(*common.BizError); ok {
-	// 		return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "behalfSignature", bizErr.Error(), TxBehalfSignature, bizErr)
-	// 	} else {
-	// 		log.Error("Failed to behalfSignature", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-	// 		return nil, err
-	// 	}
-	// }
+	// get line of credit
+	lineOfCredit := big.NewInt(0)
+	lineOfCreditDbValue := state.GetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress))
+	if nil == lineOfCreditDbValue || len(lineOfCreditDbValue) == 0 {
+		lineOfCredit, err = tpkc.Plugin.GetLineOfCredit(tpkc.Evm.Context.BlockNumber.Uint64(), workAddress, gameContractAddress, gasprice)
+		if err != nil {
+			err = ErrGetLineOfCredit
+		}
+	} else {
+		lineOfCredit.SetBytes(lineOfCreditDbValue)
+	}
+
+	workAddressBalance := state.GetBalance(workAddress)
+	operatorAddressBalance := state.GetBalance(operatorAddress)
+
+	realLineOfCredit := big.NewInt(0).SetBytes(lineOfCredit.Bytes())
+	if lineOfCredit.Cmp(operatorAddressBalance) > 0 {
+		realLineOfCredit = operatorAddressBalance
+	}
+
+	maxUsedValue := workAddressBalance.Add(workAddressBalance, realLineOfCredit)
+	gasLimit := maxUsedValue.Div(maxUsedValue, gasprice).Uint64()
+
+	// run contract invoke
+	sender := AccountRef(workAddress)
+	_, leftOverGas, err := tpkc.Evm.Call(sender, gameContractAddress, input, gasLimit, big.NewInt(0))
+	if err != nil {
+		err = ErrCallGameContract
+	}
+	usedGas := gasLimit - leftOverGas
+	usedValue := new(big.Int).Mul(new(big.Int).SetUint64(usedGas), gasprice)
+	if usedValue.Cmp(realLineOfCredit) > 0 {
+		state.SubBalance(operatorAddress, realLineOfCredit)
+		lineOfCredit = lineOfCredit.Sub(lineOfCredit, realLineOfCredit)
+		state.SubBalance(workAddress, usedValue.Sub(usedValue, realLineOfCredit))
+	} else {
+		state.SubBalance(operatorAddress, usedValue)
+		lineOfCredit = lineOfCredit.Sub(lineOfCredit, usedValue)
+	}
+
+	state.SetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress), lineOfCredit.Bytes())
 
 	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "behalfSignature", "", TxBehalfSignature, nil)
 }

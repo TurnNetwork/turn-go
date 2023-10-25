@@ -169,8 +169,8 @@ const (
 
 	// temporary private key gas
 	BindTempPrivateKeyGas       uint64 = 6000 // Gas needed for BindTempPrivateKeyGas
-	ChangeTempPrivateKeyGas     uint64 = 6000 // Gas needed for ChangeTempPrivateKeyGas
 	InvalidateTempPrivateKeyGas uint64 = 6000 // Gas needed for InvalidateTempPrivateKeyGas
+	BehalfSignatureGas          uint64 = 6000 // Gas needed for BehalfSignatureGas
 
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
