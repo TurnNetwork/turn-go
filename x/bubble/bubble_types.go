@@ -15,29 +15,30 @@ import (
 	"github.com/bubblenet/bubble/x/xcom"
 )
 
-// BubbleSize is bubble chain size
-type BubbleSize struct {
-	OperatorL1Size uint
-	OperatorL2Size uint
-	CommitteeSize  uint
+// SizeConfig is bubble chain size
+type SizeConfig struct {
+	OperatorL1Size   uint
+	OperatorL2Size   uint
+	CommitteeSize    uint
+	MinStakingAmount *big.Int
 }
 
 var (
-	microBubble  = &BubbleSize{1, 1, 3}
-	miniBubble   = &BubbleSize{1, 1, 6}
-	mediumBubble = &BubbleSize{1, 1, 12}
-	maxBubble    = &BubbleSize{1, 1, 24}
+	microConfig  = &SizeConfig{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 3, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(5))}
+	miniConfig   = &SizeConfig{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 6, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(10))}
+	mediumConfig = &SizeConfig{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 12, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(20))}
+	maxConfig    = &SizeConfig{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 24, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(40))}
 
-	sizeInfo = map[uint8]*BubbleSize{
-		1: microBubble,
-		2: miniBubble,
-		3: mediumBubble,
-		4: maxBubble,
+	sizeConfigs = map[uint8]*SizeConfig{
+		1: microConfig,
+		2: miniConfig,
+		3: mediumConfig,
+		4: maxConfig,
 	}
 )
 
-func GetBubbleSize(sizeCode uint8) (*BubbleSize, error) {
-	size := sizeInfo[sizeCode]
+func GetSizeConfig(sizeCode uint8) (*SizeConfig, error) {
+	size := sizeConfigs[sizeCode]
 	if size == nil {
 		return nil, errors.New("unrecognized bubble size")
 	}
@@ -188,6 +189,7 @@ func (s SettlementInfo) Hash() (common.Hash, error) {
 type ContractInfo struct {
 	Creator common.Address
 	Address common.Address
+	Amount  *big.Int
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.

@@ -241,7 +241,7 @@ func (bp *BubblePlugin) GetBubStatus(blockHash common.Hash, bubbleID *big.Int) (
 }
 
 func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, sizeCode uint8) error {
-	bubbleSize, err := bubble.GetBubbleSize(sizeCode)
+	bubbleSize, err := bubble.GetSizeConfig(sizeCode)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, sizeCode uint
 
 // CreateBubble run the non-business logic to create bubble
 func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentNonce [][]byte, sizeCode uint8) (*bubble.Bubble, error) {
-	bubbleSize, err := bubble.GetBubbleSize(sizeCode)
+	bubbleSize, err := bubble.GetSizeConfig(sizeCode)
 	if err != nil {
 		return nil, err
 	}
