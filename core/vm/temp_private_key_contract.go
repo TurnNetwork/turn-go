@@ -224,7 +224,8 @@ func (tpkc *TempPrivateKeyContract) bindTempPrivateKey(gameContractAddress, temp
 	state := tpkc.Evm.StateDB
 	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), getTempPrivateKeyDBValue(tempAddress, period))
 
-	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "bindTempPrivateKey", "", TxBindTempPrivateKey, nil)
+	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
+		"bindTempPrivateKey", "", TxBindTempPrivateKey, int(common.NoErr.Code), gameContractAddress, tempAddress, period), nil
 }
 
 // invalidate temporary private key
@@ -272,7 +273,8 @@ resultHandle:
 		}
 	}
 
-	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "invalidateTempPrivateKey", "", TxInvalidateTempPrivateKey, nil)
+	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
+		"invalidateTempPrivateKey", "", TxInvalidateTempPrivateKey, int(common.NoErr.Code), gameContractAddress, tempAddress), nil
 }
 
 // sign on behalf of workAddress
@@ -300,6 +302,7 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	var (
 		err    error
 		sender = AccountRef(workAddress)
+		vmRet  []byte
 	)
 
 	// check period
@@ -317,7 +320,7 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	// run contract invoke
-	_, _, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
+	vmRet, _, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
 	if err != nil {
 		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
 		err = ErrCallGameContract
@@ -338,7 +341,8 @@ resultHandle:
 		}
 	}
 
-	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "behalfSignature", "", TxBehalfSignature, nil)
+	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
+		"behalfSignature", "", TxBehalfSignature, int(common.NoErr.Code), workAddress, gameContractAddress, tempAddress, periodArg, input, vmRet), nil
 }
 
 // add line of credit
@@ -407,5 +411,6 @@ resultHandle:
 		}
 	}
 
-	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "addLineOfCredit", "", TxAddLineOfCredit, nil)
+	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
+		"addLineOfCredit", "", TxAddLineOfCredit, int(common.NoErr.Code), workAddress, gameContractAddress, addValue, lineOfCredit), nil
 }
