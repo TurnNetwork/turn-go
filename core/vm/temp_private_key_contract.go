@@ -20,18 +20,24 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"reflect"
 
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/common/byteutil"
+	"github.com/bubblenet/bubble/common/math"
 	"github.com/bubblenet/bubble/common/vm"
+	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/plugin"
 )
 
 const (
-	TxBindTempPrivateKey       = 7000
-	TxBehalfSignature          = 7001
-	TxInvalidateTempPrivateKey = 7002
+	TxBindTempPrivateKey       = 7200
+	TxBehalfSignature          = 7201
+	TxInvalidateTempPrivateKey = 7202
+	TxAddLineOfCredit          = 7203
 )
 
 const (
@@ -40,12 +46,110 @@ const (
 )
 
 var (
-	ErrInvalidPeriod      = common.NewBizError(700000, "invalid period")
-	ErrGetCurrentGasPrice = common.NewBizError(700001, "Failed to get current gas price")
-	ErrGetGameOperator    = common.NewBizError(700002, "Failed to get game operator")
-	ErrGetLineOfCredit    = common.NewBizError(700003, "Failed to get line of credit")
-	ErrCallGameContract   = common.NewBizError(700004, "Failed to call game contract")
+	ErrInvalidPeriod           = common.NewBizError(700000, "invalid period")
+	ErrContractCaller          = common.NewBizError(700001, "invalid contract caller")
+	ErrNoBindingTempPrivateKey = common.NewBizError(700002, "no binding temporary private key")
+	ErrGetGameOperator         = common.NewBizError(700003, "Failed to get game operator")
+	ErrGetLineOfCredit         = common.NewBizError(700004, "Failed to get line of credit")
+	ErrCallGameContract        = common.NewBizError(700005, "Failed to call game contract")
 )
+
+func IsTxTxBehalfSignature(input []byte, to common.Address) bool {
+	if len(input) == 0 {
+		return false
+	}
+
+	if !bytes.Equal(to.Bytes(), vm.TempPrivateKeyContractAddr.Bytes()) {
+		return false
+	}
+
+	fcode, _, _, err := plugin.VerifyTxData(input, (&TempPrivateKeyContract{}).FnSigns())
+	if nil != err {
+		return false
+	}
+
+	if fcode == TxInvalidateTempPrivateKey {
+		return true
+	}
+
+	return false
+}
+
+func GetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address) (lineOfCredit *big.Int, err error) {
+	lineOfCreditDbValue := evm.StateDB.GetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress))
+	if nil == lineOfCreditDbValue || len(lineOfCreditDbValue) == 0 {
+		contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
+		contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
+		result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("lineOfCredit()uint256"))[:4])
+		if err != nil {
+			return big.NewInt(0), err
+		}
+		lineOfCredit.SetBytes(result)
+	} else {
+		lineOfCredit.SetBytes(lineOfCreditDbValue)
+	}
+
+	return
+}
+
+func SetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address, lineOfCredit *big.Int) {
+	evm.StateDB.SetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress), lineOfCredit.Bytes())
+}
+
+func GetGameOperator(evm *EVM, workAddress, gameContractAddress common.Address) (operatorAddress common.Address, err error) {
+	contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
+	contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
+	result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("issuer()address"))[:4])
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(result), nil
+}
+
+func GetBehalfSignatureParameterAddress(input []byte) (workAddress, gameContractAddress common.Address, err error) {
+	var args [][]byte
+	if err = rlp.Decode(bytes.NewReader(input), &args); nil != err {
+		return
+	}
+
+	fnCode := byteutil.BytesToUint16(args[0])
+	if fn, ok := (&TempPrivateKeyContract{}).FnSigns()[fnCode]; !ok {
+		err = plugin.FuncNotExistErr
+		return
+	} else {
+
+		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+		//fmt.Println("The FuncName is", funcName)
+
+		// the func params type list
+		paramList := reflect.TypeOf(fn)
+		// the func params len
+		paramNum := paramList.NumIn()
+
+		if paramNum != len(args)-1 {
+			err = plugin.FnParamsLenErr
+			return
+		}
+
+		for i := 0; i < paramNum; i++ {
+			//fmt.Println("byte:", args[i+1])
+
+			targetType := paramList.In(i).String()
+			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
+
+			if i == 0 {
+				workAddress = (reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]).Interface().(common.Address)
+			}
+
+			if i == 1 {
+				gameContractAddress = (reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]).Interface().(common.Address)
+			}
+			err = nil
+		}
+		return
+	}
+}
 
 type TempPrivateKeyContract struct {
 	Plugin   *plugin.TempPrivateKeyPlugin
@@ -81,6 +185,7 @@ func (tpkc *TempPrivateKeyContract) FnSignsV1() map[uint16]interface{} {
 		TxBindTempPrivateKey:       tpkc.bindTempPrivateKey,
 		TxBehalfSignature:          tpkc.behalfSignature,
 		TxInvalidateTempPrivateKey: tpkc.invalidateTempPrivateKey,
+		TxAddLineOfCredit:          tpkc.addLineOfCredit,
 	}
 }
 
@@ -119,7 +224,7 @@ func (tpkc *TempPrivateKeyContract) bindTempPrivateKey(gameContractAddress, temp
 	state := tpkc.Evm.StateDB
 	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), getTempPrivateKeyDBValue(tempAddress, period))
 
-	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "bindTempPrivateKey", "", TxBindTempPrivateKey, nil)
+	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "bindTempPrivateKey", "", TxBindTempPrivateKey, nil)
 }
 
 // invalidate temporary private key
@@ -137,13 +242,37 @@ func (tpkc *TempPrivateKeyContract) invalidateTempPrivateKey(gameContractAddress
 	}
 
 	// Call handling logic
-	state := tpkc.Evm.StateDB
-	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), []byte{})
-	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "invalidateTempPrivateKey", "", TxInvalidateTempPrivateKey, nil)
-}
+	// check the temporary private key exists
+	var (
+		state = tpkc.Evm.StateDB
+		err   error
+	)
 
-func (tpkc *TempPrivateKeyContract) defaultGasPrice() *big.Int {
-	return big.NewInt(50000000000)
+	dbValue := state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
+	if nil == dbValue || len(dbValue) == 0 {
+		log.Error("no binding temporary private key")
+		err = ErrNoBindingTempPrivateKey
+		goto resultHandle
+	}
+
+	state.SetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress), []byte{})
+
+resultHandle:
+
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+
+			return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "invalidateTempPrivateKey",
+				bizErr.Error(), TxInvalidateTempPrivateKey, bizErr)
+
+		} else {
+			log.Error("Failed to invalidateTempPrivateKey", "txHash", txHash,
+				"blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "invalidateTempPrivateKey", "", TxInvalidateTempPrivateKey, nil)
 }
 
 // sign on behalf of workAddress
@@ -154,82 +283,129 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	state := tpkc.Evm.StateDB
 
 	// get temporary private key information
-	dbValue := state.GetState(vm.GovContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
+	dbValue := state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
 	tempAddressBytes := dbValue[0:common.AddressLength]
 	tempAddress := common.BytesToAddress(tempAddressBytes)
 	period := dbValue[common.AddressLength:]
 
 	log.Debug("Call behalfSignature of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress)
+		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress,
+		"period", hex.EncodeToString(periodArg))
 
-	// get gas price
-	gasprice, err := tpkc.Plugin.SuggestPrice()
-	if err != nil {
-		// gasprice = tpkc.defaultGasPrice()
-		if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
-			return nil, ErrOutOfGas
-		}
-		log.Error("Failed to behal fSignatur", "error", err)
-		return nil, ErrGetCurrentGasPrice
+	// Calculating gas
+	if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
+		return nil, ErrOutOfGas
 	}
 
-	// get game contract operator
-	operatorAddress, err := tpkc.Plugin.GetGameContractOperator(tpkc.Evm.Context.BlockNumber.Uint64(), workAddress, gameContractAddress, gasprice)
-	if err != nil {
-		if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
-			return nil, ErrOutOfGas
-		}
-		log.Error("Failed to behal fSignatur", "error", err)
-		return nil, ErrGetGameOperator
-	}
+	var (
+		err    error
+		sender = AccountRef(workAddress)
+	)
 
-	// Call handling logic
-	if bytes.Compare(period, periodArg) != 0 {
+	// check period
+	if !bytes.Equal(period, periodArg) {
 		log.Error("invalid period")
 		err = ErrInvalidPeriod
+		goto resultHandle
 	}
 
-	// get line of credit
-	lineOfCredit := big.NewInt(0)
-	lineOfCreditDbValue := state.GetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress))
+	// check from
+	if !bytes.Equal(tempAddress.Bytes(), tpkc.Contract.CallerAddress.Bytes()) {
+		log.Error("invalid caller")
+		err = ErrContractCaller
+		goto resultHandle
+	}
+
+	// run contract invoke
+	_, _, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
+	if err != nil {
+		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
+		err = ErrCallGameContract
+	}
+
+resultHandle:
+
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+
+			return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "behalfSignature",
+				bizErr.Error(), TxBehalfSignature, bizErr)
+
+		} else {
+			log.Error("Failed to behalfSignature", "txHash", txHash,
+				"blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+
+	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "behalfSignature", "", TxBehalfSignature, nil)
+}
+
+// add line of credit
+func (tpkc *TempPrivateKeyContract) addLineOfCredit(gameContractAddress, workAddress common.Address, addValue *big.Int) ([]byte, error) {
+	txHash := tpkc.Evm.StateDB.TxHash()
+	blockNumber := tpkc.Evm.Context.BlockNumber
+	operatorAddress := tpkc.Contract.CallerAddress
+	blockHash := tpkc.Evm.Context.BlockHash
+	log.Debug("Call addLineOfCredit of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "workAddress", operatorAddress, "gameContractAddress", gameContractAddress)
+
+	// Calculating gas
+	if !tpkc.Contract.UseGas(params.AddLineOfCreditGas) {
+		return nil, ErrOutOfGas
+	}
+
+	var (
+		err                     error
+		lineOfCredit            *big.Int
+		lineOfCreditDbValue     []byte
+		contractOperatorAddress common.Address
+	)
+
+	// Call handling logic
+	// check operator
+	contractOperatorAddress, err = tpkc.Plugin.GetGameContractOperator(blockNumber.Uint64(), workAddress, gameContractAddress, tpkc.Evm.GasPrice)
+	if err != nil {
+		log.Error("Failed to get game contract operator", "gameContractAddress", gameContractAddress, "err", err)
+		err = ErrGetGameOperator
+		goto resultHandle
+	}
+	if !bytes.Equal(operatorAddress.Bytes(), contractOperatorAddress.Bytes()) {
+		log.Error("operatorAddress and contractOperatorAddress are not equal", "operatorAddress", operatorAddress, "contractOperatorAddress", contractOperatorAddress)
+		err = ErrContractCaller
+		goto resultHandle
+	}
+
+	// set new line of credit
+	lineOfCreditDbValue = tpkc.Evm.StateDB.GetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress))
 	if nil == lineOfCreditDbValue || len(lineOfCreditDbValue) == 0 {
-		lineOfCredit, err = tpkc.Plugin.GetLineOfCredit(tpkc.Evm.Context.BlockNumber.Uint64(), workAddress, gameContractAddress, gasprice)
+		lineOfCredit, err = tpkc.Plugin.GetLineOfCredit(blockNumber.Uint64(), workAddress, gameContractAddress, tpkc.Evm.GasPrice)
 		if err != nil {
+			log.Error("Failed to get line of credit", "gameContractAddress", gameContractAddress, "err", err)
 			err = ErrGetLineOfCredit
+			goto resultHandle
 		}
 	} else {
 		lineOfCredit.SetBytes(lineOfCreditDbValue)
 	}
 
-	workAddressBalance := state.GetBalance(workAddress)
-	operatorAddressBalance := state.GetBalance(operatorAddress)
+	lineOfCredit = lineOfCredit.Add(lineOfCredit, addValue)
+	tpkc.Evm.StateDB.SetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress), lineOfCredit.Bytes())
 
-	realLineOfCredit := big.NewInt(0).SetBytes(lineOfCredit.Bytes())
-	if lineOfCredit.Cmp(operatorAddressBalance) > 0 {
-		realLineOfCredit = operatorAddressBalance
+resultHandle:
+
+	if nil != err {
+		if bizErr, ok := err.(*common.BizError); ok {
+
+			return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "addLineOfCredit",
+				bizErr.Error(), TxAddLineOfCredit, bizErr)
+
+		} else {
+			log.Error("Failed to addLineOfCredit", "txHash", txHash,
+				"blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
 	}
 
-	maxUsedValue := workAddressBalance.Add(workAddressBalance, realLineOfCredit)
-	gasLimit := maxUsedValue.Div(maxUsedValue, gasprice).Uint64()
-
-	// run contract invoke
-	sender := AccountRef(workAddress)
-	_, leftOverGas, err := tpkc.Evm.Call(sender, gameContractAddress, input, gasLimit, big.NewInt(0))
-	if err != nil {
-		err = ErrCallGameContract
-	}
-	usedGas := gasLimit - leftOverGas
-	usedValue := new(big.Int).Mul(new(big.Int).SetUint64(usedGas), gasprice)
-	if usedValue.Cmp(realLineOfCredit) > 0 {
-		state.SubBalance(operatorAddress, realLineOfCredit)
-		lineOfCredit = lineOfCredit.Sub(lineOfCredit, realLineOfCredit)
-		state.SubBalance(workAddress, usedValue.Sub(usedValue, realLineOfCredit))
-	} else {
-		state.SubBalance(operatorAddress, usedValue)
-		lineOfCredit = lineOfCredit.Sub(lineOfCredit, usedValue)
-	}
-
-	state.SetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress), lineOfCredit.Bytes())
-
-	return txResultHandler(vm.TokenContractAddr, tpkc.Evm, "behalfSignature", "", TxBehalfSignature, nil)
+	return txResultHandler(vm.TempPrivateKeyContractAddr, tpkc.Evm, "addLineOfCredit", "", TxAddLineOfCredit, nil)
 }
