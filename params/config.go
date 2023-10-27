@@ -197,9 +197,10 @@ type AuthConfig struct {
 
 // FrpsConfig frp server configuration structure
 type FrpsConfig struct {
-	ServerIP   string      // frp server ip
-	ServerPort uint16      // frp server port
-	Auth       *AuthConfig // Enable authentication mode
+	ServerIP    string      // frp server ip
+	ServerPort  uint16      // frp server port
+	StunAddress string      // stun server address
+	Auth        *AuthConfig // Enable authentication mode
 }
 
 type CbftConfig struct {

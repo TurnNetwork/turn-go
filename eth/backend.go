@@ -536,6 +536,10 @@ func newFrpCfgFile(frps *params.FrpsConfig, listenAddr *string, dataDir string, 
 	fmt.Fprintln(writer, "[common]")
 	fmt.Fprintln(writer, "server_addr =", frps.ServerIP)
 	fmt.Fprintln(writer, "server_port =", frps.ServerPort)
+	if "" != frps.StunAddress {
+		fmt.Fprintln(writer, "nat_hole_stun_server =", frps.StunAddress)
+	}
+
 	if nil != frps.Auth {
 		fmt.Fprintln(writer, "authentication_method =", frps.Auth.Method)
 		fmt.Fprintln(writer, "authenticate_heartbeats =", frps.Auth.HeartBeats)
