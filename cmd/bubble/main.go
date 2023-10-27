@@ -147,6 +147,7 @@ var (
 		utils.RPCGlobalGasCapFlag,
 		utils.RPCGlobalTxFeeCapFlag,
 		utils.AllowPorts,
+		utils.StunServer,
 	}
 
 	metricsFlags = []cli.Flag{

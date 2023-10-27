@@ -649,6 +649,11 @@ var (
 		Name:  "allow_ports",
 		Usage: "Allowed open port number range (format: 1000-2000)",
 	}
+
+	StunServer = cli.StringFlag{
+		Name:  "stun_server",
+		Usage: "Specifies the stun server to use for nat holes",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -820,6 +825,10 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 
 	if ctx.GlobalIsSet(AllowPorts.Name) {
 		cfg.AllowPorts = ctx.GlobalString(AllowPorts.Name)
+	}
+
+	if ctx.GlobalIsSet(StunServer.Name) {
+		cfg.StunServer = ctx.GlobalString(StunServer.Name)
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {

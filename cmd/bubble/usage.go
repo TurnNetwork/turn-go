@@ -149,6 +149,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
 			utils.AllowPorts,
+			utils.StunServer,
 		},
 	},
 	{
