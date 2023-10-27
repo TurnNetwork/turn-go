@@ -334,7 +334,6 @@ func build_bubble_data(block uint64, parentHash common.Hash) {
 	opL2s = append(opL2s, &opL2)
 	basics := bubble.BubBasics{
 		BubbleId:    testBubbleId,
-		CreateBlock: block,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
 		MicroNodes:  nil,
@@ -343,10 +342,18 @@ func build_bubble_data(block uint64, parentHash common.Hash) {
 	if err := bubDB.StoreBubBasics(newBlockHash, testBubbleId, &basics); err != nil {
 		fmt.Errorf("failed to StoreBubBasics, %v", err)
 	}
-
 	// store bubble state
-	if err := bubDB.StoreBubState(newBlockHash, testBubbleId, bubble.ActiveStatus); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	status := &bubble.BubStatus{
+		BubbleId:        testBubbleId,
+		State:           bubble.ActiveStatus,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	// store bubble state
+	if err := bubDB.StoreBubStatus(newBlockHash, testBubbleId, status); err != nil {
+		fmt.Errorf("failed to StoreBubStatus, %v", err)
 	}
 	//basic, err := bubDB.GetBubBasics(newBlockHash, testBubbleId)
 	//if basic == nil || err != nil {
@@ -758,8 +765,17 @@ func TestBubbleContract_withdrewToken(t *testing.T) {
 	// modify state: The simulation bubble has been released
 	// store bubble state
 	bubDB := bubble.NewBubbleDB()
-	if err := bubDB.StoreBubState(storeBlockHash, testBubbleId, bubble.ReleasedStatus); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	// store bubble state
+	status := &bubble.BubStatus{
+		BubbleId:        testBubbleId,
+		State:           bubble.ReleasedStatus,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	if err := bubDB.StoreBubStatus(storeBlockHash, testBubbleId, status); err != nil {
+		fmt.Errorf("failed to StoreBubStatus, %v", err)
 	}
 	// call withdrewToken
 	index := 2
@@ -803,8 +819,17 @@ func TestBubbleContract_settleBubble(t *testing.T) {
 	// call withdrewToken：It can be redeemed only when the bubble state is released
 	// store bubble state
 	bubDB := bubble.NewBubbleDB()
-	if err := bubDB.StoreBubState(storeBlockHash, testBubbleId, bubble.ReleasedStatus); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	// store bubble state
+	status := &bubble.BubStatus{
+		BubbleId:        testBubbleId,
+		State:           bubble.ReleasedStatus,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	if err := bubDB.StoreBubStatus(storeBlockHash, testBubbleId, status); err != nil {
+		fmt.Errorf("failed to StoreBubStatus, %v", err)
 	}
 	for _, caller := range testAddrList {
 		contract.Contract = newContract(common.Big0, caller)
@@ -879,8 +904,17 @@ func TestBubbleContract_getBubTxHashList(t *testing.T) {
 	getBubbleTxHashList(contract, bubble.SettleBubble, t)
 
 	bubDB := bubble.NewBubbleDB()
-	if err := bubDB.StoreBubState(storeBlockHash, testBubbleId, bubble.ReleasedStatus); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	// store bubble state
+	status := &bubble.BubStatus{
+		BubbleId:        testBubbleId,
+		State:           bubble.ReleasedStatus,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	if err := bubDB.StoreBubStatus(storeBlockHash, testBubbleId, status); err != nil {
+		fmt.Errorf("failed to StoreBubStatus, %v", err)
 	}
 	for _, caller := range testAddrList {
 		contract.Contract = newContract(common.Big0, caller)

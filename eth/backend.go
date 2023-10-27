@@ -319,9 +319,13 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	// Handle the frps configuration
 	p2pServer := stack.Server()
 	if p2pServer.FrpsFlag {
+		nodeCfg := stack.Config()
 		frpsCfg := params.DefaultFrpsCfg
+		if "" != nodeCfg.StunServer {
+			frpsCfg.StunAddress = nodeCfg.StunServer
+		}
 		// Create and generate configuration files
-		dataDir := stack.Config().DataDir
+		dataDir := nodeCfg.DataDir
 		err, file, filePath := genFrpsCfgFile(frpsCfg, dataDir)
 		if err != nil || nil == file {
 			fmt.Println("failed to generate config file:", err)
