@@ -146,9 +146,12 @@ var (
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, nil, GenesisVersion}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), nil, GenesisVersion}
-
-	// DefaultFrpsCfg Default frps configuration
-	DefaultFrpsCfg = &FrpsConfig{"0.0.0.0", 7000, "", &AuthConfig{"token", true, true, "12345678_"}}
+	// TestNetStunServer TestNet stun service address
+	TestNetStunServer = "stun-test.bubbonet.com:3478"
+	// MainNetStunServer MainNet stun service address
+	MainNetStunServer = "stun.bubbonet.com:3478"
+	// GlobalFrpsCfg Global frps configuration
+	GlobalFrpsCfg = &FrpsConfig{"0.0.0.0", 7000, "", &AuthConfig{"token", true, true, "12345678_"}}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and

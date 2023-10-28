@@ -320,10 +320,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	p2pServer := stack.Server()
 	if p2pServer.FrpsFlag {
 		nodeCfg := stack.Config()
-		frpsCfg := params.DefaultFrpsCfg
-		if "" != nodeCfg.StunServer {
-			frpsCfg.StunAddress = nodeCfg.StunServer
-		}
+		frpsCfg := params.GlobalFrpsCfg
 		// Create and generate configuration files
 		dataDir := nodeCfg.DataDir
 		err, file, filePath := genFrpsCfgFile(frpsCfg, dataDir)

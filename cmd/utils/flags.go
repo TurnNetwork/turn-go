@@ -827,8 +827,22 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 		cfg.AllowPorts = ctx.GlobalString(AllowPorts.Name)
 	}
 
+	// Set the global values for stun services depending on the network.
+	frpsCfg := params.GlobalFrpsCfg
+	// The node specifies the stun service
 	if ctx.GlobalIsSet(StunServer.Name) {
-		cfg.StunServer = ctx.GlobalString(StunServer.Name)
+		frpsCfg.StunAddress = ctx.GlobalString(StunServer.Name)
+	} else {
+		// If the stun service parameter is not specified,
+		// the node gets the default stun service according to the network type
+		switch {
+		case ctx.GlobalBool(TestnetFlag.Name):
+			// Test NetWork
+			frpsCfg.StunAddress = params.TestNetStunServer
+		default:
+			// Main NetWork
+			frpsCfg.StunAddress = params.MainNetStunServer
+		}
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {

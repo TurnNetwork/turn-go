@@ -1231,7 +1231,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
 			ChainID: bub.Basics.BubbleId,
-			Frps:    params.DefaultFrpsCfg,
+			Frps:    params.GlobalFrpsCfg,
 			Cbft: &params.CbftConfig{
 				Period:        10000,
 				Amount:        10,
