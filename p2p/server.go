@@ -146,9 +146,11 @@ type Config struct {
 	FrpsFlag bool
 	// frp server configuration file path to record frp configuration information
 	FrpsFilePath string
-	StartPort    int   // The start port on which access is allowed
-	EndPort      int   // The end port on which access is allowed
-	FilterPorts  []int // a list of locally occupied port numbers, which need to be filtered
+	// frp service
+	FrpService  *server.Service
+	StartPort   int   // The start port on which access is allowed
+	EndPort     int   // The end port on which access is allowed
+	FilterPorts []int // a list of locally occupied port numbers, which need to be filtered
 
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
@@ -653,12 +655,12 @@ func (srv *Server) startFrps(cfgFile string) error {
 	}
 	log.Info("frps uses config file: %s", cfgFile)
 
-	svr, err := server.NewService(cfg)
-	if err != nil {
+	srv.FrpService, err = server.NewService(cfg)
+	if nil == srv.FrpService || err != nil {
 		return err
 	}
 	log.Info("frps started successfully")
-	go svr.Run(context.Background())
+	go srv.FrpService.Run(context.Background())
 	return nil
 }
 
