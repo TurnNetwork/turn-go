@@ -252,6 +252,8 @@ func (n *Node) doClose(errs []error) error {
 	n.closeDataDir()
 
 	n.stopSnapshotDB()
+
+	n.stopFrps()
 	// Unblock n.Wait.
 	close(n.stop)
 
@@ -464,6 +466,14 @@ func (n *Node) RegisterAPIs(apis []rpc.API) {
 
 func (n *Node) stopSnapshotDB() {
 	snapshotdb.Close()
+}
+
+func (n *Node) stopFrps() {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	if nil != n.server && nil != n.server.FrpService {
+		n.server.FrpService.Close()
+	}
 }
 
 // RegisterHandler mounts a handler on the given path on the canonical HTTP server.

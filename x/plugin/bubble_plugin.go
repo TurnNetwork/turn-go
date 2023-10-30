@@ -224,11 +224,13 @@ func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (
 		if nil != err {
 			return nil, err
 		}
-		bubBasic.OperatorsL2[0].RPC = base.RPCURI
-
-		// update bubble basic
-		if err := bp.db.StoreBubBasics(blockHash, bubbleID, bubBasic); nil != err {
-			return nil, err
+		// When the rpc url in the micro-node information is not empty, it will be updated
+		if "" != base.RPCURI {
+			bubBasic.OperatorsL2[0].RPC = base.RPCURI
+			// The rpc url information is synchronized into bubble basic
+			if err := bp.db.StoreBubBasics(blockHash, bubbleID, bubBasic); nil != err {
+				return nil, err
+			}
 		}
 	}
 
