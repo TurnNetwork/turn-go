@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/common/json"
 	"github.com/bubblenet/bubble/common/math"
 	"github.com/bubblenet/bubble/common/sort"
 	"github.com/bubblenet/bubble/common/vm"
@@ -99,9 +98,9 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 				continue
 			}
 
+			// bubble is PreRelease
 			if blockNumber < bubStatus.ReleaseBlock {
 				bubStatus.State = bubble.PreReleaseStatus
-
 				if bubStatus.ContractCount > 0 {
 					continue
 				}
@@ -682,6 +681,19 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
+	task := &bubble.RemoteDestroyTask{
+		BubbleID: bubbleID,
+		RPC:      bub.Basics.OperatorsL2[0].RPC,
+		OpAddr:   bub.Basics.OperatorsL1[0].OpAddr,
+	}
+
+	for _, operators := range bub.Basics.OperatorsL1 {
+		if operators.NodeId == bp.NodeID {
+			if err := bp.PostRemoteDestroyEvent(task); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -868,11 +880,11 @@ func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) err
 	return nil
 }
 
-// PostReleaseBubbleEvent Send the release bubble event and wait for the task to be processed
-func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) error {
-	log.Debug("PostCreateBubbleEvent", *task)
+// PostRemoteDestroyEvent Send the release bubble event and wait for the task to be processed
+func (bp *BubblePlugin) PostRemoteDestroyEvent(task *bubble.RemoteDestroyTask) error {
+	log.Debug("PostRemoteDestroyEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post ReleaseBubble task failed", "err", err)
+		log.Error("post remoteDestroy task failed", "err", err)
 		return err
 	}
 
@@ -1045,6 +1057,20 @@ func encodeRemoteCall(task *bubble.RemoteCallTask) []byte {
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, s)
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func encodeRemoteDestroy(task *bubble.RemoteDestroyTask) []byte {
+	queue := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(6000))
+	queue = append(queue, fnType)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, queue)
 	if err != nil {
 		return nil
 	}
@@ -1274,98 +1300,131 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 	return genesisL2
 }
 
-// HandleCreateBubbleTask Handle create bubble task
-func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
-	if task == nil {
-		log.Error("CreateBubbleTask is nil")
-		return errors.New("CreateBubbleTask is nil")
-	}
+//// HandleCreateBubbleTask Handle create bubble task
+//func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) error {
+//	if task == nil {
+//		log.Error("CreateBubbleTask is nil")
+//		return errors.New("CreateBubbleTask is nil")
+//	}
+//
+//	// wait for blocks to be written to the db
+//	// TODO：if not, panic by BLS segmentation violation
+//	time.Sleep(3 * time.Second)
+//	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+//	if err != nil {
+//		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
+//		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+//	}
+//
+//	genesisL2 := makeGenesisL2(bub)
+//	genesisData, err := json.Marshal(genesisL2)
+//	if err != nil {
+//		log.Error("failed to marshal genesis", "error", err.Error())
+//		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
+//	}
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+//	defer cancel()
+//	waitGroup := &sync.WaitGroup{}
+//	waitGroup.Add(len(bub.Basics.MicroNodes))
+//
+//	client := &http.Client{}
+//	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(genesisData))
+//
+//	// make request
+//	for _, microNode := range bub.Basics.MicroNodes {
+//		// send and retry CreateBubbleTask
+//		log.Debug("prepare to send CreateBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
+//		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
+//	}
+//
+//	// wait task done
+//	go func() {
+//		waitGroup.Wait()
+//		cancel()
+//	}()
+//	<-ctx.Done()
+//	if ctx.Err().Error() == "context deadline exceeded" {
+//		return errors.New("task timeout")
+//	}
+//
+//	return nil
+//}
 
-	// wait for blocks to be written to the db
-	// TODO：if not, panic by BLS segmentation violation
-	time.Sleep(3 * time.Second)
-	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+// HandleRemoteDestroyTask Handle RemoteDestroy task
+func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) ([]byte, error) {
+	if nil == task {
+		return nil, errors.New("RemoteDestroyTask is empty")
+	}
+	client, err := ethclient.Dial(task.RPC)
+	if err != nil || client == nil {
+		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
+	}
+	// Construct transaction parameters
+	priKey := bp.opPriKey
+	// Call the sub-chain system contract RemoteDeploy interface
+	toAddr := common.HexToAddress(SubChainSysAddr)
+	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
-		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+		log.Error("Wrong private key", "err", err)
+		return nil, err
 	}
 
-	genesisL2 := makeGenesisL2(bub)
-	genesisData, err := json.Marshal(genesisL2)
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
+	}
+
+	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
+	if fromAddr != task.OpAddr {
+		log.Error("The transaction sender is not the main-chain operation address")
+		return nil, errors.New("the transaction sender is not the main-chain operation address")
+	}
+	// get account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("failed to marshal genesis", "error", err.Error())
-		return errors.New(fmt.Sprintf("failed to marshal genesis: %s", err.Error()))
+		log.Error("Failed to obtain the account nonce", "err", err)
+		return nil, err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(bub.Basics.MicroNodes))
-
-	client := &http.Client{}
-	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(genesisData))
-
-	// make request
-	for _, microNode := range bub.Basics.MicroNodes {
-		// send and retry CreateBubbleTask
-		log.Debug("prepare to send CreateBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
-		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
-	}
-
-	// wait task done
-	go func() {
-		waitGroup.Wait()
-		cancel()
-	}()
-	<-ctx.Done()
-	if ctx.Err().Error() == "context deadline exceeded" {
-		return errors.New("task timeout")
-	}
-
-	return nil
-}
-
-// HandleReleaseBubbleTask Handle release bubble task
-func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) error {
-	if task == nil {
-		return errors.New("releaseBubbleTask is nil")
-	}
-
-	// wait for blocks to be written to the db
-	// TODO：if not, panic by BLS segmentation violation
-	time.Sleep(5 * time.Second)
-	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("failed to get bubble info", "error", err.Error())
-		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
+		log.Error("Failed to get gasPrice", "err", err)
+		return nil, err
+	}
+	value := big.NewInt(0)
+	gasLimit := uint64(300000)
+	data := encodeRemoteDestroy(task)
+	if nil == data {
+		return nil, errors.New("encode remoteDeploy transaction failed")
+	}
+	// Creating transaction objects
+	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
+
+	// The sender's private key is used to sign the transaction
+	chainID, err := client.ChainID(context.Background())
+	if err != nil || chainID != task.BubbleID {
+		return nil, errors.New("chainID is wrong")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(bub.Basics.MicroNodes))
-
-	client := &http.Client{}
-	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.Basics.BubbleId)
-
-	// make request
-	for _, microNode := range bub.Basics.MicroNodes {
-		// send and retry ReleaseBubbleTask
-		log.Debug("prepare to send ReleaseBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
-		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Error("Signing remoteDeploy transaction failed", "err", err)
+		return nil, err
 	}
 
-	// wait task done
-	go func() {
-		waitGroup.Wait()
-		cancel()
-	}()
-	<-ctx.Done()
-	if ctx.Err().Error() == "context deadline exceeded" {
-		return errors.New("task timeout")
+	// Sending transactions
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Error("Failed to send remoteDeploy transaction", "err", err)
+		return nil, err
 	}
 
-	return nil
+	hash := signedTx.Hash()
+	log.Debug("remoteDeploy tx hash", hash.Hex())
+	return hash.Bytes(), nil
 }
 
 // VRFItem is the element of the VRFQueue
