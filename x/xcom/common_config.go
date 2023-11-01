@@ -39,6 +39,7 @@ const (
 	GovernanceRule
 	CollectDeclareVersionRule
 	TokenRule
+	BubbleRule
 )
 
 const (

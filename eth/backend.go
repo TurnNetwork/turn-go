@@ -874,6 +874,8 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	}
 	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenInstance())
 
+	reactor.RegisterPlugin(xcom.BubbleRule, xplugin.BubbleInstance())
+
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())

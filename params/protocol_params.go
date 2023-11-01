@@ -191,6 +191,13 @@ const (
 	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
 	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
 	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
+
+	BubbleGas               uint64 = 3000
+	RemoteDeployExecutorGas uint64 = 21000
+	RemoteRemoveExecutor    uint64 = 21000
+	RemoteDestroyExecutor   uint64 = 32000
+	RemoteCallGas           uint64 = 21000
+	RemoteCallExecutorGas   uint64 = 21000
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations
