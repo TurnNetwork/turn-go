@@ -1903,7 +1903,7 @@ func (s *PublicNetAPI) AvailablePorts(bubbleID hexutil.Big, portNum int, sig hex
 	fmt.Printf("public key:%s\n", discover.PubkeyID(rpk).String())
 
 	// get bubble info
-	basics, err := s.plugin.GetBubBasics(common.ZeroHash, bubbleID.ToInt())
+	basics, err := s.plugin.GetBasicsInfo(common.ZeroHash, bubbleID.ToInt())
 	if nil != err || nil == basics {
 		return nil, fmt.Errorf("the bubble is not exist, bubbleID:%s", bubbleID.String())
 	}

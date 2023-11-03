@@ -196,7 +196,7 @@ const (
 	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
 
 	BubbleGas             uint64 = 2000
-	AllotBubbleGas        uint64 = 30000
+	SelectBubbleGas       uint64 = 30000
 	RemoteDeployGas       uint64 = 21000
 	RemoteCallGas         uint64 = 21000
 	RemoteCallExecutorGas uint64 = 21000

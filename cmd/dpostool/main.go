@@ -275,7 +275,7 @@ type Dpos_8101 struct {
 
 // getBubTxHashList
 type Dpos_8102 struct {
-	TxType   bubble.BubTxType
+	TxType   bubble.TxType
 	BubbleId *big.Int
 }
 
