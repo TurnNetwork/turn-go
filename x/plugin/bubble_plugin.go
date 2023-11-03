@@ -4,22 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	gomath "math"
-	"math/big"
-	"math/rand"
-	"net/http"
-	"reflect"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/math"
-	"github.com/bubblenet/bubble/common/sort"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/types"
@@ -34,8 +22,13 @@ import (
 	"github.com/bubblenet/bubble/x/gov"
 	"github.com/bubblenet/bubble/x/stakingL2"
 	"github.com/bubblenet/bubble/x/xcom"
+	"github.com/bubblenet/bubble/x/xcom/vrf"
 	"github.com/bubblenet/bubble/x/xutil"
 	"golang.org/x/crypto/sha3"
+	gomath "math"
+	"math/big"
+	"strings"
+	"sync"
 )
 
 const (
@@ -52,7 +45,7 @@ const bubbleLife = 172800
 type BubblePlugin struct {
 	stkPlugin  *StakingPlugin
 	stk2Plugin *StakingL2Plugin
-	db         *bubble.BubbleDB
+	db         *bubble.DB
 	NodeID     discover.NodeID // id of the local node
 	eventMux   *event.TypeMux
 	opPriKey   string // Main chain operation address private key
@@ -65,7 +58,7 @@ func BubbleInstance() *BubblePlugin {
 		bubblePlugin = &BubblePlugin{
 			stkPlugin:  StakingInstance(),
 			stk2Plugin: StakingL2Instance(),
-			db:         bubble.NewBubbleDB(),
+			db:         bubble.NewDB(),
 		}
 	})
 	return bubblePlugin
@@ -77,40 +70,42 @@ func (bp *BubblePlugin) BeginBlock(blockHash common.Hash, header *types.Header, 
 
 func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-		iter := bp.db.IteratorBubStatus(blockHash, 0)
-		if err := iter.Error(); nil != err {
-			return err
-		}
-		defer iter.Release()
+	curBlock := header.Number.Uint64()
+	statuses, err := bp.GetStateInfoes(blockHash)
+	if err != nil {
+		return err
+	}
 
-		//bubs := make([]*bubble.Bubble, 0)
+	if xutil.IsEndOfEpoch(curBlock) {
+		for _, status := range statuses {
 
-		for iter.Valid(); iter.Next(); {
-			data := iter.Value()
-			bubStatus := new(bubble.BubStatus)
-			if err := rlp.DecodeBytes(data, bubStatus); err != nil {
-				return err
-			}
-
-			blockNumber := header.Number.Uint64()
-			if blockNumber < bubStatus.PreReleaseBlock {
+			if curBlock < status.PreReleaseBlock {
 				continue
 			}
-
 			// bubble is PreRelease
-			if blockNumber < bubStatus.ReleaseBlock {
-				bubStatus.State = bubble.PreReleaseStatus
-				if bubStatus.ContractCount > 0 {
+			if curBlock < status.ReleaseBlock {
+				status.State = bubble.PreReleaseState
+				if status.ContractCount > 0 {
 					continue
 				}
 			}
 
-			err := bp.ReleaseBubble(blockHash, header.Number, bubStatus.BubbleId)
+			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
 				log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
-					"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", bubStatus.BubbleId, "err", err)
+					"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
 				return err
+			}
+		}
+	}
+
+	preBlock := curBlock + 20
+	if xutil.IsEndOfEpoch(preBlock) {
+		for _, status := range statuses {
+			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
+				if err := bp.DestroyBubble(blockHash, status.BubbleId); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -159,13 +154,13 @@ func (bp *BubblePlugin) GetNodeUseRatio(blockHash common.Hash) (float32, error) 
 func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.Bubble, error) {
 	// return bp.db.GetBubbleStore(blockHash, bubbleID)
 	// get bubble basics
-	basics, err := bp.GetBubBasics(blockHash, bubbleID)
+	basics, err := bp.GetBasicsInfo(blockHash, bubbleID)
 	if nil == basics || err != nil {
 		return nil, errors.New("failed to get bubble basics information")
 	}
 
 	// get bubble state
-	state, err := bp.GetBubStatus(blockHash, bubbleID)
+	state, err := bp.GetStateInfo(blockHash, bubbleID)
 	if nil == state || err != nil {
 		return nil, errors.New("failed to get bubble state")
 	}
@@ -193,9 +188,9 @@ func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) 
 	//bub.SettleBubbleTxHashList = sbTxHashList
 
 	bub := &bubble.Bubble{
-		Basics:    basics,
-		BubStatus: state,
-		BubMutable: &bubble.BubMutable{
+		BasicsInfo: basics,
+		StateInfo:  state,
+		TransactionInfo: &bubble.TransactionInfo{
 			StakingTokenTxHashList:  stTxHashList,
 			WithdrewTokenTxHashList: wdTxHashList,
 			SettleBubbleTxHashList:  sbTxHashList,
@@ -205,9 +200,9 @@ func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) 
 	return bub, nil
 }
 
-// GetBubBasics return the bubble basics by bubble ID
-func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (*bubble.BubBasics, error) {
-	bubBasic, err := bp.db.GetBubBasics(blockHash, bubbleID)
+// GetBasicsInfo return the bubble basics by bubble ID
+func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.BasicsInfo, error) {
+	bubBasic, err := bp.db.GetBasicsInfo(blockHash, bubbleID)
 	if err != nil || nil == bubBasic {
 		return nil, err
 	}
@@ -227,7 +222,7 @@ func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (
 		if "" != base.RPCURI {
 			bubBasic.OperatorsL2[0].RPC = base.RPCURI
 			// The rpc url information is synchronized into bubble basic
-			if err := bp.db.StoreBubBasics(blockHash, bubbleID, bubBasic); nil != err {
+			if err := bp.db.StoreBasicsInfo(blockHash, bubbleID, bubBasic); nil != err {
 				return nil, err
 			}
 		}
@@ -236,13 +231,34 @@ func (bp *BubblePlugin) GetBubBasics(blockHash common.Hash, bubbleID *big.Int) (
 	return bubBasic, nil
 }
 
-// GetBubStatus return the bubble state by bubble ID
-func (bp *BubblePlugin) GetBubStatus(blockHash common.Hash, bubbleID *big.Int) (*bubble.BubStatus, error) {
-	return bp.db.GetBubStatus(blockHash, bubbleID)
+func (bp *BubblePlugin) GetStateInfoes(blockHash common.Hash) ([]*bubble.StateInfo, error) {
+	iter := bp.db.IteratorStateInfo(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	var queue []*bubble.StateInfo
+	for iter.Valid(); iter.Next(); {
+		data := iter.Value()
+		stateInfo := new(bubble.StateInfo)
+		if err := rlp.DecodeBytes(data, stateInfo); err != nil {
+			return nil, err
+		}
+
+		queue = append(queue, stateInfo)
+	}
+
+	return queue, nil
 }
 
-func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, sizeCode uint8) error {
-	bubbleSize, err := bubble.GetSizeConfig(sizeCode)
+// GetStateInfo return the bubble state by bubble ID
+func (bp *BubblePlugin) GetStateInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.StateInfo, error) {
+	return bp.db.GetStateInfo(blockHash, bubbleID)
+}
+
+func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.Size) error {
+	bubbleSize, err := bubble.GetConfig(size)
 	if err != nil {
 		return err
 	}
@@ -263,8 +279,8 @@ func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, sizeCode uint
 }
 
 // CreateBubble run the non-business logic to create bubble
-func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentNonce [][]byte, sizeCode uint8) (*bubble.Bubble, error) {
-	bubbleSize, err := bubble.GetSizeConfig(sizeCode)
+func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, from common.Address, nonce uint64, parentNonce [][]byte, size bubble.Size) (*bubble.Bubble, error) {
+	bubbleSize, err := bubble.GetConfig(size)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +327,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		return nil, errors.New(fmt.Sprintf("bubble %d already exist", bubbleID))
 	}
 
-	basics := &bubble.BubBasics{
+	basics := &bubble.BasicsInfo{
 		BubbleId: bubbleID,
 
 		OperatorsL1: OperatorsL1,
@@ -321,9 +337,9 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 
 	preReleaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife)/float64(xutil.EpochSize()))) * xutil.EpochSize()
 	releaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife*1.5)/float64(xutil.EpochSize()))) * xutil.EpochSize()
-	status := &bubble.BubStatus{
+	status := &bubble.StateInfo{
 		BubbleId:        bubbleID,
-		State:           bubble.ActiveStatus,
+		State:           bubble.ActiveState,
 		ContractCount:   0,
 		CreateBlock:     blockNumber.Uint64(),
 		PreReleaseBlock: preReleaseBlock,
@@ -331,24 +347,24 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 
 	bub := &bubble.Bubble{
-		Basics:    basics,
-		BubStatus: status,
+		BasicsInfo: basics,
+		StateInfo:  status,
 	}
 
 	// store bubble basics
-	if err := bp.db.StoreBubBasics(blockHash, basics.BubbleId, basics); err != nil {
+	if err := bp.db.StoreBasicsInfo(blockHash, basics.BubbleId, basics); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble basics failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
 		return nil, err
 	}
 	// store bubble state
-	if err := bp.db.StoreBubStatus(blockHash, basics.BubbleId, status); err != nil {
+	if err := bp.db.StoreStateInfo(blockHash, basics.BubbleId, status); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble state failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
 		return nil, err
 	}
 
-	if err := bp.db.StoreSizedBubbleID(blockHash, sizeCode, basics.BubbleId); err != nil {
+	if err := bp.db.StoreBubbleIdBySize(blockHash, size, basics.BubbleId); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble sized info failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
 		return nil, err
@@ -358,7 +374,7 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 }
 
 // generateBubbleID generate bubble ID use sha3 algorithm by bubble info
-func (bp *BubblePlugin) generateBubbleID(creator common.Address, nonce *big.Int, committer bubble.CandidateQueue) (*big.Int, error) {
+func (bp *BubblePlugin) generateBubbleID(creator common.Address, nonce *big.Int, committer bubble.ValidatorQueue) (*big.Int, error) {
 	committerData, err := rlp.EncodeToBytes(committer)
 	if err != nil {
 		return nil, err
@@ -387,11 +403,11 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	}
 
 	// wrap the operators to the VRF able queue
-	vrfQueue, err := VRFQueueWrapper(operators, func(item interface{}) *VRFItem {
+	vrfQueue, err := vrf.VRFQueueWrapper(operators, func(item interface{}) *vrf.VRFItem {
 		w, _ := new(big.Int).SetString("1000000000000000000000000", 10)
-		return &VRFItem{
-			v: item,
-			w: w,
+		return &vrf.VRFItem{
+			V: item,
+			W: w,
 		}
 	})
 	if err != nil {
@@ -400,7 +416,7 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 
 	// VRF Elect
 	log.Info("ElectOperatorL1 run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
-	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
+	electedVrfQueue, err := vrf.VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +424,7 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 	// unwrap the VRF able queue
 	electedOperators := make([]*bubble.Operator, 0)
 	for _, item := range electedVrfQueue {
-		if operator, ok := (item.v).(*bubble.Operator); ok {
+		if operator, ok := (item.V).(*bubble.Operator); ok {
 			electedOperators = append(electedOperators, operator)
 		} else {
 			return nil, errors.New("type error")
@@ -419,7 +435,7 @@ func (bp *BubblePlugin) ElectOperatorL1(blockHash common.Hash, operatorNumber ui
 }
 
 // ElectOperatorL2 Elect the Layer2 Operator nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber uint, curNonce []byte, preNonces [][]byte) (bubble.ValidatorQueue, error) {
 	operatorQueue, err := bp.stk2Plugin.GetOperatorList(blockHash)
 	if err != nil {
 		return nil, err
@@ -436,11 +452,11 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 	}
 
 	// wrap the operators to the VRF able queue
-	vrfQueue, err := VRFQueueWrapper(operatorQueue, func(item interface{}) *VRFItem {
+	vrfQueue, err := vrf.VRFQueueWrapper(operatorQueue, func(item interface{}) *vrf.VRFItem {
 		if candidate, ok := (item).(*stakingL2.Candidate); ok {
-			return &VRFItem{
-				v: item,
-				w: candidate.Shares,
+			return &vrf.VRFItem{
+				V: item,
+				W: candidate.Shares,
 			}
 		}
 		return nil
@@ -451,15 +467,15 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 
 	// VRF Elect
 	log.Info("ElectOperatorL2 run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
-	electedVrfQueue, err := VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
+	electedVrfQueue, err := vrf.VRF(vrfQueue, operatorNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
 
 	// unwrap the VRF able queue
-	electedOperators := make(bubble.CandidateQueue, 0)
+	electedOperators := make(bubble.ValidatorQueue, 0)
 	for _, item := range electedVrfQueue {
-		if Operator, ok := (item.v).(*stakingL2.Candidate); ok {
+		if Operator, ok := (item.V).(*stakingL2.Candidate); ok {
 			electedOperators = append(electedOperators, Operator)
 		} else {
 			return nil, errors.New("type error")
@@ -482,7 +498,7 @@ func (bp *BubblePlugin) ElectOperatorL2(blockHash common.Hash, operatorNumber ui
 }
 
 // ElectBubbleMicroNodes Elect the Committee nodes for the bubble chain by VRF
-func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.CandidateQueue, error) {
+func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNumber uint, curNonce []byte, preNonces [][]byte) (bubble.ValidatorQueue, error) {
 	committeeQueue, err := bp.stk2Plugin.GetCommitteeList(blockHash)
 	if err != nil {
 		return nil, err
@@ -499,11 +515,11 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNu
 	}
 
 	// wrap the candidates to the VRF able queue
-	vrfQueue, err := VRFQueueWrapper(committeeQueue, func(item interface{}) *VRFItem {
+	vrfQueue, err := vrf.VRFQueueWrapper(committeeQueue, func(item interface{}) *vrf.VRFItem {
 		if candidate, ok := (item).(*stakingL2.Candidate); ok {
-			return &VRFItem{
-				v: item,
-				w: candidate.Shares,
+			return &vrf.VRFItem{
+				V: item,
+				W: candidate.Shares,
 			}
 		}
 		return nil
@@ -514,15 +530,15 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNu
 
 	// VRF Elect
 	log.Info("ElectBubbleMicroNodes run VRF", "vrfQueue len", len(vrfQueue), "preNonces len", len(preNonces))
-	electedVrfQueue, err := VRF(vrfQueue, committeeNumber, curNonce, preNonces[:len(vrfQueue)])
+	electedVrfQueue, err := vrf.VRF(vrfQueue, committeeNumber, curNonce, preNonces[:len(vrfQueue)])
 	if err != nil {
 		return nil, err
 	}
 
 	// unwrap the VRF able queue
-	committees := make(bubble.CandidateQueue, 0)
+	committees := make(bubble.ValidatorQueue, 0)
 	for _, item := range electedVrfQueue {
-		if candidate, ok := (item.v).(*stakingL2.Candidate); ok {
+		if candidate, ok := (item.V).(*stakingL2.Candidate); ok {
 			committees = append(committees, candidate)
 		} else {
 			return nil, errors.New("type error")
@@ -543,8 +559,8 @@ func (bp *BubblePlugin) ElectBubbleMicroNodes(blockHash common.Hash, committeeNu
 	return committees, nil
 }
 
-func (bp *BubblePlugin) GetSizedBubbleIDs(blockHash common.Hash, sizeCode uint8) ([]*big.Int, error) {
-	iter := bp.db.IteratorSizedBubbleID(blockHash, sizeCode, 0)
+func (bp *BubblePlugin) GetSizedBubbleIDs(blockHash common.Hash, size bubble.Size) ([]*big.Int, error) {
+	iter := bp.db.IteratorBubbleIdBySize(blockHash, size, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
 	}
@@ -563,8 +579,8 @@ func (bp *BubblePlugin) GetSizedBubbleIDs(blockHash common.Hash, sizeCode uint8)
 	return queue, nil
 }
 
-func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonces [][]byte, sizeCode uint8) (*big.Int, error) {
-	bubIDs, err := bp.GetSizedBubbleIDs(blockHash, sizeCode)
+func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonces [][]byte, size bubble.Size) (*big.Int, error) {
+	bubIDs, err := bp.GetSizedBubbleIDs(blockHash, size)
 	if err != nil {
 		return nil, err
 	}
@@ -575,15 +591,15 @@ func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonc
 		preNonces = fitNonces
 	}
 
-	vrfQueue, err := VRFQueueWrapper(bubIDs, func(item interface{}) *VRFItem {
+	vrfQueue, err := vrf.VRFQueueWrapper(bubIDs, func(item interface{}) *vrf.VRFItem {
 		w, _ := new(big.Int).SetString("1200000000000000000000000", 10)
-		return &VRFItem{
-			v: item,
-			w: w,
+		return &vrf.VRFItem{
+			V: item,
+			W: w,
 		}
 	})
 
-	electedVrfQueue, err := VRF(vrfQueue, 1, common.Uint64ToBytes(nonce), preNonces)
+	electedVrfQueue, err := vrf.VRF(vrfQueue, 1, common.Uint64ToBytes(nonce), preNonces)
 	if err != nil {
 		return nil, err
 	}
@@ -593,11 +609,34 @@ func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonc
 
 	// unwrap the VRF able queue
 	vrfItem := electedVrfQueue[0]
-	if bubID, ok := (vrfItem.v).(*big.Int); ok {
+	if bubID, ok := (vrfItem.V).(*big.Int); ok {
 		return bubID, nil
 	} else {
 		return nil, errors.New("type error")
 	}
+}
+
+func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, bubbleID *big.Int) error {
+	bub, err := bp.GetBasicsInfo(blockHash, bubbleID)
+	if err != nil {
+		return err
+	}
+
+	task := &bubble.RemoteDestroyTask{
+		BubbleID: bubbleID,
+		RPC:      bub.OperatorsL2[0].RPC,
+		OpAddr:   bub.OperatorsL1[0].OpAddr,
+	}
+
+	for _, operators := range bub.OperatorsL1 {
+		if operators.NodeId == bp.NodeID {
+			if err := bp.PostRemoteDestroyEvent(task); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // ReleaseBubble run the non-business logic to release the bubble
@@ -609,7 +648,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 	var committeeCount uint32
 	// release the committeeL2 nodes to the DB
-	for _, microNode := range bub.Basics.MicroNodes {
+	for _, microNode := range bub.MicroNodes {
 		addr, err := xutil.NodeId2Addr(microNode.NodeId)
 		if err != nil {
 			return err
@@ -651,62 +690,49 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 	}
 
-	status, err := bp.db.GetBubStatus(blockHash, bubbleID)
+	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
 	if err != nil {
-		log.Error("Failed to GetBubStatus on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+		log.Error("Failed to GetStateInfo on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
-	if status.State <= bubble.ReleasedStatus {
-		status.State = bubble.ReleasedStatus
+	if status.State <= bubble.ReleasedState {
+		status.State = bubble.ReleasedState
 	} else {
 		log.Error("bubble is already released")
 		return errors.New("bubble is already released")
 	}
-	if err := bp.db.StoreBubStatus(blockHash, bubbleID, status); err != nil {
+	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
 		log.Error("Failed to StoreBubState on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
 
-	if err := bp.db.DelSizedBubbleID(blockHash, bub.Basics.Size, bub.Basics.BubbleId); err != nil {
-		log.Error("Failed to DelSizedBubbleID on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+	if err := bp.db.DelBubbleIdBySize(blockHash, bub.Size, bub.BasicsInfo.BubbleId); err != nil {
+		log.Error("Failed to DelBubbleIdBySize on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
 
 	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
 		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.Basics.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
 
-	task := &bubble.RemoteDestroyTask{
-		BubbleID: bubbleID,
-		RPC:      bub.Basics.OperatorsL2[0].RPC,
-		OpAddr:   bub.Basics.OperatorsL1[0].OpAddr,
-	}
-
-	for _, operators := range bub.Basics.OperatorsL1 {
-		if operators.NodeId == bp.NodeID {
-			if err := bp.PostRemoteDestroyEvent(task); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
 func (bp *BubblePlugin) GetByteCode(blockHash common.Hash, address common.Address) ([]byte, error) {
-	return bp.db.GetContractByteCode(blockHash, address)
+	return bp.db.GetByteCode(blockHash, address)
 }
 
 func (bp *BubblePlugin) StoreByteCode(blockHash common.Hash, address common.Address, byteCode []byte) error {
-	return bp.db.StoreContractByteCode(blockHash, address, byteCode)
+	return bp.db.StoreByteCode(blockHash, address, byteCode)
 }
 
 func (bp *BubblePlugin) GetBubContracts(blockHash common.Hash, bubbleID *big.Int) ([]*bubble.ContractInfo, error) {
-	iter := bp.db.IteratorBubContract(blockHash, bubbleID, 0)
+	iter := bp.db.IteratorContractInfo(blockHash, bubbleID, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
 	}
@@ -728,15 +754,15 @@ func (bp *BubblePlugin) GetBubContracts(blockHash common.Hash, bubbleID *big.Int
 }
 
 func (bp *BubblePlugin) GetBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) (*bubble.ContractInfo, error) {
-	return bp.db.GetBubContract(blockHash, bubbleID, address)
+	return bp.db.GetContractInfo(blockHash, bubbleID, address)
 }
 
 func (bp *BubblePlugin) StoreBubContract(blockHash common.Hash, bubbleID *big.Int, contractInfo *bubble.ContractInfo) error {
-	return bp.db.StoreBubContract(blockHash, bubbleID, contractInfo)
+	return bp.db.StoreContractInfo(blockHash, bubbleID, contractInfo)
 }
 
 func (bp *BubblePlugin) DelBubContract(blockHash common.Hash, bubbleID *big.Int, address common.Address) error {
-	return bp.db.DelBubContract(blockHash, bubbleID, address)
+	return bp.db.DelContractInfo(blockHash, bubbleID, address)
 }
 
 // GetAccListOfBub Get the list of accounts inside bubble
@@ -780,7 +806,7 @@ func (bp *BubblePlugin) StoreL2HashToL1Hash(blockHash common.Hash, bubbleID *big
 }
 
 // GetTxHashListByBub The mapping relationship between the sub-chain transaction hash and the main chain transaction hash is stored
-func (bp *BubblePlugin) GetTxHashListByBub(blockHash common.Hash, bubbleID *big.Int, txType bubble.BubTxType) ([]common.Hash, error) {
+func (bp *BubblePlugin) GetTxHashListByBub(blockHash common.Hash, bubbleID *big.Int, txType bubble.TxType) ([]common.Hash, error) {
 	txHashList, err := bp.db.GetTxHashListByBub(blockHash, bubbleID, txType)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
@@ -792,7 +818,7 @@ func (bp *BubblePlugin) GetTxHashListByBub(blockHash common.Hash, bubbleID *big.
 }
 
 // StoreTxHashToBub The mapping relationship between the sub-chain transaction hash and the main chain transaction hash is stored
-func (bp *BubblePlugin) StoreTxHashToBub(blockHash common.Hash, bubbleID *big.Int, txHash common.Hash, txType bubble.BubTxType) error {
+func (bp *BubblePlugin) StoreTxHashToBub(blockHash common.Hash, bubbleID *big.Int, txHash common.Hash, txType bubble.TxType) error {
 	// get hash list
 	txHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, txType)
 	if snapshotdb.NonDbNotFoundErr(err) {
@@ -863,17 +889,6 @@ func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.In
 func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) error {
 	if err := bp.eventMux.Post(*mintTokenTask); nil != err {
 		log.Error("post mintToken task failed", "err", err)
-		return err
-	}
-
-	return nil
-}
-
-// PostCreateBubbleEvent Send the create bubble event and wait for the task to be processed
-func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) error {
-	log.Debug("PostCreateBubbleEvent", *task)
-	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post CreateBubble task failed", "err", err)
 		return err
 	}
 
@@ -1020,7 +1035,7 @@ func encodeRemoteDeploy(task *bubble.RemoteDeployTask) []byte {
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
 	address, _ := rlp.EncodeToBytes(task.Address)
 
-	runtimeCode, err := BubbleInstance().db.GetContractByteCode(task.BlockHash, task.Address)
+	runtimeCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
 	if err != nil {
 		return nil
 	}
@@ -1236,7 +1251,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 	var initNodes []params.InitNode
-	for _, node := range bub.Basics.MicroNodes {
+	for _, node := range bub.MicroNodes {
 		initNode := params.InitNode{
 			Enode:     node.P2PURI,
 			BlsPubkey: node.BlsPubKey.String(),
@@ -1258,7 +1273,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
-			ChainID: bub.Basics.BubbleId,
+			ChainID: bub.BasicsInfo.BubbleId,
 			Frps:    params.GlobalFrpsCfg,
 			Cbft: &params.CbftConfig{
 				Period:        10000,
@@ -1269,8 +1284,8 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 			GenesisVersion: gov.L2Version,
 		},
 		OpConfig: &bubble.OpConfig{
-			MainChain: bub.Basics.OperatorsL1[0],
-			SubChain:  bub.Basics.OperatorsL2[0],
+			MainChain: bub.OperatorsL1[0],
+			SubChain:  bub.OperatorsL2[0],
 		},
 		EconomicModel: em,
 		Nonce:         []byte{},
@@ -1287,7 +1302,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 		ParentHash: common.ZeroHash,
 	}
 	// The ip address of the frps is updated to be the ip address of the operating node of L1
-	rpcUrl := bub.Basics.OperatorsL1[0].RPC
+	rpcUrl := bub.OperatorsL1[0].RPC
 	index := strings.Index(rpcUrl, "//")
 	if index != -1 {
 		rpcUrl = rpcUrl[index+2:]
@@ -1427,135 +1442,28 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	return hash.Bytes(), nil
 }
 
-// VRFItem is the element of the VRFQueue
-type VRFItem struct {
-	v interface{}
-	x int64
-	w *big.Int
-}
-
-// VRFQueue Wrap any slice to support VRF
-type VRFQueue []*VRFItem
-
-func (vq VRFQueue) Len() int {
-	return len(vq)
-}
-
-func (vq VRFQueue) Less(i, j int) bool {
-	return vq[i].x > vq[j].x // It's actually bigger
-}
-
-func (vq VRFQueue) Swap(i, j int) {
-	vq[i], vq[j] = vq[j], vq[i]
-}
-
-// VRFQueueWrapper Wrap any slice to be VRFQueue
-func VRFQueueWrapper(slice interface{}, wrapper func(interface{}) *VRFItem) (VRFQueue, error) {
-	// convert slice to an interface queue, to Supports running wrapper
-	s := reflect.ValueOf(slice)
-	//fmt.Println(kind)
-	queue := make([]interface{}, 0)
-	if s.Kind() == reflect.Slice {
-		for i := 0; i < s.Len(); i++ {
-			queue = append(queue, s.Index(i).Interface())
-		}
-	} else {
-		return nil, errors.New("the first parameter must be slice")
-	}
-	// wrap interface queue to an vrfQueue
-	vrfQueue := make(VRFQueue, 0)
-	for _, item := range queue {
-		if vrfItem := wrapper(item); vrfItem == nil {
-			return nil, errors.New("failed to convert the slice element to VRFItem")
-		} else {
-			vrfQueue = append(vrfQueue, vrfItem)
-		}
-	}
-
-	return vrfQueue, nil
-}
-
-// VRF randomly pick number of elements from vrfQueue, it achieves randomness through the nonces
-func VRF(vrfQueue VRFQueue, number uint, curNonce []byte, preNonces [][]byte) (VRFQueue, error) {
-	// check params
-	if len(curNonce) == 0 || len(preNonces) == 0 || len(vrfQueue) != len(preNonces) {
-		log.Error("Failed to VRF", "vrfQueue Size", len(vrfQueue), "curNonceSize", len(curNonce), "preNoncesSize", len(preNonces))
-		return nil, errors.New("vrf param is invalid")
-	}
-
-	totalWeights := new(big.Int)
-	totalSqrtWeights := new(big.Int)
-	for _, vrfer := range vrfQueue {
-		totalWeights.Add(totalWeights, vrfer.w)
-		totalSqrtWeights.Add(totalSqrtWeights, new(big.Int).Sqrt(vrfer.w))
-	}
-
-	var maxValue float64 = (1 << 256) - 1
-	totalWeightsFloat, err := strconv.ParseFloat(totalWeights.Text(10), 64)
-	if nil != err {
-		return nil, err
-	}
-	totalSqrtWeightsFloat, err := strconv.ParseFloat(totalSqrtWeights.Text(10), 64)
-	if nil != err {
-		return nil, err
-	}
-
-	p := xcom.CalcP(totalSqrtWeightsFloat)
-	shuffleSeed := new(big.Int).SetBytes(preNonces[0]).Int64()
-	log.Debug("Call VRF parameter", "queueSize", len(vrfQueue), "p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat",
-		totalSqrtWeightsFloat, "number", number, "shuffleSeed", shuffleSeed)
-
-	rd := rand.New(rand.NewSource(shuffleSeed))
-	rd.Shuffle(len(vrfQueue), func(i, j int) {
-		vrfQueue[i], vrfQueue[j] = vrfQueue[j], vrfQueue[i]
-	})
-
-	for i, vrfer := range vrfQueue {
-		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(curNonce), new(big.Int).SetBytes(preNonces[i])).Text(10)
-		xorValue, err := strconv.ParseFloat(resultStr, 64)
-		if nil != err {
-			return nil, err
-		}
-
-		xorP := xorValue / maxValue
-		bd := math.NewBinomialDistribution(vrfer.w.Int64(), p)
-		if x, err := bd.InverseCumulativeProbability(xorP); err != nil {
-			return nil, err
-		} else {
-			vrfer.x = x
-		}
-
-		log.Debug("Call VRF finished", "index", i, "node", vrfer.v, "curNonce", hex.EncodeToString(curNonce), "preNonce",
-			hex.EncodeToString(preNonces[i]), "xorValue", xorValue, "xorP", xorP, "weight", vrfer.w, "x", vrfer.x)
-	}
-
-	sort.Sort(vrfQueue)
-
-	return vrfQueue[:number], nil
-}
-
-func sendTask(ctx context.Context, waitGroup *sync.WaitGroup, client *http.Client, url string, data string) {
-
-	for i := 0; i < 10; i++ {
-		// new request
-		dataReader := strings.NewReader(data)
-		req, err := http.NewRequest(http.MethodPost, url, dataReader)
-		if err != nil {
-			log.Error("new http request failed", "err", err)
-		}
-		req.WithContext(ctx)
-		req.Header.Set("Content-Type", "application/json")
-
-		// send request
-		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 200 {
-			log.Debug("send task to microNode failed", "retry", i, "error", err, "response", resp)
-			time.Sleep(time.Duration(3) * time.Second)
-			continue
-		}
-		log.Info("send task to microNode succeed", "ElectronURI", url, "req", req)
-		resp.Body.Close()
-		waitGroup.Done()
-		break
-	}
-}
+//func sendTask(ctx context.Context, waitGroup *sync.WaitGroup, client *http.Client, url string, data string) {
+//
+//	for i := 0; i < 10; i++ {
+//		// new request
+//		dataReader := strings.NewReader(data)
+//		req, err := http.NewRequest(http.MethodPost, url, dataReader)
+//		if err != nil {
+//			log.Error("new http request failed", "err", err)
+//		}
+//		req.WithContext(ctx)
+//		req.Header.Set("Content-Type", "application/json")
+//
+//		// send request
+//		resp, err := client.Do(req)
+//		if err != nil || resp.StatusCode != 200 {
+//			log.Debug("send task to microNode failed", "retry", i, "error", err, "response", resp)
+//			time.Sleep(time.Duration(3) * time.Second)
+//			continue
+//		}
+//		log.Info("send task to microNode succeed", "ElectronURI", url, "req", req)
+//		resp.Body.Close()
+//		waitGroup.Done()
+//		break
+//	}
+//}

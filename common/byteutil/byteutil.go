@@ -64,7 +64,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 	"bubble.AccountAsset":           BytesToAccountAsset,
 	"bubble.SettlementInfo":         BytesToSettlementInfo,
-	"bubble.BubTxType":              BytesToBubTxType,
+	"bubble.TxType":                 BytesToBubTxType,
 }
 
 func BytesToString(curByte []byte) string {
@@ -365,8 +365,8 @@ func BytesToSettlementInfo(curByte []byte) bubble.SettlementInfo {
 	return settleInfo
 }
 
-func BytesToBubTxType(curByte []byte) bubble.BubTxType {
-	var txType bubble.BubTxType
+func BytesToBubTxType(curByte []byte) bubble.TxType {
+	var txType bubble.TxType
 	if err := rlp.DecodeBytes(curByte, &txType); nil != err {
 		panic("BytesToBubTxType:" + err.Error())
 	}
