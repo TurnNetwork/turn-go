@@ -198,6 +198,7 @@ const (
 	BubbleGas             uint64 = 2000
 	SelectBubbleGas       uint64 = 30000
 	RemoteDeployGas       uint64 = 21000
+	RemoteRemoveGas       uint64 = 21000
 	RemoteCallGas         uint64 = 21000
 	RemoteCallExecutorGas uint64 = 21000
 )

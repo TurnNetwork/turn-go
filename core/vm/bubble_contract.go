@@ -261,6 +261,10 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, address common.Address
 	txHash := bc.Evm.StateDB.TxHash()
 	state := bc.Evm.StateDB
 
+	if !bc.Contract.UseGas(params.RemoteRemoveGas) {
+		return nil, ErrOutOfGas
+	}
+
 	contractInfo, err := bc.Plugin.GetBubContract(blockHash, bubbleID, address)
 	if err != nil {
 		return nil, err
