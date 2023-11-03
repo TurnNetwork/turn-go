@@ -146,6 +146,8 @@ var (
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
 		utils.RPCGlobalTxFeeCapFlag,
+		utils.AllowPorts,
+		utils.StunServer,
 	}
 
 	metricsFlags = []cli.Flag{
@@ -186,6 +188,9 @@ var (
 	}
 	opFlags = []cli.Flag{
 		utils.OpPriKeyFlag,
+	}
+	frpsFlags = []cli.Flag{
+		utils.FrpsFlag,
 	}
 )
 
@@ -236,6 +241,9 @@ func init() {
 
 	// for operator
 	app.Flags = append(app.Flags, opFlags...)
+
+	// for frps
+	app.Flags = append(app.Flags, frpsFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

@@ -648,6 +648,21 @@ var (
 		Name:  "op.prikey",
 		Usage: "Private key of main-chain operation address (pledged address of operation node)",
 	}
+	// FrpsFlag frp server parameters
+	FrpsFlag = cli.BoolFlag{
+		Name:  "frps",
+		Usage: "Enable the frps service",
+	}
+
+	AllowPorts = cli.StringFlag{
+		Name:  "allow_ports",
+		Usage: "Allowed open port number range (format: 1000-2000)",
+	}
+
+	StunServer = cli.StringFlag{
+		Name:  "stun_server",
+		Usage: "Specifies the stun server to use for nat holes",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -815,6 +830,28 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPPortFlag.Name) {
 		cfg.HTTPPort = ctx.GlobalInt(HTTPPortFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(AllowPorts.Name) {
+		cfg.AllowPorts = ctx.GlobalString(AllowPorts.Name)
+	}
+
+	// Set the global values for stun services depending on the network.
+	frpsCfg := params.GlobalFrpsCfg
+	// The node specifies the stun service
+	if ctx.GlobalIsSet(StunServer.Name) {
+		frpsCfg.StunAddress = ctx.GlobalString(StunServer.Name)
+	} else {
+		// If the stun service parameter is not specified,
+		// the node gets the default stun service according to the network type
+		switch {
+		case ctx.GlobalBool(TestnetFlag.Name):
+			// Test NetWork
+			frpsCfg.StunAddress = params.TestNetStunServer
+		default:
+			// Main NetWork
+			frpsCfg.StunAddress = params.MainNetStunServer
+		}
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {
@@ -1233,6 +1270,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Private key of main-chain operation address (pledged address of operation node)
 	if ctx.GlobalIsSet(OpPriKeyFlag.Name) {
 		cfg.OpPriKey = ctx.GlobalString(OpPriKeyFlag.Name)
+	}
+}
+
+// SetFrpsConfig Set the relevant configuration for frps.
+func SetFrpsConfig(ctx *cli.Context, stack *node.Node) {
+	if ctx.GlobalIsSet(FrpsFlag.Name) {
+		stack.Server().FrpsFlag = ctx.GlobalBool(FrpsFlag.Name)
 	}
 }
 

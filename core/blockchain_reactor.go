@@ -46,20 +46,22 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh                   *handler.VrfHandler
-	eventMux             *event.TypeMux
-	bftResultSub         *event.TypeMuxSubscription
-	mintTokenTaskSub     *event.TypeMuxSubscription // MintToken task subscription
-	createBubbleTaskSub  *event.TypeMuxSubscription // create bubble task subscription
-	releaseBubbleTaskSub *event.TypeMuxSubscription // release bubble task subscription
-	basePluginMap        map[int]plugin.BasePlugin  // xxPlugin container
-	beginRule            []int                      // Order rules for xxPlugins called in BeginBlocker
-	endRule              []int                      // Order rules for xxPlugins called in EndBlocker
-	validatorMode        string                     // mode: static, inner, dpos
-	NodeId               discover.NodeID            // The nodeId of current node
-	exitCh               chan chan struct{}         // Used to receive an exit signal
-	exitOnce             sync.Once
-	chainID              *big.Int
+	vh               *handler.VrfHandler
+	eventMux         *event.TypeMux
+	bftResultSub     *event.TypeMuxSubscription
+	mintTokenTaskSub *event.TypeMuxSubscription // MintToken task subscription
+	//createBubbleTaskSub    *event.TypeMuxSubscription // create bubble task subscription
+	remoteDeploySub  *event.TypeMuxSubscription // remote deploy contract task subscription
+	remoteCallSub    *event.TypeMuxSubscription //  remote call contract function task subscription
+	remoteDestroySub *event.TypeMuxSubscription // release bubble task subscription
+	basePluginMap    map[int]plugin.BasePlugin  // xxPlugin container
+	beginRule        []int                      // Order rules for xxPlugins called in BeginBlocker
+	endRule          []int                      // Order rules for xxPlugins called in EndBlocker
+	validatorMode    string                     // mode: static, inner, dpos
+	NodeId           discover.NodeID            // The nodeId of current node
+	exitCh           chan chan struct{}         // Used to receive an exit signal
+	exitOnce         sync.Once
+	chainID          *big.Int
 }
 
 var (
@@ -86,8 +88,10 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 		bcr.mintTokenTaskSub = bcr.eventMux.BufferSubscribe(1000, bubble.MintTokenTask{})
-		bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
-		bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
+		//bcr.createBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.CreateBubbleTask{})
+		bcr.remoteDeploySub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteDeployTask{})
+		bcr.remoteCallSub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteCallTask{})
+		bcr.remoteDestroySub = bcr.eventMux.BufferSubscribe(100, bubble.RemoteDestroyTask{})
 		// start the loop
 		go bcr.loop()
 		go bcr.handleTask()
@@ -160,40 +164,72 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
-		case msg := <-bcr.createBubbleTaskSub.Chan():
+		case msg := <-bcr.remoteDeploySub.Chan():
 			if msg == nil {
 				continue
 			}
-			CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
+			task, ok := msg.Data.(bubble.RemoteDeployTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to receive CreateBubbleTask")
+				log.Error("blockchain_reactor failed to receive remoteDeploy data conversion type")
 				continue
 			}
 			// handle task
-			err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
+			hash, err := plugin.BubbleInstance().HandleRemoteDeployTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
-				// TODO: write the failed task back into the source channel
+				log.Error("blockchain_reactor failed to process RemoteDeploy task")
 				continue
 			}
-			log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
-		case msg := <-bcr.releaseBubbleTaskSub.Chan():
+			log.Info("The processing and RemoteDeploy task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+		case msg := <-bcr.remoteCallSub.Chan():
 			if msg == nil {
 				continue
 			}
-			ReleaseBubbleTask, ok := msg.Data.(bubble.ReleaseBubbleTask)
+			task, ok := msg.Data.(bubble.RemoteCallTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
+				log.Error("blockchain_reactor failed to receive remoteCall data conversion type")
 				continue
 			}
 			// handle task
-			err := plugin.BubbleInstance().HandleReleaseBubbleTask(&ReleaseBubbleTask)
+			hash, err := plugin.BubbleInstance().HandleRemoteCallTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
+				log.Error("blockchain_reactor failed to process RemoteCall task")
+				continue
+			}
+			log.Info("The processing and RemoteCall task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+		//case msg := <-bcr.createBubbleTaskSub.Chan():
+		//	if msg == nil {
+		//		continue
+		//	}
+		//	CreateBubbleTask, ok := msg.Data.(bubble.CreateBubbleTask)
+		//	if !ok {
+		//		log.Error("blockchain_reactor failed to receive CreateBubbleTask")
+		//		continue
+		//	}
+		//	// handle task
+		//	err := plugin.BubbleInstance().HandleCreateBubbleTask(&CreateBubbleTask)
+		//	if err != nil {
+		//		log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
+		//		// TODO: write the failed task back into the source channel
+		//		continue
+		//	}
+		//	log.Info("process CreateBubbleTask succeeded", "tx hash", CreateBubbleTask.TxHash)
+		case msg := <-bcr.remoteDestroySub.Chan():
+			if msg == nil {
+				continue
+			}
+			RemoteDestroyTask, ok := msg.Data.(bubble.RemoteDestroyTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to process RemoteDestroyTask")
+				continue
+			}
+			// handle task
+			hash, err := plugin.BubbleInstance().HandleRemoteDestroyTask(&RemoteDestroyTask)
+			if err != nil {
+				log.Error("blockchainReactor failed to process RemoteDestroyTask")
 				// TODO: write the failed task back into the source channel
 				continue
 			}
-			log.Info("process ReleaseBubbleTask succeeded", "tx hash", ReleaseBubbleTask.TxHash)
+			log.Info("blockchainReactor processing RemoteDestroy task succeeded", "tx hash", common.BytesToHash(hash).Hex())
 		}
 	}
 }

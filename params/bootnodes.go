@@ -18,15 +18,7 @@ package params
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Bubble network.
-var MainnetBootnodes = []string{
-	"enode://f7c33bd34b0e3c9a0317733ef3356409ff2eb009605cc357c213c367faf833ab48d557942731fd8dfdd39b92004e863c0fd8ebd01e79f69acd2b82f60ac63074@ms1.bfa6.bubble.network:16789",
-	"enode://7729f2313908670523d7babf227e69e93150aac916f3f372a36ee7f204ed55737cb667fc55c34c40c5499734ed08cc7c57800d1ac8131c0cb855768801b898e9@ms2.6cc3.bubble.network:16789",
-	"enode://4649f744f3e1d2400773fc48e057b96a8d4a10e00121f884f97b3182187ded0f89f5f4dbade55acaa4155e25c281f23a34587bad4fc3af2403eef9c130b57e5b@ms3.cd41.bubble.network:16789",
-	"enode://f77401d3dda6d0c58310744e9349c16c056f94179a4d7bdc3470b6461d7f64370fa21ebf380ab10e25834291215715550c6845442a0df88ab1c42d161d367626@ms4.1fda.bubble.network:16789",
-	"enode://8c71f4e1e795fc6e73144e4696a9fde3c3cdf6b99ab575357b77ab22542bc70c8f04e88f23eb6cdb225ad077aa67b71245da1ab1838bf8b362464ffd515ca3d6@ms5.ee7a.bubble.network:16789",
-	"enode://6c9f8a51ff27bb0e062952be1f1e3943847eaed1f14d54783238678767dd134ddedfc82c0f52696cee971ee1aabec00523cd634e41c079ee95407aa4ecb92c7b@ms6.63a8.bubble.network:16789",
-	"enode://0db310d4a6c429dcac973ff6433659ed710783872cf62bdcec09c76a8bb380d51f0c153401ceaa27e0b3de6f56fb939115c495862d15f6ccc8019702117be34d@ms7.66dc.bubble.network:16789",
-}
+var MainnetBootnodes = []string{}
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the test network.
 var TestnetBootnodes = []string{

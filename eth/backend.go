@@ -18,10 +18,13 @@
 package eth
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -93,6 +96,115 @@ type Ethereum struct {
 	p2pServer *p2p.Server
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+}
+
+// Generate the frps profile
+func genFrpsCfgFile(frps *params.FrpsConfig, dataDir string) (error, *os.File, string) {
+	if nil == frps {
+		log.Error("The frp server configuration is nil.")
+		return errors.New("The frp server configuration is nil"), nil, ""
+	}
+	// Create a new INI file
+	frpDir := dataDir + "/bubble/frp/"
+	if err := os.MkdirAll(frpDir, 0700); err != nil {
+		log.Error(fmt.Sprintf("Failed to create directory: %v", err))
+		return err, nil, ""
+	}
+	fileName := "config.ini"
+	filePath := common.AbsolutePath(frpDir, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Error("failed to create Frps config file:", err)
+		return err, file, filePath
+	}
+
+	// Create a writer
+	writer := bufio.NewWriter(file)
+
+	// Write the frp server configuration
+	fmt.Fprintln(writer, "[common]")
+	// fmt.Fprintln(writer, "bind_addr =", frps.ServerIP)
+	fmt.Fprintln(writer, "bind_port =", frps.ServerPort)
+	if nil != frps.Auth {
+		fmt.Fprintln(writer, "authentication_method =", frps.Auth.Method)
+		fmt.Fprintln(writer, "authenticate_heartbeats =", frps.Auth.HeartBeats)
+		fmt.Fprintln(writer, "authenticate_new_work_conns =", frps.Auth.NewWorkConns)
+		fmt.Fprintln(writer, "token =", frps.Auth.Token)
+	}
+
+	// Flush the buffer and write the data to the file
+	err = writer.Flush()
+	if err != nil {
+		fmt.Println("Failure to flush the buffer and write data to the file:", err)
+		return err, file, filePath
+	}
+
+	return nil, file, filePath
+}
+
+// Get a list of locally occupied port numbers, which need to be filtered
+func getFilterPorts(p2pPort string, frpsPort, rpcPort, wsPort int) (error, []int) {
+	startIndex := strings.Index(p2pPort, ":")
+	if startIndex != -1 {
+		p2pPort = p2pPort[startIndex+1:]
+	}
+	var filterPorts []int
+	port, err := strconv.Atoi(p2pPort)
+	if err != nil {
+		log.Error("Unable to convert string to integer:", err)
+		return err, nil
+	}
+	// add p2p port
+	filterPorts = append(filterPorts, port)
+	// add frps port
+	filterPorts = append(filterPorts, frpsPort)
+	// add rpc port
+	filterPorts = append(filterPorts, rpcPort)
+	// add ws port
+	filterPorts = append(filterPorts, wsPort)
+	return nil, filterPorts
+}
+
+func getAllowPorts(allowPorts string, startPort, endPort *int) error {
+	index := strings.Index(allowPorts, "-")
+	if index != -1 {
+		port, err := strconv.Atoi(allowPorts[0:index])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+		*startPort = port
+		*endPort, err = strconv.Atoi(allowPorts[index+1:])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func SetAllowPorts(stack *node.Node, frpsPort int) error {
+	nodeCfg := stack.Config()
+	svrCfg := stack.Server()
+	// Get a list of locally occupied port numbers, which need to be filtered
+	err, filterPorts := getFilterPorts(nodeCfg.P2P.ListenAddr, frpsPort, nodeCfg.HTTPPort, nodeCfg.WSPort)
+	if nil != err || 0 == len(filterPorts) {
+		return err
+	}
+	if "" != nodeCfg.AllowPorts {
+		// Gets the range of ports the user is allowed to use
+		if err := getAllowPorts(nodeCfg.AllowPorts, &svrCfg.StartPort, &svrCfg.EndPort); err != nil {
+			return err
+		}
+	} else {
+		// The user did not specify a range of allowed ports
+		// Start by adding 1 to the p2p port
+		svrCfg.StartPort = filterPorts[0] + 1
+		// Maximum port number
+		svrCfg.EndPort = 65535
+	}
+	svrCfg.FilterPorts = filterPorts
+	return nil
 }
 
 // New creates a new Ethereum object (including the
@@ -210,6 +322,27 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	log.Info("Initialised chain configuration", "config", chainConfig)
 	stack.SetP2pChainID(chainConfig.ChainID)
+
+	// Handle the frps configuration
+	p2pServer := stack.Server()
+	if p2pServer.FrpsFlag {
+		nodeCfg := stack.Config()
+		frpsCfg := params.GlobalFrpsCfg
+		// Create and generate configuration files
+		dataDir := nodeCfg.DataDir
+		err, file, filePath := genFrpsCfgFile(frpsCfg, dataDir)
+		if err != nil || nil == file {
+			fmt.Println("failed to generate config file:", err)
+			return nil, err
+		}
+		defer file.Close()
+		// Save the configuration file path
+		p2pServer.FrpsFilePath = filePath
+		// Sets the range of allowed ports
+		if err = SetAllowPorts(stack, frpsCfg.ServerPort); err != nil {
+			return nil, err
+		}
+	}
 
 	eth := &Ethereum{
 		config:            config,
@@ -363,8 +496,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 	// Start the RPC service
-	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, eth.NetVersion())
-
+	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, xplugin.BubbleInstance(), eth.NetVersion())
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
 	stack.RegisterProtocols(eth.Protocols())
@@ -626,6 +758,8 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 
+	reactor.RegisterPlugin(xcom.BubbleRule, xplugin.BubbleInstance())
+
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
@@ -641,6 +775,6 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
-	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule, xcom.StakingL2Rule})
+	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule, xcom.StakingL2Rule, xcom.BubbleRule})
 
 }

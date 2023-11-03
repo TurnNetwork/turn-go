@@ -36,6 +36,9 @@ var (
 	UnStakeRecordKey     = []byte("UnStakeRecordL2")
 	AccountStakeRcPrefix = []byte("AccStakeRcL2")
 
+	CommitteeCountKey     = []byte("CommitteeL2Count")
+	UsedCommitteeCountKey = []byte("UsedCommitteeL2Count")
+
 	b104Len = len(math.MaxBig104.Bytes())
 )
 

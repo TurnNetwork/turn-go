@@ -10,27 +10,54 @@ var (
 	AccListKeyPrefix    = []byte("AccList")  // the key prefix of the accounts list of the staking token
 	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
 	TxHashKeyPrefix     = []byte("TxHash")
-	TxHashListKeyPrefix = []byte("TxHashList") // The key prefix of the transaction hash list
-	BubBasicsKeyPrefix  = []byte("BubBasics")  // The key prefix of the bubble basics
-	BubStateKeyPrefix   = []byte("BubState")   // The key prefix of the bubble state
+	TxHashListKeyPrefix = []byte("TxHashList")    // The key prefix of the transaction hash list
+	BasicsInfoKeyPrefix = []byte("BubBasicsInfo") // The key prefix of the bubble basics
+	StateInfoKeyPrefix  = []byte("BubStateInfo")  // The key prefix of the bubble state
+	SizeRootPrefix      = []byte("BubSize")
+	ByteCodePrefix      = []byte("BubBytecode")
+	ContractInfoPrefix  = []byte("BubContractInfo")
 )
 
-// getBubBasicsKey bubble basics that press bubbleId key
-func getBubBasicsKey(bubbleID *big.Int) []byte {
+// getBasicsInfoKey bubble basics that press bubbleId key
+func getBasicsInfoKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil
 	}
-	return append(BubBasicsKeyPrefix, bid...)
+	return append(BasicsInfoKeyPrefix, bid...)
 }
 
-// getBubStateKey bubble state that press bubbleId key
-func getBubStateKey(bubbleID *big.Int) []byte {
+// getStateInfoKey bubble state that press bubbleId key
+func getStateInfoKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil
 	}
-	return append(BubStateKeyPrefix, bid...)
+	return append(StateInfoKeyPrefix, bid...)
+}
+
+func getBubbleSizePrefix(size Size) []byte {
+	data, err := rlp.EncodeToBytes(size)
+	if nil != err {
+		return nil
+	}
+	return append(SizeRootPrefix, data...)
+}
+
+func getSizedBubbleKey(size Size, bubbleID *big.Int) []byte {
+	return append(getBubbleSizePrefix(size), bubbleID.Bytes()...)
+}
+
+func getBubContractKey(bubbleID *big.Int) []byte {
+	return append(ContractInfoPrefix, bubbleID.Bytes()...)
+}
+
+func getContractInfoKey(bubbleID *big.Int, address common.Address) []byte {
+	return append(getBubContractKey(bubbleID), address.Bytes()...)
+}
+
+func getByteCodeKey(address common.Address) []byte {
+	return append(ByteCodePrefix, address.Bytes()...)
 }
 
 // AccListByBubKey List of accounts that press bubble's key
@@ -63,7 +90,7 @@ func TxHashByBubKey(bubbleID *big.Int, txHash common.Hash) []byte {
 }
 
 // TxHashListByBubKey Specifies the transaction type of bubble to generate the key of the transaction hash list
-func TxHashListByBubKey(bubbleID *big.Int, txType BubTxType) []byte {
+func TxHashListByBubKey(bubbleID *big.Int, txType TxType) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil

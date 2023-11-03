@@ -148,6 +148,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
+			utils.AllowPorts,
+			utils.StunServer,
 		},
 	},
 	{
@@ -226,6 +228,12 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "Operator",
 		Flags: []cli.Flag{
 			utils.OpPriKeyFlag,
+		},
+	},
+	{
+		Name: "Frps",
+		Flags: []cli.Flag{
+			utils.FrpsFlag,
 		},
 	},
 	{

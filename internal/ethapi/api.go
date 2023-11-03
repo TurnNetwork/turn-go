@@ -22,7 +22,11 @@ import (
 	"errors"
 	"fmt"
 	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
+	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/x/plugin"
 	"math/big"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/bubblenet/bubble/core/state"
@@ -2032,12 +2036,12 @@ func (api *PrivateDebugAPI) ChaindbCompact() error {
 // PublicNetAPI offers network related RPC methods
 type PublicNetAPI struct {
 	net            *p2p.Server
+	plugin         *plugin.BubblePlugin
 	networkVersion uint64
 }
 
-// NewPublicNetAPI creates a new net API instance.
-func NewPublicNetAPI(net *p2p.Server, networkVersion uint64) *PublicNetAPI {
-	return &PublicNetAPI{net, networkVersion}
+func NewPublicNetAPI(net *p2p.Server, plugin *plugin.BubblePlugin, networkVersion uint64) *PublicNetAPI {
+	return &PublicNetAPI{net, plugin, networkVersion}
 }
 
 // Listening returns an indication if the node is listening for network connections.
@@ -2053,4 +2057,92 @@ func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
+}
+
+// AvailablePorts Returns the available port number for the server.
+func (s *PublicNetAPI) AvailablePorts(bubbleID hexutil.Big, portNum int, sig hexutil.Bytes) ([]int, error) {
+	if !s.net.FrpsFlag {
+		return nil, fmt.Errorf("this interface cannot be invoked if the frps service is not enabled")
+	}
+
+	if len(sig) != crypto.SignatureLength {
+		return nil, fmt.Errorf("signature must be %d bytes long", crypto.SignatureLength)
+	}
+
+	msg := crypto.Keccak256([]byte(fmt.Sprintf("%d", portNum)))
+	rpk, err := crypto.SigToPub(msg, sig)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("public key:%s\n", discover.PubkeyID(rpk).String())
+
+	// get bubble info
+	basics, err := s.plugin.GetBasicsInfo(common.ZeroHash, bubbleID.ToInt())
+	if nil != err || nil == basics {
+		return nil, fmt.Errorf("the bubble is not exist, bubbleID:%s", bubbleID.String())
+	}
+
+	// Compare NodeID
+	if discover.PubkeyID(rpk) != basics.OperatorsL2[0].NodeId {
+		return nil, fmt.Errorf("only the child-chain operator node has the right to call this interface")
+	}
+
+	// Gets the available port number
+	startPort := s.net.StartPort
+	endPort := s.net.EndPort
+
+	ports := make([]int, portNum)
+	for i := 0; i < portNum; i++ {
+		port, err := getUnusedPortByRange(startPort, endPort, s.net.FilterPorts)
+		if nil != err {
+			return nil, err
+		}
+		ports[i] = port
+		startPort++
+	}
+	return ports, nil
+}
+
+func containsElement(slice []int, element int) bool {
+	for _, item := range slice {
+		if item == element {
+			return true
+		}
+	}
+	return false
+}
+
+// Gets the unused port number from the specified range
+func getUnusedPortByRange(start, end int, filterPorts []int) (int, error) {
+	for i := start; i <= end; i++ {
+		port := i
+		if !containsElement(filterPorts, port) {
+			address := fmt.Sprintf(":%d", port)
+			listener, err := net.Listen("tcp", address)
+			if err == nil {
+				listener.Close()
+				return port, nil
+			}
+		}
+	}
+
+	return 0, errors.New("unable to find an unused port")
+}
+
+func getAllowPorts(allowPorts string, startPort, endPort *int) error {
+	index := strings.Index(allowPorts, "-")
+	if index != -1 {
+		port, err := strconv.Atoi(allowPorts[0:index])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+		*startPort = port
+		*endPort, err = strconv.Atoi(allowPorts[index+1:])
+		if err != nil {
+			log.Error("Unable to convert string to integer:", err)
+			return err
+		}
+	}
+	return nil
 }

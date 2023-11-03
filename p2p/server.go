@@ -18,10 +18,13 @@
 package p2p
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"errors"
 	"github.com/bubblenet/bubble/p2p/rlpx"
+	"github.com/fatedier/frp/pkg/config"
+	"github.com/fatedier/frp/server"
 	"math/big"
 	"math/rand"
 	"net"
@@ -39,6 +42,7 @@ import (
 	"github.com/bubblenet/bubble/p2p/discv5"
 	"github.com/bubblenet/bubble/p2p/nat"
 	"github.com/bubblenet/bubble/p2p/netutil"
+	"github.com/fatedier/golib/crypto"
 )
 
 const (
@@ -138,6 +142,15 @@ type Config struct {
 	// ListenAddr field will be updated with the actual address when
 	// the server is started.
 	ListenAddr string
+	// Start the frps service identification
+	FrpsFlag bool
+	// frp server configuration file path to record frp configuration information
+	FrpsFilePath string
+	// frp service
+	FrpService  *server.Service
+	StartPort   int   // The start port on which access is allowed
+	EndPort     int   // The end port on which access is allowed
+	FilterPorts []int // a list of locally occupied port numbers, which need to be filtered
 
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
@@ -580,6 +593,12 @@ func (srv *Server) Start() (err error) {
 			return err
 		}
 	}
+	// Start frp service (decide whether to start frp service according to whether there is frp configuration file path parameter)
+	if srv.FrpsFlag && common.FileExist(srv.FrpsFilePath) {
+		if err := srv.startFrps(srv.FrpsFilePath); err != nil {
+			return err
+		}
+	}
 	if srv.NoDial && srv.ListenAddr == "" {
 		srv.log.Warn("P2P server will be useless, neither dialing nor listening")
 	}
@@ -609,6 +628,39 @@ func (srv *Server) startListening() error {
 			srv.loopWG.Done()
 		}()
 	}
+	return nil
+}
+
+// startFrps Start the frps service
+func (srv *Server) startFrps(cfgFile string) error {
+	crypto.DefaultSalt = "frp"
+	// TODO: remove this when we drop support for go1.19
+	rand.Seed(time.Now().UnixNano())
+
+	var cfg config.ServerCommonConf
+	var err error
+	var content []byte
+	content, err = config.GetRenderedConfFromFile(cfgFile)
+	if err != nil {
+		return err
+	}
+	cfg, err = config.UnmarshalServerConfFromIni(content)
+	if err != nil {
+		return err
+	}
+	cfg.Complete()
+	err = cfg.Validate()
+	if err != nil {
+		return err
+	}
+	log.Info("frps uses config file: %s", cfgFile)
+
+	srv.FrpService, err = server.NewService(cfg)
+	if nil == srv.FrpService || err != nil {
+		return err
+	}
+	log.Info("frps started successfully")
+	go srv.FrpService.Run(context.Background())
 	return nil
 }
 

@@ -384,8 +384,13 @@ web3._extend({
 	property: 'bub',
 	methods: [
 		new web3._extend.Method({
-		name: 'chainId',
+			name: 'chainId',
 			call: 'bub_chainId',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'myPorts',
+			call: 'bub_myPorts',
 			params: 0
 		}),
 		new web3._extend.Method({
@@ -506,7 +511,14 @@ web3._extend({
 const NetJs = `
 web3._extend({
 	property: 'net',
-	methods: [],
+	methods: [
+		new web3._extend.Method({
+			name: 'availablePorts',
+			call: 'net_availablePorts',
+			params: 3,
+			inputFormatter: [web3._extend.utils.fromDecimal, null, null]
+		}),
+	],
 	properties: [
 		new web3._extend.Property({
 			name: 'version',
@@ -515,6 +527,26 @@ web3._extend({
 	]
 });
 `
+
+//const NetJs = `
+//web3._extend({
+//	property: 'net',
+//	methods: [
+//		new web3._extend.Method({
+//			name: 'availablePorts',
+//			call: 'net_availablePorts',
+//			params: 2,
+//			inputFormatter: [web3._extend.utils.fromDecimal, null]
+//		}),
+//	],
+//	properties: [
+//		new web3._extend.Property({
+//			name: 'version',
+//			getter: 'net_version'
+//		}),
+//	]
+//});
+//`
 
 const PersonalJs = `
 web3._extend({

@@ -93,8 +93,8 @@ func newFirstBlock() common.Hash {
 	return newBlockHash
 }
 
-func verify_bubble_tx_hash(blockHash common.Hash, txHashList []common.Hash, txType BubTxType, t *testing.T) {
-	bubDB := NewBubbleDB()
+func verify_bubble_tx_hash(blockHash common.Hash, txHashList []common.Hash, txType TxType, t *testing.T) {
+	bubDB := NewDB()
 	if err := bubDB.StoreTxHashListToBub(blockHash, testBubbleId, txHashList, txType); err != nil {
 		fmt.Errorf("failed to StoreTxHashListToBub, %v", err)
 	}
@@ -114,7 +114,7 @@ func verify_bubble_tx_hash(blockHash common.Hash, txHashList []common.Hash, txTy
 func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	newBlockHash := newFirstBlock()
 	// MOCK
-	bubDB := NewBubbleDB()
+	bubDB := NewDB()
 
 	var opL1s []*Operator
 	opL1 := Operator{
@@ -135,28 +135,24 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 		Balance:     Op2Amount,
 	}
 	opL2s = append(opL2s, &opL2)
-	basics := BubBasics{
+	basics := BasicsInfo{
 		BubbleId:    testBubbleId,
-		Creator:     Op1Addr,
-		CreateBlock: 1,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
 		MicroNodes:  nil,
 	}
 	// store bubble basics
-	if err := bubDB.StoreBubBasics(newBlockHash, testBubbleId, &basics); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	if err := bubDB.StoreBasicsInfo(newBlockHash, testBubbleId, &basics); err != nil {
+		fmt.Errorf("failed to StoreBasicsInfo, %v", err)
 	}
 
-	basic, err := bubDB.GetBubBasics(newBlockHash, testBubbleId)
+	basic, err := bubDB.GetBasicsInfo(newBlockHash, testBubbleId)
 	if basic == nil || err != nil {
 		fmt.Errorf("failed to get bubble basic, %v", err)
 	}
 	assert.True(t, nil == err)
 	assert.True(t, nil != basic)
 	assert.Equal(t, basic.BubbleId, testBubbleId, "Query Bubble ID error")
-	assert.Equal(t, basic.Creator, Op1Addr, "Query Bubble Creator error")
-	assert.Equal(t, basic.CreateBlock, uint64(1), "Query Bubble CreateBlock error")
 
 	assert.Equal(t, basic.OperatorsL1[0].NodeId, Op1NodeId, "Query Bubble main-chain Operator NodeID error")
 	assert.Equal(t, basic.OperatorsL1[0].ElectronRPC, Op1ElectronRPC, "Query Bubble main-chain Operator ElectronRPC error")
@@ -172,26 +168,34 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 
 }
 
-func TestBubbleDB_StoreBubState_GetBubState(t *testing.T) {
+func TestBubbleDB_StoreStateInfo_GetStateInfo(t *testing.T) {
 	newBlockHash := newFirstBlock()
-	bubDB := NewBubbleDB()
+	bubDB := NewDB()
 	// store bubble state
-	if err := bubDB.StoreBubState(newBlockHash, testBubbleId, ActiveStatus); err != nil {
-		fmt.Errorf("failed to StoreBubBasics, %v", err)
+	status := &StateInfo{
+		BubbleId:        testBubbleId,
+		State:           ActiveState,
+		ContractCount:   0,
+		CreateBlock:     0,
+		PreReleaseBlock: 1,
+		ReleaseBlock:    2,
+	}
+	if err := bubDB.StoreStateInfo(newBlockHash, testBubbleId, status); err != nil {
+		fmt.Errorf("failed to StoreBasicsInfo, %v", err)
 	}
 
-	state, err := bubDB.GetBubState(newBlockHash, testBubbleId)
+	state, err := bubDB.GetStateInfo(newBlockHash, testBubbleId)
 	if state == nil || err != nil {
 		fmt.Errorf("failed to get bubble state, %v", err)
 	}
 	assert.True(t, nil == err)
 	assert.True(t, nil != state)
-	assert.Equal(t, *state, ActiveStatus, "Query Bubble State error")
+	assert.Equal(t, *state, ActiveState, "Query Bubble State error")
 }
 
 func TestBubbleDB_StoreAccListOfBub_GetAccListOfBub(t *testing.T) {
 	newBlockHash := newFirstBlock()
-	bubDB := NewBubbleDB()
+	bubDB := NewDB()
 	// store bubble account list
 	if err := bubDB.StoreAccListOfBub(newBlockHash, testBubbleId, TestAccList); err != nil {
 		fmt.Errorf("failed to StoreAccListOfBub, %v", err)
@@ -211,7 +215,7 @@ func TestBubbleDB_StoreAccListOfBub_GetAccListOfBub(t *testing.T) {
 
 func TestBubbleDB_StoreAccAssetToBub_GetAccAssetToBub(t *testing.T) {
 	newBlockHash := newFirstBlock()
-	bubDB := NewBubbleDB()
+	bubDB := NewDB()
 	// store account Asset to bubble
 	storeAccAsset := AccountAsset{
 		Account:      TestAddr,
@@ -254,7 +258,7 @@ func TestBubbleDB_StoreTxHashListToBub_GetTxHashListByBub(t *testing.T) {
 
 func TestBubbleDB_StoreL2HashToL1Hash_GetL1HashByL2Hash(t *testing.T) {
 	newBlockHash := newFirstBlock()
-	bubDB := NewBubbleDB()
+	bubDB := NewDB()
 
 	if err := bubDB.StoreL2HashToL1Hash(newBlockHash, testBubbleId, L1TxHash, L2TxHash); err != nil {
 		fmt.Errorf("failed to StoreL2HashToL1Hash, %v", err)

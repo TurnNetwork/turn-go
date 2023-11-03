@@ -138,6 +138,12 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
+
+		if err := sk.db.AddCommitteeCount(blockHash, 1); err != nil {
+			log.Error("Failed to CreateCandidate on StakingL2Plugin: add Committee count is failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+			return err
+		}
 	}
 
 	// add the account staking Reference Count
@@ -405,6 +411,14 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"nodeId", can.NodeId.String(), "err", err)
 		return err
+	}
+
+	if can.IsOperator == false {
+		if err := sk.db.SubCommitteeCount(blockHash, 1); err != nil {
+			log.Error("Failed to HandleUnCandidateItem: Subtraction unStakeRecord failed",
+				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			return err
+		}
 	}
 
 	return nil
