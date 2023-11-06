@@ -114,11 +114,14 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 | --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
 | --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
+| --op.prikey | The Bubble sub-chain operates the node address private key, which is used to interact with the main chain |
+| --proxy.rpc.port | rpc proxy port of Bubble sub-chain operator node on main chain operator node |
+| --allow_ports | An open port range is allowed for port allocation when micro node nat holes are punched |
 
 Run the following command to launch a Bubble node connecting to the Bubble's mainnet:
 
-```
-bubble --identity "bubble" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "bubble,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
+```bash
+bubble --identity "bubble" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "bubble,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey --proxy.rpc.port 20000 --allow_ports 30000-35000
 ```
 
 OK, it seems that the chain is running correctly, we can check it as follow:
