@@ -29,12 +29,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/core/state"
 	"github.com/bubblenet/bubble/core/vm/vrfstatistics"
-
-	"github.com/bubblenet/bubble/x/plugin"
-
-	"github.com/bubblenet/bubble/accounts/abi"
 
 	"strings"
 
