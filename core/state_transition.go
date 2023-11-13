@@ -380,7 +380,6 @@ func (st *StateTransition) refundGas() {
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}
-	st.state.AddBalance(st.msg.From(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
