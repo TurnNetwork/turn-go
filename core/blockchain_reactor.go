@@ -22,9 +22,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/bubblenet/bubble/x/bubble"
 	"math/big"
 	"sync"
+
+	"github.com/bubblenet/bubble/x/bubble"
 
 	"github.com/bubblenet/bubble/x/token"
 

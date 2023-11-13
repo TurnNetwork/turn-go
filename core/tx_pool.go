@@ -28,8 +28,10 @@ import (
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/prque"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/state"
 	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
 	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/metrics"
@@ -712,9 +714,32 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
-		return ErrInsufficientFunds
+	if vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
+		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(tx.Data())
+		if err != nil {
+			return ErrInsufficientFunds
+		}
+		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), pool.currentState, nil, vm.Config{})
+		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return ErrInsufficientFunds
+		}
+		if lineOfCredit.Cmp(tx.Cost()) < 0 {
+			return ErrInsufficientFunds
+		}
+		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return ErrInsufficientFunds
+		}
+		if pool.currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
+			return ErrInsufficientFunds
+		}
+	} else {
+		if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+			return ErrInsufficientFunds
+		}
 	}
+
 	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.currentState)
 	if err != nil {
 		return err

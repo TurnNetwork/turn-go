@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/vm"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
@@ -189,16 +190,57 @@ func (st *StateTransition) to() common.Address {
 
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
-		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
+	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
+		if err != nil {
+			return err
+		}
+
+		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
+		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return err
+		}
+		if lineOfCredit.Cmp(mgval) < 0 {
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, workAddress, lineOfCredit, mgval)
+		}
+		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return err
+		}
+		if st.state.GetBalance(operator).Cmp(mgval) < 0 {
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, operator, st.state.GetBalance(operator), mgval)
+		}
+	} else {
+		if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
+		}
 	}
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
 		return err
 	}
 	st.gas += st.msg.Gas()
-
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
+
+	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
+		if err != nil {
+			return err
+		}
+
+		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
+		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return err
+		}
+
+		st.state.SubBalance(operator, mgval)
+		vm.SetLineOfCredit(vmenv, workAddress, gameContractAddress, mgval)
+
+	} else {
+		st.state.SubBalance(st.msg.From(), mgval)
+	}
+
 	return nil
 }
 
@@ -314,7 +356,29 @@ func (st *StateTransition) refundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
+	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
+		if err != nil {
+			return
+		}
+
+		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
+		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return
+		}
+
+		st.state.AddBalance(operator, remaining)
+
+		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			return
+		}
+
+		vm.SetLineOfCredit(vmenv, workAddress, gameContractAddress, lineOfCredit.And(lineOfCredit, remaining))
+	} else {
+		st.state.AddBalance(st.msg.From(), remaining)
+	}
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
