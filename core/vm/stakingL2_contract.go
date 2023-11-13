@@ -87,8 +87,7 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 }
 
 func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.Int, benefitAddress common.Address, name, detail,
-	electronURI, rpcURI, p2pURI string, programVersion uint32, programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex,
-	blsProof bls.SchnorrProofHex, isOperator bool) ([]byte, error) {
+	electronURI, rpcURI, p2pURI string, programVersion uint32, blsPubKey bls.PublicKeyHex, isOperator bool) ([]byte, error) {
 
 	txHash := stk.Evm.StateDB.TxHash()
 	txIndex := stk.Evm.StateDB.TxIdx()
@@ -96,10 +95,10 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	blockHash := stk.Evm.Context.BlockHash
 	from := stk.Contract.CallerAddress
 	state := stk.Evm.StateDB
+
 	log.Debug("Call createStaking of StakingL2Contract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(),
 		"blockHash", blockHash.Hex(), "benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "name", name, "detail", detail,
-		"amount", amount, "programVersion", programVersion, "programVersionSign", programVersionSign.Hex(), "from", from, "blsPubKey", blsPubKey,
-		"blsProof", blsProof)
+		"amount", amount, "programVersion", programVersion, "from", from, "blsPubKey", blsPubKey)
 	if !stk.Contract.UseGas(params.CreateStakeL2Gas) {
 		return nil, ErrOutOfGas
 	}
