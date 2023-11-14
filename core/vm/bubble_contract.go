@@ -126,7 +126,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 			if err != nil {
 				log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			} else {
-				return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bub.BasicsInfo.BubbleId), nil
+				return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bub.BasicsInfo.BubbleId), nil
 			}
 		}
 	}
@@ -141,7 +141,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 		}
 	}
 
-	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bubbleId), nil
+	return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bubbleId), nil
 }
 
 // getBubbleInfo return the bubble information by bubble ID
