@@ -59,7 +59,9 @@ const (
 type TxType uint
 
 const (
-	StakingToken  TxType = iota // StakingToken transaction type
+	CreateBubble  TxType = iota // createBubble transaction type
+	ReleaseBubble               // releaseBubble transaction type
+	StakingToken                // StakingToken transaction type
 	WithdrewToken               // WithdrewToken transaction type
 	SettleBubble                // SettleBubble transaction type
 )
@@ -83,7 +85,7 @@ type StateInfo struct {
 	CreateBlock     uint64
 	PreReleaseBlock uint64
 	ReleaseBlock    uint64
-	ContractCount   int
+	ContractCount   uint
 }
 
 type TransactionInfo struct {
@@ -138,6 +140,15 @@ type MintTokenTask struct {
 	RPC      string         // The bubble sub-chain operates the node rpc
 	OpAddr   common.Address // Bubble The bubble main-chain operates address
 	AccAsset *AccountAsset
+}
+
+type CreateBubbleTask struct {
+	TxHash   common.Hash // The transaction hash of the createBubbleTask
+	BubbleID *big.Int
+}
+
+type ReleaseBubbleTask struct {
+	BubbleID *big.Int
 }
 
 type RemoteDeployTask struct {
