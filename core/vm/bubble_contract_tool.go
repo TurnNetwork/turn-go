@@ -20,6 +20,7 @@ import (
 	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/plugin"
 	"github.com/bubblenet/bubble/x/xcom"
@@ -78,6 +79,38 @@ func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason
 	}
 	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res...)
 	return []byte(receipt)
+}
+
+func txResultExportHandler(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res ...interface{}) []byte {
+	event := strconv.Itoa(fncode)
+	receipt := strconv.Itoa(errCode)
+	blockNumber := evm.Context.BlockNumber.Uint64()
+	if errCode != 0 {
+		txHash := evm.StateDB.TxHash()
+		log.Error("Failed to "+title, "txHash", txHash.Hex(),
+			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
+	}
+
+	var retData [][]byte
+	if len(res) != 0 && res[0] != nil {
+		for _, item := range res {
+			data, err := rlp.EncodeToBytes(item)
+			if err != nil {
+				log.Error("Cannot RlpEncode the return datas", "datas", res, "err", err, "event", event)
+				panic("Cannot RlpEncode the return data")
+			}
+			retData = append(retData, data)
+		}
+	}
+	encData, err := rlp.EncodeToBytes(retData)
+	if err != nil {
+		log.Error("Cannot RlpEncode the return datas", "datas", res, "err", err, "event", event)
+		panic("Cannot RlpEncode the return data")
+	}
+
+	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res...)
+
+	return encData
 }
 
 func callResultHandler(evm *EVM, title string, resultValue interface{}, err *common.BizError) []byte {
