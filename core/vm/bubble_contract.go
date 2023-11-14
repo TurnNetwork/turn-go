@@ -122,7 +122,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 			if txHash == common.ZeroHash {
 				return nil, nil
 			}
-			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, from, currentNonce, parentNonces, size)
+			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, txHash, from, currentNonce, parentNonces, size)
 			if err != nil {
 				log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			} else {
