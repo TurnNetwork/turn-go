@@ -117,7 +117,6 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 		// create bubble first
 		if err := bc.Plugin.CheckBubbleElements(blockHash, size); err != nil {
 			log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
-
 		} else {
 			if txHash == common.ZeroHash {
 				return nil, nil
@@ -131,6 +130,9 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 		}
 	}
 
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
 	bubbleId, err := bc.Plugin.ElectBubble(blockHash, currentNonce, parentNonces, size)
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
