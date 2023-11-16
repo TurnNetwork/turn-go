@@ -36,6 +36,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[16]byte": BytesTo16Bytes,
 	"[32]byte": BytesTo32Bytes,
 	"[64]byte": BytesTo64Bytes,
+	"[]uint8":  BytesToBytes,
 
 	"bool":    BytesToBool,
 	"uint8":   BytesToUint8,
@@ -122,6 +123,14 @@ func BytesTo64Bytes(curByte []byte) [64]byte {
 	var arr [64]byte
 	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
 		panic("BytesTo64Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToBytes(curByte []byte) []byte {
+	var arr []byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesToBytes:" + err.Error())
 	}
 	return arr
 }

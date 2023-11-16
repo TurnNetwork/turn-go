@@ -161,6 +161,15 @@ type RemoteDeployTask struct {
 	OpAddr    common.Address // Bubble The bubble main-chain operates address
 }
 
+type RemoteRemoveTask struct {
+	TxHash    common.Hash // The transaction hash of the remoteDeployTask
+	BlockHash common.Hash
+	BubbleID  *big.Int
+	Address   common.Address
+	RPC       string         // Bubble The bubble sub-chain operates the node rpc
+	OpAddr    common.Address // Bubble The bubble main-chain operates address
+}
+
 type RemoteDestroyTask struct {
 	BubbleID *big.Int
 	//TxHash   common.Hash    // The transaction hash of the RemoteDestroyTask
