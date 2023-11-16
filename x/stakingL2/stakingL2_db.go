@@ -278,7 +278,10 @@ func (db *StakingDB) DelCommitteeStore(blockHash common.Hash, addr common.NodeAd
 
 func (db *StakingDB) GetCommitteeCount(blockHash common.Hash) (uint32, error) {
 	count, err := db.db.Get(blockHash, CommitteeCountKey)
-	if nil != err {
+	if err == snapshotdb.ErrNotFound {
+		return 0, nil
+	}
+	if err != nil {
 		return 0, err
 	}
 
@@ -315,6 +318,9 @@ func (db *StakingDB) SubCommitteeCount(blockHash common.Hash, number uint32) err
 
 func (db *StakingDB) GetUsedCommitteeCount(blockHash common.Hash) (uint32, error) {
 	count, err := db.db.Get(blockHash, UsedCommitteeCountKey)
+	if err == snapshotdb.ErrNotFound {
+		return 0, nil
+	}
 	if nil != err {
 		return 0, err
 	}

@@ -27,17 +27,17 @@ import (
 )
 
 var (
-	CanBaseKeyPrefix     = []byte("CanBaseL2")
-	CanMutableKeyPrefix  = []byte("CanMutL2")
-	OperatorKeyPrefix    = []byte("OperatorL2")
-	CommitteeKeyPrefix   = []byte("CommitteeL2")
-	CanPowerKeyPrefix    = []byte("PowerL2")
-	UnStakeCountKey      = []byte("UnStakeCountL2")
-	UnStakeRecordKey     = []byte("UnStakeRecordL2")
+	CanBaseKeyPrefix     = []byte("L2CanBase")
+	CanMutableKeyPrefix  = []byte("L2CanMut")
+	OperatorKeyPrefix    = []byte("L2Operator")
+	CommitteeKeyPrefix   = []byte("L2Committee")
+	CanPowerKeyPrefix    = []byte("L2Power")
+	UnStakeCountKey      = []byte("L2UnStakeCount")
+	UnStakeRecordKey     = []byte("L2UnStakeRecord")
 	AccountStakeRcPrefix = []byte("AccStakeRcL2")
 
-	CommitteeCountKey     = []byte("CommitteeL2Count")
-	UsedCommitteeCountKey = []byte("UsedCommitteeL2Count")
+	CommitteeCountKey     = []byte("L2AllCommitteeCount")
+	UsedCommitteeCountKey = []byte("L2UsedCommitteeCount")
 
 	b104Len = len(math.MaxBig104.Bytes())
 )

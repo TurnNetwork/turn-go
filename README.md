@@ -114,11 +114,15 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 | --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
 | --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
+| --op.prikey | Specify the operator node wallet private key, which is used to interact with Bubble |
+| --frps | Start the relay service frps service |
+| --allow_ports | Range of allowed ports for Bubble's rpc proxy using frps |
+| --stun_server | Stun service address for Bubble micro node p2p communication (nat hole) |
 
 Run the following command to launch a Bubble node connecting to the Bubble's mainnet:
 
-```
-bubble --identity "bubble" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "bubble,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
+```bash
+bubble --identity "bubble" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "bubble,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey --frps --allow_ports 50000-60000 --stun_server stun-test.bubbonet.com:3478
 ```
 
 OK, it seems that the chain is running correctly, we can check it as follow:
