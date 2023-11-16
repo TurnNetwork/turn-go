@@ -970,6 +970,17 @@ func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) err
 	return nil
 }
 
+// PostRemoteRemoveEvent Send the remote remove event and wait for the task to be processed
+func (bp *BubblePlugin) PostRemoteRemoveEvent(task *bubble.RemoteRemoveTask) error {
+	log.Debug("PostRemoteRemoveEvent", *task)
+	if err := bp.eventMux.Post(*task); nil != err {
+		log.Error("post RemoteRemoveTask failed", "err", err)
+		return err
+	}
+
+	return nil
+}
+
 // PostRemoteCallEvent Send the remote call contract function event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteCallEvent(task *bubble.RemoteCallTask) error {
 	log.Debug("PostRemoteCallEvent", *task)
