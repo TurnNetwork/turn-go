@@ -411,6 +411,10 @@ func (bc *BubbleContract) remoteCallExecutor(bubbleID *big.Int, remoteTxHash com
 		}
 	}
 
+	if err = bc.Plugin.StoreL2HashToL1Hash(blockHash, bubbleID, txHash, remoteTxHash); nil != err {
+		return nil, bubble.ErrStoreL2HashToL1Hash
+	}
+
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCallExecutor, int(common.NoErr.Code), bubbleID, caller, remoteTxHash, contract, data), nil
 
 }
