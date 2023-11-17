@@ -301,7 +301,7 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Addres
 		TxHash:    txHash,
 		BlockHash: blockHash,
 		BubbleID:  bubbleID,
-		Address:   contract,
+		Contract:  contract,
 		RPC:       bub.OperatorsL2[0].RPC,
 		OpAddr:    bub.OperatorsL1[0].OpAddr,
 	}
