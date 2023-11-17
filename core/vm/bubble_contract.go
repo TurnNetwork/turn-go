@@ -367,7 +367,7 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 	return txResultHandlerWithRes(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, int(common.NoErr.Code), origin, from, bubbleID, contract, data), nil
 }
 
-func (bc *BubbleContract) remoteCallExecutor(caller common.Address, remoteTxHash common.Hash, bubbleID *big.Int, contract common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteCallExecutor(bubbleID *big.Int, remoteTxHash common.Hash, caller common.Address, contract common.Address, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
