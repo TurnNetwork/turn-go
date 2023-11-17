@@ -54,6 +54,7 @@ type BlockChainReactor struct {
 	releaseBubbleTaskSub *event.TypeMuxSubscription // create bubble task subscription
 	remoteDeploySub      *event.TypeMuxSubscription // remote deploy contract task subscription
 	remoteCallSub        *event.TypeMuxSubscription //  remote call contract function task subscription
+	remoteRemoveSub      *event.TypeMuxSubscription //  remote remove contract function task subscription
 	remoteDestroySub     *event.TypeMuxSubscription // release bubble task subscription
 	basePluginMap        map[int]plugin.BasePlugin  // xxPlugin container
 	beginRule            []int                      // Order rules for xxPlugins called in BeginBlocker
@@ -93,6 +94,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		bcr.releaseBubbleTaskSub = bcr.eventMux.BufferSubscribe(100, bubble.ReleaseBubbleTask{})
 		bcr.remoteDeploySub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteDeployTask{})
 		bcr.remoteCallSub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteCallTask{})
+		bcr.remoteRemoveSub = bcr.eventMux.BufferSubscribe(1000, bubble.RemoteRemoveTask{})
 		bcr.remoteDestroySub = bcr.eventMux.BufferSubscribe(100, bubble.RemoteDestroyTask{})
 		// start the loop
 		go bcr.loop()
@@ -233,6 +235,23 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and RemoteCall task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
+				"txHash", task.TxHash, "remoteTxHash", common.BytesToHash(hash).Hex())
+		case msg := <-bcr.remoteRemoveSub.Chan():
+			if msg == nil {
+				continue
+			}
+			task, ok := msg.Data.(bubble.RemoteRemoveTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to receive remoteRemove task", "msg", msg.Data)
+				continue
+			}
+			// handle task
+			hash, err := plugin.BubbleInstance().HandleRemoteRemoveTask(&task)
+			if err != nil {
+				log.Error("blockchain_reactor failed to process RemoteRemove task")
+				continue
+			}
+			log.Info("The processing and RemoteRemove task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
 				"txHash", task.TxHash, "remoteTxHash", common.BytesToHash(hash).Hex())
 		case msg := <-bcr.remoteDestroySub.Chan():
 			if msg == nil {

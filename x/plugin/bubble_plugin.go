@@ -106,7 +106,7 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 	if xutil.IsEndOfEpoch(preBlock) {
 		for _, status := range statuses {
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
-				if err := bp.DestroyBubble(blockHash, status.BubbleId); err != nil {
+				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
 					return err
 				}
 			}
@@ -634,16 +634,17 @@ func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonc
 	}
 }
 
-func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, bubbleID *big.Int) error {
+func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, blockNumber uint64, bubbleID *big.Int) error {
 	bub, err := bp.GetBasicsInfo(blockHash, bubbleID)
 	if err != nil {
 		return err
 	}
 
 	task := &bubble.RemoteDestroyTask{
-		BubbleID: bubbleID,
-		RPC:      bub.OperatorsL2[0].RPC,
-		OpAddr:   bub.OperatorsL1[0].OpAddr,
+		BlockNumber: blockNumber,
+		BubbleID:    bubbleID,
+		RPC:         bub.OperatorsL2[0].RPC,
+		OpAddr:      bub.OperatorsL1[0].OpAddr,
 	}
 
 	for _, operators := range bub.OperatorsL1 {
@@ -1092,28 +1093,20 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	return hash.Bytes(), nil
 }
 
-func encodeRemoteDeploy(task *bubble.RemoteDeployTask) []byte {
-	s := make([][]byte, 0)
+func encodeRemoteDeploy(task *bubble.RemoteDeployTask, code []byte) []byte {
+	queue := make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(6000))
-	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	fnType, _ := rlp.EncodeToBytes(uint16(8000))
 	address, _ := rlp.EncodeToBytes(task.Address)
-
-	runtimeCode, err := BubbleInstance().db.GetByteCode(task.BlockHash, task.Address)
-	if err != nil {
-		return nil
-	}
-	bytecode, _ := rlp.EncodeToBytes(runtimeCode)
-
+	byteCode, _ := rlp.EncodeToBytes(code)
 	data, _ := rlp.EncodeToBytes(task.Data)
-	s = append(s, fnType)
-	s = append(s, txHash)
-	s = append(s, address)
-	s = append(s, bytecode)
-	s = append(s, data)
+	queue = append(queue, fnType)
+	queue = append(queue, address)
+	queue = append(queue, byteCode)
+	queue = append(queue, data)
 
 	buf := new(bytes.Buffer)
-	err = rlp.Encode(buf, s)
+	err := rlp.Encode(buf, queue)
 	if err != nil {
 		return nil
 	}
@@ -1121,21 +1114,37 @@ func encodeRemoteDeploy(task *bubble.RemoteDeployTask) []byte {
 }
 
 func encodeRemoteCall(task *bubble.RemoteCallTask) []byte {
-	s := make([][]byte, 0)
+	queue := make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(6000))
+	fnType, _ := rlp.EncodeToBytes(uint16(8004))
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
 	caller, _ := rlp.EncodeToBytes(task.Caller)
 	Contract, _ := rlp.EncodeToBytes(task.Contract)
-	data, _ := rlp.EncodeToBytes(task.Data)
-	s = append(s, fnType)
-	s = append(s, txHash)
-	s = append(s, caller)
-	s = append(s, Contract)
-	s = append(s, data)
-
+	Data, _ := rlp.EncodeToBytes(task.Data)
+	queue = append(queue, fnType)
+	queue = append(queue, txHash)
+	queue = append(queue, caller)
+	queue = append(queue, Contract)
+	queue = append(queue, Data)
 	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, s)
+	err := rlp.Encode(buf, queue)
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func encodeRemoteRemove(task *bubble.RemoteRemoveTask) []byte {
+	queue := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(8002))
+	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	Contract, _ := rlp.EncodeToBytes(task.Contract)
+	queue = append(queue, fnType)
+	queue = append(queue, txHash)
+	queue = append(queue, Contract)
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, queue)
 	if err != nil {
 		return nil
 	}
@@ -1145,8 +1154,10 @@ func encodeRemoteCall(task *bubble.RemoteCallTask) []byte {
 func encodeRemoteDestroy(task *bubble.RemoteDestroyTask) []byte {
 	queue := make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(6000))
+	fnType, _ := rlp.EncodeToBytes(uint16(8001))
+	blockNumber, _ := rlp.EncodeToBytes(task.BlockNumber)
 	queue = append(queue, fnType)
+	queue = append(queue, blockNumber)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, queue)
@@ -1203,7 +1214,11 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	}
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
-	data := encodeRemoteDeploy(task)
+	byteCode, err := BubbleInstance().GetByteCode(task.BlockHash, task.Address)
+	if err != nil {
+		return nil, err
+	}
+	data := encodeRemoteDeploy(task, byteCode)
 	if nil == data {
 		return nil, errors.New("encode remoteDeploy transaction failed")
 	}
@@ -1234,7 +1249,7 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	return hash.Bytes(), nil
 }
 
-// HandleRemoteCallTask Handle RemoteDeploy task
+// HandleRemoteCallTask Handle RemoteCall task
 func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byte, error) {
 	if nil == task {
 		return nil, errors.New("RemoteCallTask is empty")
@@ -1282,6 +1297,84 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
 	data := encodeRemoteCall(task)
+	if nil == data {
+		return nil, errors.New("encode remoteCall transaction failed")
+	}
+	// Creating transaction objects
+	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
+
+	// The sender's private key is used to sign the transaction
+	chainID, err := client.ChainID(context.Background())
+	if err != nil || chainID != task.BubbleID {
+		return nil, errors.New("chainID is wrong")
+	}
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Error("Signing remoteCall transaction failed", "err", err)
+		return nil, err
+	}
+
+	// Sending transactions
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Error("Failed to send remoteCall transaction", "err", err)
+		return nil, err
+	}
+
+	hash := signedTx.Hash()
+	log.Debug("remoteCall tx hash", hash.Hex())
+	return hash.Bytes(), nil
+}
+
+// HandleRemoteRemoveTask Handle RemoteRemove task
+func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([]byte, error) {
+	if nil == task {
+		return nil, errors.New("RemoteRemoveTask is empty")
+	}
+	client, err := ethclient.Dial(task.RPC)
+	if err != nil || client == nil {
+		log.Error("failed connect operator node", "err", err)
+		return nil, errors.New("failed connect operator node")
+	}
+	// Construct transaction parameters
+	priKey := bp.opPriKey
+	// Call the sub-chain system contract RemoteRemove interface
+	toAddr := common.HexToAddress(SubChainSysAddr)
+	privateKey, err := crypto.HexToECDSA(priKey)
+	if err != nil {
+		log.Error("Wrong private key", "err", err)
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Error("the private key to the public key failed")
+		return nil, errors.New("the private key to the public key failed")
+	}
+
+	fromAddr := crypto.PubkeyToAddress(*publicKeyECDSA)
+	// The staking address of the operation node is taken as the operation node address
+	// It is determined whether the main chain operation node signs the transaction
+	if fromAddr != task.OpAddr {
+		log.Error("The transaction sender is not the main-chain operation address")
+		return nil, errors.New("the transaction sender is not the main-chain operation address")
+	}
+	// get account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
+	if err != nil {
+		log.Error("Failed to obtain the account nonce", "err", err)
+		return nil, err
+	}
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Error("Failed to get gasPrice", "err", err)
+		return nil, err
+	}
+	value := big.NewInt(0)
+	gasLimit := uint64(300000)
+	data := encodeRemoteRemove(task)
 	if nil == data {
 		return nil, errors.New("encode remoteCall transaction failed")
 	}
