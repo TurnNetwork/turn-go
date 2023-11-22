@@ -90,9 +90,10 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 			if curBlock < status.ReleaseBlock {
 				if status.State < bubble.PreReleaseState {
 					status.State = bubble.PreReleaseState
-					if err := bp.db.StoreStateInfo(header.Hash(), status.BubbleId, status); err != nil {
-						log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
-							"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+					if err := bp.db.StoreStateInfo(blockHash, status.BubbleId, status); err != nil {
+						log.Error("Failed to store stateInfo on BubblePlugin EndBlock",
+							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+						return err
 					}
 				}
 				if status.ContractCount > 0 {
@@ -105,8 +106,8 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 			// prerelease and not contract OR current block is release block
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
-				log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
-					"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+				log.Error("Failed to release bubble on BubblePlugin EndBlock",
+					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
 				return err
 			}
 		}
@@ -117,6 +118,8 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 		for _, status := range statuses {
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
 				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
+					log.Error("Failed to destroy bubble on BubblePlugin EndBlock",
+						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
 					return err
 				}
 			}
