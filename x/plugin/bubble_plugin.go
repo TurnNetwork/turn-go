@@ -74,6 +74,8 @@ func (bp *BubblePlugin) BeginBlock(blockHash common.Hash, header *types.Header, 
 func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
 	curBlock := header.Number.Uint64()
+	preBlock := curBlock + 20
+
 	statuses, err := bp.GetStateInfoes(blockHash)
 	if err != nil {
 		return err
@@ -85,14 +87,25 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 			if curBlock < status.PreReleaseBlock {
 				continue
 			}
-			// bubble is PreRelease
+			// preRelease bubble
 			if curBlock < status.ReleaseBlock {
-				status.State = bubble.PreReleaseState
+				if status.State < bubble.PreReleaseState {
+					status.State = bubble.PreReleaseState
+					if err := bp.db.StoreStateInfo(header.Hash(), status.BubbleId, status); err != nil {
+						log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
+							"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+					}
+				}
 				if status.ContractCount > 0 {
 					continue
 				}
 			}
 
+			if status.State == bubble.ReleasedState {
+				continue
+			}
+
+			// prerelease and not contract OR current block is release block
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
 				log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
@@ -102,7 +115,7 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 		}
 	}
 
-	preBlock := curBlock + 20
+	// destroy and clean bubble
 	if xutil.IsEndOfEpoch(preBlock) {
 		for _, status := range statuses {
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
@@ -665,6 +678,19 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
+	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		log.Error("Failed to GetStateInfo on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+		return err
+	}
+	if status.State <= bubble.ReleasedState {
+		status.State = bubble.ReleasedState
+	} else {
+		log.Error("bubble is already released")
+		return errors.New("bubble is already released")
+	}
+
 	var committeeCount uint32
 	// release the committeeL2 nodes to the DB
 	for _, microNode := range bub.MicroNodes {
@@ -706,23 +732,10 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 				return err
 			}
 		}
-
 	}
 
-	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
-	if err != nil {
-		log.Error("Failed to GetStateInfo on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
-		return err
-	}
-	if status.State <= bubble.ReleasedState {
-		status.State = bubble.ReleasedState
-	} else {
-		log.Error("bubble is already released")
-		return errors.New("bubble is already released")
-	}
-	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
-		log.Error("Failed to StoreBubState on ReleaseBubble",
+	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
+		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
@@ -733,8 +746,8 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
-	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
-		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
+	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
+		log.Error("Failed to StoreBubState on ReleaseBubble",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
