@@ -36,14 +36,15 @@ import (
 
 const (
 	SubChainSysAddr = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
+	bubbleLife      = 172800
 )
 
 var (
 	bubblePluginOnce sync.Once
 	bubblePlugin     *BubblePlugin
+	preReleaseLife   uint64
+	releaseLife      uint64
 )
-
-const bubbleLife = 172800
 
 type BubblePlugin struct {
 	stkPlugin  *StakingPlugin
@@ -58,6 +59,8 @@ type BubblePlugin struct {
 func BubbleInstance() *BubblePlugin {
 	bubblePluginOnce.Do(func() {
 		log.Info("Init bubble plugin ...")
+		preReleaseLife = uint64(gomath.Ceil(float64(bubbleLife)/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
+		releaseLife = uint64(gomath.Ceil(float64(bubbleLife)*0.5/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
 		bubblePlugin = &BubblePlugin{
 			stkPlugin:  StakingInstance(),
 			stk2Plugin: StakingL2Instance(),
@@ -222,9 +225,10 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 	if err != nil || nil == bubBasic {
 		return nil, err
 	}
-	// The rpc of the bubble-chain operator node is obtained from the verifier
+
+	sk := StakingL2Instance()
+	// update operators rpc url
 	if "" == bubBasic.OperatorsL2[0].RPC {
-		sk := StakingL2Instance()
 		nodeId := bubBasic.OperatorsL2[0].NodeId
 		canAddr, err := xutil.NodeId2Addr(nodeId)
 		if nil != err {
@@ -237,6 +241,21 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 		// When the rpc url in the micro-node information is not empty, it will be updated
 		if "" != base.RPCURI {
 			bubBasic.OperatorsL2[0].RPC = base.RPCURI
+		}
+	}
+	// update nodes rpc url
+	for _, node := range bubBasic.MicroNodes {
+		addr, err := xutil.NodeId2Addr(node.NodeId)
+		if nil != err {
+			return nil, err
+		}
+		base, err := sk.db.GetCanBaseStore(blockHash, addr)
+		if err != nil {
+			return nil, err
+		}
+		// When the rpc url in the micro-node information is not empty, it will be updated
+		if base.RPCURI != "" {
+			node.RPCURI = base.RPCURI
 		}
 	}
 
@@ -347,14 +366,13 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		MicroNodes:  microNodes,
 	}
 
-	preReleaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife)/float64(xutil.EpochSize()))) * xutil.EpochSize()
-	releaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife*1.5)/float64(xutil.EpochSize()))) * xutil.EpochSize()
+	baseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64())/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
 	status := &bubble.StateInfo{
 		BubbleId:        bubbleID,
 		State:           bubble.ActiveState,
 		CreateBlock:     blockNumber.Uint64(),
-		PreReleaseBlock: preReleaseBlock,
-		ReleaseBlock:    releaseBlock,
+		PreReleaseBlock: baseBlock + preReleaseLife,
+		ReleaseBlock:    baseBlock + preReleaseLife + releaseLife,
 		ContractCount:   0,
 	}
 
