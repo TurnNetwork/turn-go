@@ -72,7 +72,6 @@ func (bp *BubblePlugin) BeginBlock(blockHash common.Hash, header *types.Header, 
 }
 
 func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-
 	curBlock := header.Number.Uint64()
 	preBlock := curBlock + 20
 
@@ -100,11 +99,9 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 					continue
 				}
 			}
-
 			if status.State == bubble.ReleasedState {
 				continue
 			}
-
 			// prerelease and not contract OR current block is release block
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
@@ -231,16 +228,12 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 			return nil, err
 		}
 		base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
-		if nil != err {
+		if err != nil {
 			return nil, err
 		}
 		// When the rpc url in the micro-node information is not empty, it will be updated
 		if "" != base.RPCURI {
 			bubBasic.OperatorsL2[0].RPC = base.RPCURI
-			// The rpc url information is synchronized into bubble basic
-			if err := bp.db.StoreBasicsInfo(blockHash, bubbleID, bubBasic); nil != err {
-				return nil, err
-			}
 		}
 	}
 
