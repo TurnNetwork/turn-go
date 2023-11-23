@@ -330,9 +330,10 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	var OperatorsL2 []*bubble.Operator
 	for _, can := range candidateL2 {
 		operator := &bubble.Operator{
-			NodeId: can.NodeId,
-			RPC:    can.RPCURI,
-			OpAddr: can.StakingAddress,
+			NodeId:      can.NodeId,
+			ElectronRPC: can.ElectronURI,
+			RPC:         can.RPCURI,
+			OpAddr:      can.StakingAddress,
 		}
 		OperatorsL2 = append(OperatorsL2, operator)
 	}
