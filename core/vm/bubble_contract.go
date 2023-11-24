@@ -19,6 +19,7 @@ package vm
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/bubblenet/bubble/x/token"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -74,8 +75,9 @@ func (bc *BubbleContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 }
 
 // remoteDeployExecutor receive the remoteDeploy transaction from main chain and deploy the contract to the bubble chain
-func (bc *BubbleContract) remoteDeployExecutor(address common.Address, bytecode []byte, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, address common.Address, bytecode []byte, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
+	blockHash := bc.Evm.Context.BlockHash
 	blockNumber := bc.Evm.Context.BlockNumber
 	txHash := bc.Evm.StateDB.TxHash()
 	gas := bc.Contract.Gas
@@ -114,11 +116,15 @@ func (bc *BubbleContract) remoteDeployExecutor(address common.Address, bytecode 
 			bubble.ErrContractReturns.Wrap(err.Error()))
 	}
 
+	if err := bc.tokenPlugin.StoreL1HashToL2Hash(blockHash, remoteTxHash, txHash); err != nil {
+		return nil, token.ErrStoreL1HashToL2Hash
+	}
+
 	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteDeployExecutor, common.NoErr)
 }
 
 // remoteRemoveExecutor receive the remoteRemove transaction from main chain and remove the contract from the bubble chain
-func (bc *BubbleContract) remoteRemoveExecutor(address *common.Address) ([]byte, error) {
+func (bc *BubbleContract) remoteRemoveExecutor(remoteTxHash common.Hash, address *common.Address) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	blockHash := bc.Evm.Context.BlockHash
 	blockNumber := bc.Evm.Context.BlockNumber
@@ -154,18 +160,23 @@ func (bc *BubbleContract) remoteRemoveExecutor(address *common.Address) ([]byte,
 		return nil, err
 	}
 
+	if err := bc.tokenPlugin.StoreL1HashToL2Hash(blockHash, remoteTxHash, txHash); err != nil {
+		return nil, token.ErrStoreL1HashToL2Hash
+	}
+
 	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteRemoveExecutor, common.NoErr)
 }
 
 // remoteDestroyExecutor receive the remoteDestroy transaction from main chain and destroy all contract from the bubble chain
 // this function is only executed before release bubble
-func (bc *BubbleContract) remoteDestroyExecutor() ([]byte, error) {
+func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
 	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 
-	log.Info("Call remoteDestroyExecutor of bubbleContract", "chainID", bc.tokenPlugin.ChainID, "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(), "from", from)
+	log.Info("Call remoteDestroyExecutor of bubbleContract", "chainID", bc.tokenPlugin.ChainID, "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(),
+		"from", from, "remoteBlockNumber", remoteBlockNumber)
 
 	if !bc.Contract.UseGas(params.RemoteDestroyExecutor) {
 		return nil, ErrOutOfGas
@@ -220,7 +231,6 @@ func (bc *BubbleContract) remoteDestroyExecutor() ([]byte, error) {
 	}
 
 	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteDestroyExecutor, common.NoErr)
-
 }
 
 // remoteCall call the contract function on the main chain remotely
@@ -260,8 +270,9 @@ func (bc *BubbleContract) remoteCall(contract common.Address, data []byte) ([]by
 }
 
 // remoteCallExecutor receive the remoteCall transaction from main chain and execute the function from the contract
-func (bc *BubbleContract) remoteCallExecutor(caller common.Address, remoteTxHash common.Hash, contract common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller common.Address, contract common.Address, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
+	blockHash := bc.Evm.Context.BlockHash
 	blockNumber := bc.Evm.Context.BlockNumber
 	txHash := bc.Evm.StateDB.TxHash()
 
@@ -301,6 +312,10 @@ func (bc *BubbleContract) remoteCallExecutor(caller common.Address, remoteTxHash
 		log.Error("call contract error", "contract", contract, "error", err)
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract returned an error", TxRemoteCallExecutor,
 			bubble.ErrContractReturns.Wrap(err.Error()))
+	}
+
+	if err := bc.tokenPlugin.StoreL1HashToL2Hash(blockHash, remoteTxHash, txHash); err != nil {
+		return nil, token.ErrStoreL1HashToL2Hash
 	}
 
 	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxRemoteCall, common.NoErr)
