@@ -23,6 +23,7 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/rlp"
+	"github.com/bubblenet/bubble/x/plugin"
 )
 
 func TestIsTxTxBehalfSignature(t *testing.T) {
@@ -48,4 +49,39 @@ func TestIsTxTxBehalfSignature(t *testing.T) {
 	} else {
 		t.Log("test IsTxTxBehalfSignature sucess")
 	}
+}
+
+func TestBindTempPrivateKey(t *testing.T) {
+	chain := newMockChain()
+
+	tempPrivateKey := &TempPrivateKeyContract{
+		Plugin:   plugin.TempPrivateKeyContractInstance(),
+		Contract: newContract(common.Big0, sender),
+		Evm:      newEvm(blockNumber, blockHash, chain),
+	}
+
+	chain.StateDB.Prepare(txHashArr[1], blockHash, 2)
+
+	gameContractAddress := common.HexToAddress("0x195667cDeFCad94C521BdfF0Bf85079761E0f8F3")
+	tempAddress := common.HexToAddress("0x195667cDeFCad94C521BdfF0Bf85079761E0f8F3")
+	period := []byte("Hello World")
+	params := make([][]byte, 0)
+	fnType, _ := rlp.EncodeToBytes(uint16(7200))
+	gameContractAddressBytes, _ := rlp.EncodeToBytes(gameContractAddress)
+	tempAddressBytes, _ := rlp.EncodeToBytes(tempAddress)
+	periodBytes, _ := rlp.EncodeToBytes(period)
+	params = append(params, fnType)
+	params = append(params, gameContractAddressBytes)
+	params = append(params, tempAddressBytes)
+	params = append(params, periodBytes)
+	buf := new(bytes.Buffer)
+	rlp.Encode(buf, params)
+
+	res, err := tempPrivateKey.Run(buf.Bytes())
+	if nil != err {
+		t.Fatal(err)
+	} else {
+		t.Log(string(res))
+	}
+
 }

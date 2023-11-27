@@ -64,11 +64,8 @@ func IsTxTxBehalfSignature(input []byte, to common.Address) bool {
 	}
 
 	_, _, _, err := plugin.VerifyTxData(input, (&TempPrivateKeyContract{}).FnSigns())
-	if nil != err {
-		return false
-	}
 
-	return true
+	return err == nil
 }
 
 func GetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address) (lineOfCredit *big.Int, err error) {
