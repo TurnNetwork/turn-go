@@ -714,12 +714,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
+	if tx.To() != nil && vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(tx.Data())
 		if err != nil {
 			return ErrInsufficientFunds
 		}
-		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), pool.currentState, nil, vm.Config{})
+		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), pool.currentState, pool.chainconfig, vm.Config{})
 		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
 		if err != nil {
 			return ErrInsufficientFunds

@@ -190,7 +190,7 @@ func (st *StateTransition) to() common.Address {
 
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
 			return err
@@ -222,7 +222,7 @@ func (st *StateTransition) buyGas() error {
 	st.gas += st.msg.Gas()
 	st.initialGas = st.msg.Gas()
 
-	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
 			return err
@@ -356,7 +356,7 @@ func (st *StateTransition) refundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	if vm.IsTxTxBehalfSignature(st.data, st.to()) {
+	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
 			return
