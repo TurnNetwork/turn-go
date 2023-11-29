@@ -397,6 +397,9 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 	case cvm.TokenContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.TokenContractAddr]
 		contract = c.(vm.BubblePrecompiledContract)
+	case cvm.BubbleContractAddr:
+		c := vm.BubblePrecompiledContracts[cvm.BubbleContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.TempPrivateKeyContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.TempPrivateKeyContractAddr]
 		contract = c.(vm.BubblePrecompiledContract)
