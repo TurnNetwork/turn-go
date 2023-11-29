@@ -242,6 +242,7 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteDeployTask{
 		TxHash:    txHash,
+		Caller:    origin,
 		BlockHash: blockHash,
 		BubbleID:  bubbleID,
 		Address:   contract,
