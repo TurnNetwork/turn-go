@@ -18,6 +18,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/x/token"
 	"math/big"
@@ -101,30 +102,29 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "contract is existed", TxRemoteDeployExecutor, bubble.ErrContractIsExist)
 	}
 
-	// todo: whether to continue when estimating gas
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-	//isEstimateGas := txHash == common.ZeroHash
+	isEstimateGas := txHash == common.ZeroHash
 
 	// force set code to address
 	bc.Evm.StateDB.SetCode(address, bytecode)
 
 	// call initialize function
-	//bc.Contract.self = AccountRef(sender)
-	//bc.Contract.SetCallCode(&address, bc.Evm.StateDB.GetCodeHash(address), bytecode)
-	//_, err := RunEvm(bc.Evm, bc.Contract, data)
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
-	//	log.Error(errMsg)
-	//	if isEstimateGas {
-	//		// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
-	//		// otherwise the estimated process will be interrupted
-	//		return nil, errors.New(errMsg)
-	//	} else {
-	//		return nil, bubble.ErrContractReturns
-	//	}
-	//}
+	bc.Contract.caller = AccountRef(sender)
+	bc.Contract.CallerAddress = sender
+	bc.Contract.self = AccountRef(address)
+	bc.Contract.SetCallCode(&address, bc.Evm.StateDB.GetCodeHash(address), bytecode)
+	ret, err := RunEvm(bc.Evm, bc.Contract, data)
+	fmt.Println(ret)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
+		log.Error(errMsg)
+		if isEstimateGas {
+			// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+			// otherwise the estimated process will be interrupted
+			return nil, errors.New(errMsg)
+		} else {
+			return nil, bubble.ErrContractReturns
+		}
+	}
 
 	// discard!!!
 	// switch to the evm runtime
