@@ -18,14 +18,19 @@ package core
 
 import (
 	"container/heap"
+	"context"
 	"math"
 	"math/big"
 	"sort"
 	"time"
 
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/snapshotdb"
+	"github.com/bubblenet/bubble/core/state"
 	"github.com/bubblenet/bubble/core/types"
+	"github.com/bubblenet/bubble/core/vm"
 	"github.com/bubblenet/bubble/log"
+	"github.com/bubblenet/bubble/params"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for
@@ -322,7 +327,7 @@ func (l *txList) Forward(threshold uint64) types.Transactions {
 // a point in calculating all the costs or if the balance covers all. If the threshold
 // is lower than the costgas cap, the caps will be reset to a new high after removing
 // the newly invalidated transactions.
-func (l *txList) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions, types.Transactions) {
+func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainConfig, costLimit *big.Int, gasLimit uint64) (types.Transactions, types.Transactions) {
 	// If all transactions are below the threshold, short circuit
 	if l.costcap.Cmp(costLimit) <= 0 && l.gascap <= gasLimit {
 		return nil, nil
@@ -332,6 +337,33 @@ func (l *txList) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions
 
 	// Filter out all the transactions above the account's funds
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
+		if tx.To() != nil && vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
+			workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(tx.Data())
+			if err != nil {
+				return true
+			}
+			vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), currentState, chainconfig, vm.Config{})
+
+			vmenv.Context.Ctx = context.Background()
+
+			lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+			if err != nil {
+				return true
+			}
+			if lineOfCredit.Cmp(tx.Cost()) < 0 {
+				return true
+			}
+			operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+			if err != nil {
+				return true
+			}
+			if currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
+				return true
+			}
+
+			return false
+		}
+
 		return tx.Gas() > gasLimit || tx.Cost().Cmp(costLimit) > 0
 	})
 

@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/bubblenet/bubble/core/vm"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/params"
@@ -196,15 +195,14 @@ func (st *StateTransition) buyGas() error {
 			return err
 		}
 
-		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
-		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			return err
 		}
 		if lineOfCredit.Cmp(mgval) < 0 {
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, workAddress, lineOfCredit, mgval)
 		}
-		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			return err
 		}
@@ -228,15 +226,13 @@ func (st *StateTransition) buyGas() error {
 			return err
 		}
 
-		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
-		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			return err
 		}
 
 		st.state.SubBalance(operator, mgval)
-		vm.SetLineOfCredit(vmenv, workAddress, gameContractAddress, mgval)
-
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, mgval)
 	} else {
 		st.state.SubBalance(st.msg.From(), mgval)
 	}
@@ -268,24 +264,9 @@ func (st *StateTransition) preCheck() error {
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
-	// init initialGas value = txMsg.gas
-	if err := st.preCheck(); err != nil {
-		return nil, err
-	}
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	contractCreation := msg.To() == nil
-
-	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
-	if err != nil {
-		return nil, err
-	}
-
-	if st.gas < gas {
-		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
-	}
-	st.gas -= gas
 
 	// Limit the time it takes for a virtual machine to execute the smart contract,
 	// Except precompiled contracts.
@@ -302,6 +283,22 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	defer cancelFn()
 	// set req context to vm context
 	st.evm.Context.Ctx = ctx
+
+	// init initialGas value = txMsg.gas
+	if err := st.preCheck(); err != nil {
+		return nil, err
+	}
+
+	// Pay intrinsic gas
+	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
+	if err != nil {
+		return nil, err
+	}
+
+	if st.gas < gas {
+		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
+	}
+	st.gas -= gas
 
 	var (
 		ret []byte
@@ -362,20 +359,19 @@ func (st *StateTransition) refundGas() {
 			return
 		}
 
-		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), st.state, nil, vm.Config{})
-		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
+		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			return
 		}
 
 		st.state.AddBalance(operator, remaining)
 
-		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
+		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			return
 		}
 
-		vm.SetLineOfCredit(vmenv, workAddress, gameContractAddress, lineOfCredit.And(lineOfCredit, remaining))
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.And(lineOfCredit, remaining))
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}
