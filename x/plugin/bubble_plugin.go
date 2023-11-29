@@ -1126,11 +1126,13 @@ func encodeRemoteDeploy(task *bubble.RemoteDeployTask, code []byte) []byte {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(8000))
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	sender, _ := rlp.EncodeToBytes(task.Caller)
 	address, _ := rlp.EncodeToBytes(task.Address)
 	byteCode, _ := rlp.EncodeToBytes(code)
 	data, _ := rlp.EncodeToBytes(task.Data)
 	queue = append(queue, fnType)
 	queue = append(queue, txHash)
+	queue = append(queue, sender)
 	queue = append(queue, address)
 	queue = append(queue, byteCode)
 	queue = append(queue, data)
