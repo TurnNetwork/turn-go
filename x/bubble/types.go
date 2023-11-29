@@ -152,8 +152,8 @@ type ReleaseBubbleTask struct {
 }
 
 type RemoteDeployTask struct {
-	TxHash common.Hash // The transaction hash of the remoteDeployTask
-	//Caller    common.Address
+	TxHash    common.Hash // The transaction hash of the remoteDeployTask
+	Caller    common.Address
 	BlockHash common.Hash
 	BubbleID  *big.Int
 	Address   common.Address
