@@ -36,14 +36,15 @@ import (
 
 const (
 	SubChainSysAddr = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
+	bubbleLife      = 172800
 )
 
 var (
 	bubblePluginOnce sync.Once
 	bubblePlugin     *BubblePlugin
+	preReleaseLife   uint64
+	releaseLife      uint64
 )
-
-const bubbleLife = 172800
 
 type BubblePlugin struct {
 	stkPlugin  *StakingPlugin
@@ -58,6 +59,8 @@ type BubblePlugin struct {
 func BubbleInstance() *BubblePlugin {
 	bubblePluginOnce.Do(func() {
 		log.Info("Init bubble plugin ...")
+		preReleaseLife = uint64(gomath.Ceil(float64(bubbleLife)/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
+		releaseLife = uint64(gomath.Ceil(float64(bubbleLife)*0.5/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
 		bubblePlugin = &BubblePlugin{
 			stkPlugin:  StakingInstance(),
 			stk2Plugin: StakingL2Instance(),
@@ -72,8 +75,9 @@ func (bp *BubblePlugin) BeginBlock(blockHash common.Hash, header *types.Header, 
 }
 
 func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-
 	curBlock := header.Number.Uint64()
+	preBlock := curBlock + 20
+
 	statuses, err := bp.GetStateInfoes(blockHash)
 	if err != nil {
 		return err
@@ -85,28 +89,40 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 			if curBlock < status.PreReleaseBlock {
 				continue
 			}
-			// bubble is PreRelease
+			// preRelease bubble
 			if curBlock < status.ReleaseBlock {
-				status.State = bubble.PreReleaseState
+				if status.State < bubble.PreReleaseState {
+					status.State = bubble.PreReleaseState
+					if err := bp.db.StoreStateInfo(blockHash, status.BubbleId, status); err != nil {
+						log.Error("Failed to store stateInfo on BubblePlugin EndBlock",
+							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+						return err
+					}
+				}
 				if status.ContractCount > 0 {
 					continue
 				}
 			}
-
+			if status.State == bubble.ReleasedState {
+				continue
+			}
+			// prerelease and not contract OR current block is release block
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
-				log.Error("Failed to call ReleaseBubble on BubblePlugin EndBlock",
-					"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+				log.Error("Failed to release bubble on BubblePlugin EndBlock",
+					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
 				return err
 			}
 		}
 	}
 
-	preBlock := curBlock + 20
+	// destroy and clean bubble
 	if xutil.IsEndOfEpoch(preBlock) {
 		for _, status := range statuses {
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
 				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
+					log.Error("Failed to destroy bubble on BubblePlugin EndBlock",
+						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
 					return err
 				}
 			}
@@ -209,25 +225,37 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 	if err != nil || nil == bubBasic {
 		return nil, err
 	}
-	// The rpc of the bubble-chain operator node is obtained from the verifier
+
+	sk := StakingL2Instance()
+	// update operators rpc url
 	if "" == bubBasic.OperatorsL2[0].RPC {
-		sk := StakingL2Instance()
 		nodeId := bubBasic.OperatorsL2[0].NodeId
 		canAddr, err := xutil.NodeId2Addr(nodeId)
 		if nil != err {
 			return nil, err
 		}
 		base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
-		if nil != err {
+		if err != nil {
 			return nil, err
 		}
 		// When the rpc url in the micro-node information is not empty, it will be updated
 		if "" != base.RPCURI {
 			bubBasic.OperatorsL2[0].RPC = base.RPCURI
-			// The rpc url information is synchronized into bubble basic
-			if err := bp.db.StoreBasicsInfo(blockHash, bubbleID, bubBasic); nil != err {
-				return nil, err
-			}
+		}
+	}
+	// update nodes rpc url
+	for _, node := range bubBasic.MicroNodes {
+		addr, err := xutil.NodeId2Addr(node.NodeId)
+		if nil != err {
+			return nil, err
+		}
+		base, err := sk.db.GetCanBaseStore(blockHash, addr)
+		if err != nil {
+			return nil, err
+		}
+		// When the rpc url in the micro-node information is not empty, it will be updated
+		if base.RPCURI != "" {
+			node.RPCURI = base.RPCURI
 		}
 	}
 
@@ -345,14 +373,13 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		MicroNodes:  microNodes,
 	}
 
-	preReleaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife)/float64(xutil.EpochSize()))) * xutil.EpochSize()
-	releaseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64()+bubbleLife*1.5)/float64(xutil.EpochSize()))) * xutil.EpochSize()
+	baseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64())/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
 	status := &bubble.StateInfo{
 		BubbleId:        bubbleID,
 		State:           bubble.ActiveState,
 		CreateBlock:     blockNumber.Uint64(),
-		PreReleaseBlock: preReleaseBlock,
-		ReleaseBlock:    releaseBlock,
+		PreReleaseBlock: baseBlock + preReleaseLife,
+		ReleaseBlock:    baseBlock + preReleaseLife + releaseLife,
 		ContractCount:   0,
 	}
 
@@ -672,6 +699,19 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
+	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		log.Error("Failed to GetStateInfo on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+		return err
+	}
+	if status.State <= bubble.ReleasedState {
+		status.State = bubble.ReleasedState
+	} else {
+		log.Error("bubble is already released")
+		return errors.New("bubble is already released")
+	}
+
 	var committeeCount uint32
 	// release the committeeL2 nodes to the DB
 	for _, microNode := range bub.MicroNodes {
@@ -713,23 +753,10 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 				return err
 			}
 		}
-
 	}
 
-	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
-	if err != nil {
-		log.Error("Failed to GetStateInfo on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
-		return err
-	}
-	if status.State <= bubble.ReleasedState {
-		status.State = bubble.ReleasedState
-	} else {
-		log.Error("bubble is already released")
-		return errors.New("bubble is already released")
-	}
-	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
-		log.Error("Failed to StoreBubState on ReleaseBubble",
+	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
+		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
@@ -740,8 +767,8 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		return err
 	}
 
-	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
-		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
+	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
+		log.Error("Failed to StoreBubState on ReleaseBubble",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
 		return err
 	}
@@ -1105,11 +1132,13 @@ func encodeRemoteDeploy(task *bubble.RemoteDeployTask, code []byte) []byte {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(8000))
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
+	sender, _ := rlp.EncodeToBytes(task.Caller)
 	address, _ := rlp.EncodeToBytes(task.Address)
 	byteCode, _ := rlp.EncodeToBytes(code)
 	data, _ := rlp.EncodeToBytes(task.Data)
 	queue = append(queue, fnType)
 	queue = append(queue, txHash)
+	queue = append(queue, sender)
 	queue = append(queue, address)
 	queue = append(queue, byteCode)
 	queue = append(queue, data)
