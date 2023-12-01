@@ -170,8 +170,7 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 	blockHash := bc.Evm.Context.BlockHash
 	state := bc.Evm.StateDB
 
-	log.Debug("Failed to remoteDeploy", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID,
-		"contract", contract)
+	log.Debug("Call remoteDeploy of bubbleContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
 
 	if !bc.Contract.UseGas(params.RemoteDeployGas) {
 		return nil, ErrOutOfGas
@@ -228,7 +227,10 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 	state.SubBalance(origin, amount)
 	state.AddBalance(vm.BubbleContractAddr, amount)
 
-	bc.Plugin.StoreByteCode(blockHash, contract, byteCode)
+	err = bc.Plugin.StoreByteCode(blockHash, contract, byteCode)
+	if err != nil {
+		return nil, err
+	}
 
 	contractInfo = &bubble.ContractInfo{
 		Creator: origin,
@@ -265,9 +267,12 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Address) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	origin := bc.Evm.Origin
+	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 	txHash := bc.Evm.StateDB.TxHash()
 	state := bc.Evm.StateDB
+
+	log.Debug("Call remoteRemove of bubbleContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
 
 	if !bc.Contract.UseGas(params.RemoteRemoveGas) {
 		return nil, ErrOutOfGas
@@ -326,7 +331,7 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 
-	log.Debug("Failed to remoteCall", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
+	log.Debug("Call remoteCall of bubbleContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
 
 	if !bc.Contract.UseGas(params.RemoteCallGas) {
 		return nil, ErrOutOfGas
@@ -374,7 +379,7 @@ func (bc *BubbleContract) remoteCallExecutor(bubbleID *big.Int, remoteTxHash com
 	blockNumber := bc.Evm.Context.BlockNumber
 	blockHash := bc.Evm.Context.BlockHash
 
-	log.Debug("Failed to remoteCallExecutor", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
+	log.Debug("Call remoteCallExecutor of bubbleContract", "blockNumber", blockNumber.Uint64(), "bubbleID", bubbleID, "contract", contract)
 
 	if !bc.Contract.UseGas(params.RemoteCallExecutorGas) {
 		return nil, ErrOutOfGas
