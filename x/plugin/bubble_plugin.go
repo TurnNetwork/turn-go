@@ -329,11 +329,17 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	}
 	var OperatorsL2 []*bubble.Operator
 	for _, can := range candidateL2 {
+		// RPCURI is updating
+		canAddr, err := xutil.NodeId2Addr(can.NodeId)
+		if err != nil {
+			return nil, err
+		}
+		canBase, err := bp.stk2Plugin.GetCanBase(blockHash, canAddr)
+
 		operator := &bubble.Operator{
-			NodeId:      can.NodeId,
-			ElectronRPC: can.ElectronURI,
-			RPC:         can.RPCURI,
-			OpAddr:      can.StakingAddress,
+			NodeId: canBase.NodeId,
+			RPC:    canBase.RPCURI,
+			OpAddr: canBase.StakingAddress,
 		}
 		OperatorsL2 = append(OperatorsL2, operator)
 	}
