@@ -164,7 +164,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleMintTokenTask(&mintToken)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process mintToken task")
+				log.Error("blockchain_reactor failed to process mintToken task", "err", err.Error())
 				continue
 			}
 			log.Info("The processing and MintToken task succeeded, tx hash:", common.BytesToHash(hash).Hex())
@@ -180,7 +180,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			err := plugin.BubbleInstance().HandleCreateBubbleTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err)
+				log.Error("blockchain_reactor failed to process CreateBubbleTask", "err", err.Error())
 				// TODO: write the failed task back into the source channel
 				continue
 			}
@@ -197,7 +197,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			err := plugin.BubbleInstance().HandleReleaseBubbleTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process ReleaseBubbleTask")
+				log.Error("blockchain_reactor failed to process ReleaseBubbleTask", "err", err.Error())
 				// TODO: write the failed task back into the source channel
 				continue
 			}
@@ -214,7 +214,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleRemoteDeployTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process RemoteDeploy task")
+				log.Error("blockchain_reactor failed to process RemoteDeploy task", "err", err.Error())
 				continue
 			}
 			log.Info("The processing and RemoteDeploy task succeeded", "bubbleID", task.BubbleID, "address", task.Address,
@@ -231,7 +231,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleRemoteCallTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process RemoteCall task")
+				log.Error("blockchain_reactor failed to process RemoteCall task", "err", err.Error())
 				continue
 			}
 			log.Info("The processing and RemoteCall task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
@@ -248,7 +248,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleRemoteRemoveTask(&task)
 			if err != nil {
-				log.Error("blockchain_reactor failed to process RemoteRemove task")
+				log.Error("blockchain_reactor failed to process RemoteRemove task", "err", err.Error())
 				continue
 			}
 			log.Info("The processing and RemoteRemove task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
@@ -265,7 +265,7 @@ func (bcr *BlockChainReactor) handleTask() {
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleRemoteDestroyTask(&task)
 			if err != nil {
-				log.Error("blockchainReactor failed to process RemoteDestroyTask")
+				log.Error("blockchainReactor failed to process RemoteDestroyTask", "err", err.Error())
 				// TODO: write the failed task back into the source channel
 				continue
 			}
