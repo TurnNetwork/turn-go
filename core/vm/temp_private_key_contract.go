@@ -304,7 +304,7 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	)
 
 	// check period
-	if !bytes.Equal(period, periodArg) {
+	if nil != period && len(period) != 0 && !bytes.Equal(period, periodArg) {
 		log.Error("invalid period")
 		err = ErrInvalidPeriod
 		goto resultHandle

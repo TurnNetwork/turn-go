@@ -21,9 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
 	"math/big"
 	"time"
+
+	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
 
 	"github.com/bubblenet/bubble/core/state"
 
