@@ -192,21 +192,26 @@ func (st *StateTransition) buyGas() error {
 	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
+			log.Error("Failed to GetBehalfSignatureParameterAddress", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
 
 		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
 		if lineOfCredit.Cmp(mgval) < 0 {
+			log.Error("lineOfCredit.Cmp(mgval) < 0")
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, workAddress, lineOfCredit, mgval)
 		}
 		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetGameOperator", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
 		if st.state.GetBalance(operator).Cmp(mgval) < 0 {
+			log.Error("st.state.GetBalance(operator).Cmp(mgval) < 0")
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, operator, st.state.GetBalance(operator), mgval)
 		}
 	} else {
@@ -223,11 +228,13 @@ func (st *StateTransition) buyGas() error {
 	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
+			log.Error("Failed to GetBehalfSignatureParameterAddress", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
 
 		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetGameOperator", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
 
@@ -356,11 +363,13 @@ func (st *StateTransition) refundGas() {
 	if (st.to() != common.Address{}) && vm.IsTxTxBehalfSignature(st.data, st.to()) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(st.data)
 		if err != nil {
+			log.Error("Failed to GetBehalfSignatureParameterAddress", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return
 		}
 
 		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetGameOperator", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return
 		}
 
@@ -368,6 +377,7 @@ func (st *StateTransition) refundGas() {
 
 		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return
 		}
 

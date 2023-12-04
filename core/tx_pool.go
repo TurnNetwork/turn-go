@@ -718,6 +718,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.To() != nil && vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
 		workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(tx.Data())
 		if err != nil {
+			log.Error("Failed to GetBehalfSignatureParameterAddress", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return ErrInsufficientFunds
 		}
 		vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), pool.currentState, pool.chainconfig, vm.Config{})
@@ -726,16 +727,20 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 		lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetLineOfCredit", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return ErrInsufficientFunds
 		}
 		if lineOfCredit.Cmp(tx.Cost()) < 0 {
+			log.Error("lineOfCredit.Cmp(tx.Cost()) < 0")
 			return ErrInsufficientFunds
 		}
 		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
 		if err != nil {
+			log.Error("Failed to GetGameOperator", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return ErrInsufficientFunds
 		}
 		if pool.currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
+			log.Error("pool.currentState.GetBalance(operator).Cmp(tx.Cost())")
 			return ErrInsufficientFunds
 		}
 	} else {
