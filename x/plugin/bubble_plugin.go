@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
+	"fmt"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
@@ -146,9 +147,14 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 		return nil, err
 	}
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
 	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
+	}
+
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Error("Failed to get gasPrice", "err", err)
