@@ -35,8 +35,9 @@ import (
 )
 
 const (
-	SubChainSysAddr = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
-	bubbleLife      = 172800
+	SubChainSysAddr  = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
+	remoteBubbleAddr = "0x2000000000000000000000000000000000000001"
+	bubbleLife       = 172800
 )
 
 var (
@@ -1212,7 +1213,7 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err.Error())
@@ -1265,7 +1266,7 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
 	}
 
-	if chainID != task.BubbleID {
+	if chainID.Cmp(task.BubbleID) != 0 {
 		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
@@ -1300,7 +1301,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1343,8 +1344,12 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -1378,7 +1383,7 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteRemove interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1421,8 +1426,12 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -1617,7 +1626,7 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1658,8 +1667,12 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
