@@ -1,6 +1,7 @@
 package bubble
 
 import (
+	"errors"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/core/snapshotdb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -26,10 +27,14 @@ func (bdb *BubbleDB) GetBubContract(blockHash common.Hash, address *common.Addre
 		return nil, err
 	}
 
-	var contract *common.Address
-	contract.SetBytes(data)
+	var contract common.Address
+	if data != nil {
+		contract.SetBytes(data)
+	} else {
+		return nil, errors.New("contract address is nil")
+	}
 
-	return contract, nil
+	return &contract, nil
 }
 
 func (bdb *BubbleDB) StoreBubContract(blockHash common.Hash, address *common.Address) error {
