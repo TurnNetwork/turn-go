@@ -63,16 +63,14 @@ func IsTxTxBehalfSignature(input []byte, to common.Address) bool {
 		return false
 	}
 
-	fcode, _, _, err := plugin.VerifyTxData(input, (&TempPrivateKeyContract{}).FnSigns())
-	if nil != err {
+	var args [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
 		return false
 	}
 
-	if fcode == TxInvalidateTempPrivateKey {
-		return true
-	}
+	fnCode := byteutil.BytesToUint16(args[0])
 
-	return false
+	return fnCode == TxBehalfSignature
 }
 
 func GetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address) (lineOfCredit *big.Int, err error) {
@@ -80,13 +78,13 @@ func GetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address) 
 	if nil == lineOfCreditDbValue || len(lineOfCreditDbValue) == 0 {
 		contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
 		contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
-		result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("lineOfCredit()uint256"))[:4])
+		result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("lineOfCredit()"))[:4])
 		if err != nil {
 			return big.NewInt(0), err
 		}
-		lineOfCredit.SetBytes(result)
+		lineOfCredit = new(big.Int).SetBytes(result)
 	} else {
-		lineOfCredit.SetBytes(lineOfCreditDbValue)
+		lineOfCredit = new(big.Int).SetBytes(lineOfCreditDbValue)
 	}
 
 	return
@@ -99,7 +97,7 @@ func SetLineOfCredit(evm *EVM, workAddress, gameContractAddress common.Address, 
 func GetGameOperator(evm *EVM, workAddress, gameContractAddress common.Address) (operatorAddress common.Address, err error) {
 	contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
 	contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
-	result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("issuer()address"))[:4])
+	result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("issuer()"))[:4])
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -362,13 +360,12 @@ func (tpkc *TempPrivateKeyContract) addLineOfCredit(gameContractAddress, workAdd
 	var (
 		err                     error
 		lineOfCredit            *big.Int
-		lineOfCreditDbValue     []byte
 		contractOperatorAddress common.Address
 	)
 
 	// Call handling logic
 	// check operator
-	contractOperatorAddress, err = tpkc.Plugin.GetGameContractOperator(blockNumber.Uint64(), workAddress, gameContractAddress, tpkc.Evm.GasPrice)
+	contractOperatorAddress, err = GetGameOperator(tpkc.Evm, workAddress, gameContractAddress)
 	if err != nil {
 		log.Error("Failed to get game contract operator", "gameContractAddress", gameContractAddress, "err", err)
 		err = ErrGetGameOperator
@@ -381,16 +378,11 @@ func (tpkc *TempPrivateKeyContract) addLineOfCredit(gameContractAddress, workAdd
 	}
 
 	// set new line of credit
-	lineOfCreditDbValue = tpkc.Evm.StateDB.GetState(vm.TempPrivateKeyContractAddr, getLineOfCreditDBKey(workAddress, gameContractAddress))
-	if nil == lineOfCreditDbValue || len(lineOfCreditDbValue) == 0 {
-		lineOfCredit, err = tpkc.Plugin.GetLineOfCredit(blockNumber.Uint64(), workAddress, gameContractAddress, tpkc.Evm.GasPrice)
-		if err != nil {
-			log.Error("Failed to get line of credit", "gameContractAddress", gameContractAddress, "err", err)
-			err = ErrGetLineOfCredit
-			goto resultHandle
-		}
-	} else {
-		lineOfCredit.SetBytes(lineOfCreditDbValue)
+	lineOfCredit, err = GetLineOfCredit(tpkc.Evm, workAddress, gameContractAddress)
+	if err != nil {
+		log.Error("Failed to get line of credit", "gameContractAddress", gameContractAddress, "err", err)
+		err = ErrGetLineOfCredit
+		goto resultHandle
 	}
 
 	lineOfCredit = lineOfCredit.Add(lineOfCredit, addValue)

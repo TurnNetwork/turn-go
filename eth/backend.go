@@ -19,10 +19,8 @@ package eth
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"net"
 	"os"
@@ -30,7 +28,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/bubblenet/bubble/consensus/cbft/wal"
 
@@ -39,7 +36,6 @@ import (
 	"github.com/bubblenet/bubble/x/handler"
 
 	"github.com/bubblenet/bubble/core/snapshotdb"
-	"github.com/bubblenet/bubble/core/state"
 
 	"github.com/bubblenet/bubble/consensus/cbft/evidence"
 
@@ -385,50 +381,6 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 func tempPrivateKeyPluginInit(gpo *gasprice.Oracle, b ethapi.Backend) {
 	xplugin.TempPrivateKeyContractInstance().SetGaspriceOracle(gpo)
-	stateFunc := func(number uint64) (*state.StateDB, *types.Header, error) {
-		ctx := context.Background()
-		num := rpc.BlockNumber(number)
-		blockNrOrHash := rpc.BlockNumberOrHash{
-			BlockNumber:      &num,
-			BlockHash:        nil,
-			RequireCanonical: false,
-		}
-		return b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
-	}
-	xplugin.TempPrivateKeyContractInstance().SetStateFunc(stateFunc)
-	applyMessage := func(ctx context.Context, from common.Address, to *common.Address, value *big.Int, gasPrice *big.Int, data []byte,
-		state *state.StateDB, header *types.Header, timeout time.Duration) ([]byte, error) {
-		gas := uint64(math.MaxUint64 / 2)
-		msg := types.NewMessage(from, to, 0, value, gas, gasPrice, data, false)
-		evm, vmError, err := b.GetEVM(ctx, msg, state, header)
-		if err != nil {
-			return nil, err
-		}
-		go func() {
-			<-ctx.Done()
-			evm.Cancel()
-		}()
-
-		gp := new(core.GasPool).AddGas(math.MaxUint64)
-		result, err := core.ApplyMessage(evm, msg, gp)
-		if err := vmError(); err != nil {
-			return nil, err
-		}
-
-		// If the timer caused an abort, return an appropriate error message
-		if evm.Cancelled() {
-			return nil, fmt.Errorf("execution aborted (timeout = %v)", timeout)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("err: %w (supplied gas %d)", err, msg.Gas())
-		}
-
-		if nil != result.Err {
-			return nil, result.Err
-		}
-		return result.ReturnData, nil
-	}
-	xplugin.TempPrivateKeyContractInstance().SetApplyMessage(applyMessage)
 }
 
 func getFilterPorts(p2pPort string, rpcPort int, wsPort int) (error, []int) {
