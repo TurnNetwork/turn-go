@@ -88,6 +88,15 @@ func (bp *BubblePlugin) GetBubContract(blockHash common.Hash, address *common.Ad
 	return addr, nil
 }
 
+func (bp *BubblePlugin) StoreBubContract(blockHash common.Hash, address *common.Address) error {
+	err := bp.db.StoreBubContract(blockHash, address)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (bp *BubblePlugin) DelBubContract(blockHash common.Hash, address *common.Address) error {
 	err := bp.db.DelBubContract(blockHash, address)
 	if err != nil {
