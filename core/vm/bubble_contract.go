@@ -18,6 +18,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/x/token"
 	"math/big"
@@ -75,12 +76,12 @@ func (bc *BubbleContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 }
 
 // remoteDeployExecutor receive the remoteDeploy transaction from main chain and deploy the contract to the bubble chain
-func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, address common.Address, bytecode []byte, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender *common.Address, address *common.Address, bytecode []byte, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	blockHash := bc.Evm.Context.BlockHash
 	blockNumber := bc.Evm.Context.BlockNumber
 	txHash := bc.Evm.StateDB.TxHash()
-	gas := bc.Contract.Gas
+	//gas := bc.Contract.Gas
 
 	log.Debug("Call remoteDeployExecutor of bubbleContract", "chainID", bc.tokenPlugin.ChainID, "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(),
 		"from", from, "address", address)
@@ -96,24 +97,49 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, address
 			bubble.ErrSenderIsNotOperator)
 	}
 
-	if byteCode := bc.Evm.StateDB.GetCode(address); byteCode != nil {
+	if byteCode := bc.Evm.StateDB.GetCode(*address); byteCode != nil {
 		log.Error("the contract is existed", "address", address)
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "contract is existed", TxRemoteDeployExecutor, bubble.ErrContractIsExist)
 	}
 
-	// todo: whether to continue when estimating gas
-	//if txHash == common.ZeroHash {
-	//	return nil, nil
+	isEstimateGas := txHash == common.ZeroHash
+
+	// force set code to address
+	bc.Evm.StateDB.SetCode(*address, bytecode)
+
+	// call initialize function
+	bc.Contract.caller = AccountRef(*sender)
+	bc.Contract.CallerAddress = *sender
+	bc.Contract.self = AccountRef(*address)
+	bc.Contract.SetCallCode(address, bc.Evm.StateDB.GetCodeHash(*address), bytecode)
+	if data != nil {
+		_, err := RunEvm(bc.Evm, bc.Contract, data)
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
+			log.Error(errMsg)
+			if isEstimateGas {
+				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
+				// otherwise the estimated process will be interrupted
+				return nil, errors.New(errMsg)
+			} else {
+				return nil, bubble.ErrContractReturns
+			}
+		}
+	}
+
+	// discard!!!
+	// switch to the evm runtime
+	//caller := AccountRef(vm.BubbleContractAddr)
+	//ch := &codeAndHash{code: append(bytecode, data...)}
+	//_, _, _, err := bc.Evm.create(caller, ch, gas, big.NewInt(0), address)
+	//if err != nil {
+	//	log.Error("remote deploy contract returned an error", "chainID", bc.tokenPlugin.ChainID, "contract", address, "error", err)
+	//	return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "remote deploy contract returned an error", TxRemoteDeployExecutor,
+	//		bubble.ErrContractReturns.Wrap(err.Error()))
 	//}
 
-	// switch to the evm runtime
-	caller := AccountRef(vm.BubbleContractAddr)
-	ch := &codeAndHash{code: append(bytecode, data...)}
-	_, _, _, err := bc.Evm.create(caller, ch, gas, big.NewInt(0), address)
-	if err != nil {
-		log.Error("remote deploy contract returned an error", "chainID", bc.tokenPlugin.ChainID, "contract", address, "error", err)
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "remote deploy contract returned an error", TxRemoteDeployExecutor,
-			bubble.ErrContractReturns.Wrap(err.Error()))
+	if err := bc.Plugin.StoreBubContract(blockHash, address); err != nil {
+		return nil, err
 	}
 
 	if err := bc.tokenPlugin.StoreL1HashToL2Hash(blockHash, remoteTxHash, txHash); err != nil {
@@ -234,7 +260,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 }
 
 // remoteCall call the contract function on the main chain remotely
-func (bc *BubbleContract) remoteCall(contract common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteCall(contract *common.Address, data []byte) ([]byte, error) {
 	origin := bc.Evm.Origin
 	from := bc.Contract.CallerAddress
 	txHash := bc.Evm.StateDB.TxHash()
@@ -256,7 +282,7 @@ func (bc *BubbleContract) remoteCall(contract common.Address, data []byte) ([]by
 			TxHash:   bc.Evm.StateDB.TxHash(),
 			Caller:   origin,
 			BubbleID: bc.tokenPlugin.ChainID,
-			Contract: contract,
+			Contract: *contract,
 			Data:     data,
 		}
 
@@ -270,7 +296,7 @@ func (bc *BubbleContract) remoteCall(contract common.Address, data []byte) ([]by
 }
 
 // remoteCallExecutor receive the remoteCall transaction from main chain and execute the function from the contract
-func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller common.Address, contract common.Address, data []byte) ([]byte, error) {
+func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller *common.Address, contract *common.Address, data []byte) ([]byte, error) {
 	from := bc.Contract.CallerAddress
 	blockHash := bc.Evm.Context.BlockHash
 	blockNumber := bc.Evm.Context.BlockNumber
@@ -291,7 +317,7 @@ func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller co
 			bubble.ErrSenderIsNotOperator)
 	}
 
-	if code := bc.Evm.StateDB.GetCode(contract); len(code) == 0 {
+	if code := bc.Evm.StateDB.GetCode(*contract); len(code) == 0 {
 		log.Error("the contract is not exist", "address", contract)
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract is not exist", TxRemoteCallExecutor, bubble.ErrEmptyContractCode)
 	}
@@ -302,10 +328,10 @@ func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller co
 	//}
 
 	// switch to the evm runtime
-	bc.Contract.caller = AccountRef(caller)
-	bc.Contract.CallerAddress = caller
-	bc.Contract.self = AccountRef(contract)
-	bc.Contract.SetCallCode(&contract, bc.Evm.StateDB.GetCodeHash(contract), bc.Evm.StateDB.GetCode(contract))
+	bc.Contract.caller = AccountRef(*caller)
+	bc.Contract.CallerAddress = *caller
+	bc.Contract.self = AccountRef(*contract)
+	bc.Contract.SetCallCode(contract, bc.Evm.StateDB.GetCodeHash(*contract), bc.Evm.StateDB.GetCode(*contract))
 
 	_, err := RunEvm(bc.Evm, bc.Contract, data)
 	if err != nil {
