@@ -38,6 +38,7 @@ const (
 	TxBehalfSignature          = 7201
 	TxInvalidateTempPrivateKey = 7202
 	TxAddLineOfCredit          = 7203
+	TxGetLineOfCredit          = 7204
 )
 
 const (
@@ -184,6 +185,7 @@ func (tpkc *TempPrivateKeyContract) FnSignsV1() map[uint16]interface{} {
 		TxBehalfSignature:          tpkc.behalfSignature,
 		TxInvalidateTempPrivateKey: tpkc.invalidateTempPrivateKey,
 		TxAddLineOfCredit:          tpkc.addLineOfCredit,
+		TxGetLineOfCredit:          tpkc.getLineOfCredit,
 	}
 }
 
@@ -427,5 +429,5 @@ func (tpkc *TempPrivateKeyContract) getLineOfCredit(gameContractAddress common.A
 	}
 
 	return callResultHandler(tpkc.Evm, "getLineOfCredit",
-		lineOfCredit, nil), nil
+		lineOfCredit.String(), nil), nil
 }
