@@ -300,9 +300,10 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	var (
-		err    error
-		sender = AccountRef(workAddress)
-		vmRet  []byte
+		err       error
+		sender    = AccountRef(workAddress)
+		vmRet     []byte
+		returnGas uint64
 	)
 
 	// check period
@@ -320,10 +321,15 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	// run contract invoke
-	vmRet, _, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
+	vmRet, returnGas, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
 	if err != nil {
 		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
 		err = ErrCallGameContract
+	}
+
+	// Calculating gas
+	if !tpkc.Contract.UseGas(tpkc.Contract.Gas - returnGas) {
+		return nil, ErrOutOfGas
 	}
 
 resultHandle:
