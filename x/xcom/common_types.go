@@ -19,6 +19,7 @@ package xcom
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/bubblenet/bubble/crypto"
 	"math/big"
 
 	"github.com/bubblenet/bubble/common"
@@ -119,7 +120,7 @@ func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Addres
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
-		Topics:      nil, //[]common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
