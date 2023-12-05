@@ -406,3 +406,26 @@ resultHandle:
 	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
 		"addLineOfCredit", "", TxAddLineOfCredit, int(common.NoErr.Code), workAddress, gameContractAddress, addValue, lineOfCredit), nil
 }
+
+// get line of credit
+func (tpkc *TempPrivateKeyContract) getLineOfCredit(gameContractAddress common.Address) ([]byte, error) {
+
+	txHash := tpkc.Evm.StateDB.TxHash()
+	blockNumber := tpkc.Evm.Context.BlockNumber
+	workAddress := tpkc.Contract.CallerAddress
+	blockHash := tpkc.Evm.Context.BlockHash
+	log.Debug("Call getLineOfCredit of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+
+	lineOfCredit, err := GetLineOfCredit(tpkc.Evm, workAddress, gameContractAddress)
+	if err != nil {
+		log.Error("Failed to get line of credit", "gameContractAddress", gameContractAddress, "err", err)
+		err = ErrGetLineOfCredit
+		bizErr, _ := err.(*common.BizError)
+		return callResultHandler(tpkc.Evm, "getLineOfCredit",
+			nil, bizErr), nil
+	}
+
+	return callResultHandler(tpkc.Evm, "getLineOfCredit",
+		lineOfCredit, nil), nil
+}
