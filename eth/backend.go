@@ -337,7 +337,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			if err := opConfig.SetSubOpPriKey(config.SubOpPriKey); err != nil {
 				return nil, errors.New("failed to set the private key of child-chain operation address")
 			}
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig, chainConfig.ChainID)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig, chainConfig.ChainID, config.Genesis.Config)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -865,7 +865,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig, chainId *big.Int) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig, chainId *big.Int, config *params.ChainConfig) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -891,6 +891,9 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
+
+	xplugin.BubbleInstance().SetChainDB(chainDB)
+	xplugin.BubbleInstance().SetChainConfig(config)
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule, xcom.TokenRule})

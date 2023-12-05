@@ -7,17 +7,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/core/rawdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/ethclient"
+	"github.com/bubblenet/bubble/ethdb"
 	"github.com/bubblenet/bubble/event"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/p2p/discover"
+	"github.com/bubblenet/bubble/params"
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/bubblenet/bubble/x/bubble"
 	"github.com/bubblenet/bubble/x/xcom"
 	"math/big"
 	"sync"
+	"time"
 )
 
 const (
@@ -30,9 +34,11 @@ var (
 )
 
 type BubblePlugin struct {
-	db       *bubble.BubbleDB
-	ChainID  *big.Int
-	eventMux *event.TypeMux
+	db            *bubble.BubbleDB
+	chainReaderDB ethdb.Reader
+	chainConfig   *params.ChainConfig
+	ChainID       *big.Int
+	eventMux      *event.TypeMux
 }
 
 func BubbleInstance() *BubblePlugin {
@@ -43,6 +49,14 @@ func BubbleInstance() *BubblePlugin {
 		}
 	})
 	return bp
+}
+
+func (bp *BubblePlugin) SetChainDB(reader ethdb.Reader) {
+	bp.chainReaderDB = reader
+}
+
+func (bp *BubblePlugin) SetChainConfig(config *params.ChainConfig) {
+	bp.chainConfig = config
 }
 
 func (bp *BubblePlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
@@ -119,6 +133,15 @@ func (bp *BubblePlugin) PostRemoteCallTask(task *bubble.RemoteCallTask) error {
 func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byte, error) {
 	if nil == task {
 		return nil, errors.New("RemoteCallTask is empty")
+	}
+
+	time.Sleep(3 * time.Second)
+	receipt, _, _, _ := rawdb.ReadReceipt(bp.chainReaderDB, task.TxHash, bp.chainConfig)
+	if receipt == nil {
+		return nil, errors.New(fmt.Sprintf("transaction %s not in the chain", task.TxHash.String()))
+	}
+	if receipt.Status != 1 {
+		return nil, errors.New(fmt.Sprintf("transaction %s failed", task.TxHash.String()))
 	}
 
 	// get token plugin
