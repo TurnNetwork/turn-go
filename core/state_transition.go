@@ -239,7 +239,12 @@ func (st *StateTransition) buyGas() error {
 		}
 
 		st.state.SubBalance(operator, mgval)
-		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, mgval)
+		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
+		if err != nil {
+			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+			return err
+		}
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Sub(lineOfCredit, mgval))
 	} else {
 		st.state.SubBalance(st.msg.From(), mgval)
 	}
@@ -381,7 +386,7 @@ func (st *StateTransition) refundGas() {
 			return
 		}
 
-		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.And(lineOfCredit, remaining))
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Add(lineOfCredit, remaining))
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}

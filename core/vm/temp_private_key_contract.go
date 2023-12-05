@@ -38,6 +38,7 @@ const (
 	TxBehalfSignature          = 7201
 	TxInvalidateTempPrivateKey = 7202
 	TxAddLineOfCredit          = 7203
+	TxGetLineOfCredit          = 7204
 )
 
 const (
@@ -184,6 +185,7 @@ func (tpkc *TempPrivateKeyContract) FnSignsV1() map[uint16]interface{} {
 		TxBehalfSignature:          tpkc.behalfSignature,
 		TxInvalidateTempPrivateKey: tpkc.invalidateTempPrivateKey,
 		TxAddLineOfCredit:          tpkc.addLineOfCredit,
+		TxGetLineOfCredit:          tpkc.getLineOfCredit,
 	}
 }
 
@@ -298,9 +300,10 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	var (
-		err    error
-		sender = AccountRef(workAddress)
-		vmRet  []byte
+		err       error
+		sender    = AccountRef(workAddress)
+		vmRet     []byte
+		returnGas uint64
 	)
 
 	// check period
@@ -318,10 +321,15 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	// run contract invoke
-	vmRet, _, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
+	vmRet, returnGas, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
 	if err != nil {
 		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
 		err = ErrCallGameContract
+	}
+
+	// Calculating gas
+	if !tpkc.Contract.UseGas(tpkc.Contract.Gas - returnGas) {
+		return nil, ErrOutOfGas
 	}
 
 resultHandle:
@@ -405,4 +413,27 @@ resultHandle:
 
 	return txResultHandlerWithRes(vm.TempPrivateKeyContractAddr, tpkc.Evm,
 		"addLineOfCredit", "", TxAddLineOfCredit, int(common.NoErr.Code), workAddress, gameContractAddress, addValue, lineOfCredit), nil
+}
+
+// get line of credit
+func (tpkc *TempPrivateKeyContract) getLineOfCredit(gameContractAddress common.Address) ([]byte, error) {
+
+	txHash := tpkc.Evm.StateDB.TxHash()
+	blockNumber := tpkc.Evm.Context.BlockNumber
+	workAddress := tpkc.Contract.CallerAddress
+	blockHash := tpkc.Evm.Context.BlockHash
+	log.Debug("Call getLineOfCredit of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+
+	lineOfCredit, err := GetLineOfCredit(tpkc.Evm, workAddress, gameContractAddress)
+	if err != nil {
+		log.Error("Failed to get line of credit", "gameContractAddress", gameContractAddress, "err", err)
+		err = ErrGetLineOfCredit
+		bizErr, _ := err.(*common.BizError)
+		return callResultHandler(tpkc.Evm, "getLineOfCredit",
+			nil, bizErr), nil
+	}
+
+	return callResultHandler(tpkc.Evm, "getLineOfCredit",
+		lineOfCredit.String(), nil), nil
 }
