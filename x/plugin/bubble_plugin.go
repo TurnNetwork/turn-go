@@ -229,20 +229,18 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 
 	sk := StakingL2Instance()
 	// update operators rpc url
-	if "" == bubBasic.OperatorsL2[0].RPC {
-		nodeId := bubBasic.OperatorsL2[0].NodeId
-		canAddr, err := xutil.NodeId2Addr(nodeId)
-		if nil != err {
-			return nil, err
-		}
-		base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
-		if err != nil {
-			return nil, err
-		}
-		// When the rpc url in the micro-node information is not empty, it will be updated
-		if "" != base.RPCURI {
-			bubBasic.OperatorsL2[0].RPC = base.RPCURI
-		}
+	nodeId := bubBasic.OperatorsL2[0].NodeId
+	canAddr, err := xutil.NodeId2Addr(nodeId)
+	if nil != err {
+		return nil, err
+	}
+	base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
+	if err != nil {
+		return nil, err
+	}
+	// When the rpc url in the micro-node information is not empty, it will be updated
+	if "" != base.RPCURI {
+		bubBasic.OperatorsL2[0].RPC = base.RPCURI
 	}
 	// update nodes rpc url
 	for _, node := range bubBasic.MicroNodes {
