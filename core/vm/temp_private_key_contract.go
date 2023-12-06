@@ -246,14 +246,25 @@ func (tpkc *TempPrivateKeyContract) invalidateTempPrivateKey(gameContractAddress
 	// Call handling logic
 	// check the temporary private key exists
 	var (
-		state = tpkc.Evm.StateDB
-		err   error
+		storeTempAddressBytes []byte
+		storeTempAddress      common.Address
+		state                 = tpkc.Evm.StateDB
+		err                   error
 	)
 
 	dbValue := state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
 	if nil == dbValue || len(dbValue) == 0 {
 		log.Error("no binding temporary private key")
 		err = ErrNoBindingTempPrivateKey
+		goto resultHandle
+	}
+
+	// check from
+	storeTempAddressBytes = dbValue[0:common.AddressLength]
+	storeTempAddress = common.BytesToAddress(storeTempAddressBytes)
+	if !bytes.Equal(tempAddress.Bytes(), storeTempAddress.Bytes()) {
+		log.Error("invalid caller")
+		err = ErrContractCaller
 		goto resultHandle
 	}
 
@@ -300,6 +311,7 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	)
 	dbValue = state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
 	if nil == dbValue || len(dbValue) < common.AddressLength {
+		log.Error("no binding temporary private key")
 		err = ErrNoBindingTempPrivateKey
 		goto resultHandle
 	}
