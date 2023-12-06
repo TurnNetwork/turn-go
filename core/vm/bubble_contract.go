@@ -70,10 +70,10 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxSelectBubble:       bc.selectBubble,
-		TxStakingToken:       bc.stakingToken,
-		TxWithdrewToken:      bc.withdrewToken,
-		TxSettleBubble:       bc.settleBubble,
+		TxSelectBubble:  bc.selectBubble,
+		TxStakingToken:  bc.stakingToken,
+		TxWithdrewToken: bc.withdrewToken,
+		//TxSettleBubble:       bc.settleBubble,
 		TxRemoteDeploy:       bc.remoteDeploy,
 		TxRemoteCall:         bc.remoteCall,
 		TxRemoteCallExecutor: bc.remoteCallExecutor,
