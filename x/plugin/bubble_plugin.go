@@ -35,8 +35,9 @@ import (
 )
 
 const (
-	SubChainSysAddr = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
-	bubbleLife      = 172800
+	SubChainSysAddr  = "0x1000000000000000000000000000000000000020" // Sub chain system contract address
+	remoteBubbleAddr = "0x2000000000000000000000000000000000000001"
+	bubbleLife       = 172800
 )
 
 var (
@@ -228,20 +229,18 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 
 	sk := StakingL2Instance()
 	// update operators rpc url
-	if "" == bubBasic.OperatorsL2[0].RPC {
-		nodeId := bubBasic.OperatorsL2[0].NodeId
-		canAddr, err := xutil.NodeId2Addr(nodeId)
-		if nil != err {
-			return nil, err
-		}
-		base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
-		if err != nil {
-			return nil, err
-		}
-		// When the rpc url in the micro-node information is not empty, it will be updated
-		if "" != base.RPCURI {
-			bubBasic.OperatorsL2[0].RPC = base.RPCURI
-		}
+	nodeId := bubBasic.OperatorsL2[0].NodeId
+	canAddr, err := xutil.NodeId2Addr(nodeId)
+	if nil != err {
+		return nil, err
+	}
+	base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
+	if err != nil {
+		return nil, err
+	}
+	// When the rpc url in the micro-node information is not empty, it will be updated
+	if "" != base.RPCURI {
+		bubBasic.OperatorsL2[0].RPC = base.RPCURI
 	}
 	// update nodes rpc url
 	for _, node := range bubBasic.MicroNodes {
@@ -963,7 +962,6 @@ func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) 
 
 // PostCreateBubbleEvent Send the create bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) error {
-	log.Debug("PostCreateBubbleEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post CreateBubble task failed", "err", err)
 		return err
@@ -974,7 +972,6 @@ func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) err
 
 // PostReleaseBubbleEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) error {
-	log.Debug("PostCreateBubbleEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post ReleaseBubble task failed", "err", err)
 		return err
@@ -985,7 +982,6 @@ func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) e
 
 // PostRemoteDestroyEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteDestroyEvent(task *bubble.RemoteDestroyTask) error {
-	log.Debug("PostRemoteDestroyEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post remoteDestroy task failed", "err", err)
 		return err
@@ -996,7 +992,6 @@ func (bp *BubblePlugin) PostRemoteDestroyEvent(task *bubble.RemoteDestroyTask) e
 
 // PostRemoteDeployEvent Send the remote deploy contract event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) error {
-	log.Debug("PostRemoteDeployEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post RemoteDeployTask failed", "err", err)
 		return err
@@ -1007,7 +1002,6 @@ func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) err
 
 // PostRemoteRemoveEvent Send the remote remove event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteRemoveEvent(task *bubble.RemoteRemoveTask) error {
-	log.Debug("PostRemoteRemoveEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post RemoteRemoveTask failed", "err", err)
 		return err
@@ -1018,7 +1012,6 @@ func (bp *BubblePlugin) PostRemoteRemoveEvent(task *bubble.RemoteRemoveTask) err
 
 // PostRemoteCallEvent Send the remote call contract function event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteCallEvent(task *bubble.RemoteCallTask) error {
-	log.Debug("PostRemoteCallEvent", *task)
 	if err := bp.eventMux.Post(*task); nil != err {
 		log.Error("post RemoteCallTask failed", "err", err)
 		return err
@@ -1212,16 +1205,16 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	}
 	client, err := ethclient.Dial(task.RPC)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error(), "rpc", task.RPC)
 		return nil, errors.New("failed connect operator node")
 	}
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("Wrong private key", "err", err)
+		log.Error("Wrong private key", "err", err.Error())
 		return nil, err
 	}
 
@@ -1252,6 +1245,8 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	}
 	value := big.NewInt(0)
 	gasLimit := uint64(300000)
+
+	time.Sleep(3 * time.Second)
 	byteCode, err := BubbleInstance().GetByteCode(task.BlockHash, task.Address)
 	if err != nil {
 		return nil, err
@@ -1265,8 +1260,12 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -1300,7 +1299,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1343,8 +1342,12 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -1378,7 +1381,7 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteRemove interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1421,8 +1424,12 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -1569,7 +1576,7 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 
 	// wait for blocks to be written to the db
 	// TODO：if not, panic by BLS segmentation violation
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error())
@@ -1617,7 +1624,7 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	// Construct transaction parameters
 	priKey := bp.opPriKey
 	// Call the sub-chain system contract RemoteDeploy interface
-	toAddr := common.HexToAddress(SubChainSysAddr)
+	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
 		log.Error("Wrong private key", "err", err)
@@ -1658,8 +1665,12 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 
 	// The sender's private key is used to sign the transaction
 	chainID, err := client.ChainID(context.Background())
-	if err != nil || chainID != task.BubbleID {
-		return nil, errors.New("chainID is wrong")
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
+	}
+
+	if chainID.Cmp(task.BubbleID) != 0 {
+		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
