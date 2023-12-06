@@ -19,6 +19,7 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"reflect"
 
@@ -284,27 +285,31 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	blockHash := tpkc.Evm.Context.BlockHash
 	state := tpkc.Evm.StateDB
 
-	// get temporary private key information
-	dbValue := state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
-	tempAddressBytes := dbValue[0:common.AddressLength]
-	tempAddress := common.BytesToAddress(tempAddressBytes)
-	period := dbValue[common.AddressLength:]
-
-	log.Debug("Call behalfSignature of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress,
-		"period", hex.EncodeToString(periodArg))
-
 	// Calculating gas
 	if !tpkc.Contract.UseGas(params.BehalfSignatureGas) {
 		return nil, ErrOutOfGas
 	}
 
+	// get temporary private key information
 	var (
-		err       error
-		sender    = AccountRef(workAddress)
-		vmRet     []byte
-		returnGas uint64
+		err                                      error
+		tempAddress                              common.Address
+		sender                                   = AccountRef(workAddress)
+		vmRet, dbValue, tempAddressBytes, period []byte
+		returnGas                                uint64
 	)
+	dbValue = state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
+	if nil == dbValue || len(dbValue) < common.AddressLength {
+		err = ErrNoBindingTempPrivateKey
+		goto resultHandle
+	}
+	tempAddressBytes = dbValue[0:common.AddressLength]
+	tempAddress = common.BytesToAddress(tempAddressBytes)
+	period = dbValue[common.AddressLength:]
+
+	log.Debug("Call behalfSignature of TempPrivateKeyContract", "blockHash", blockHash, "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64(), "workAddress", workAddress, "gameContractAddress", gameContractAddress, "tempAddress", tempAddress,
+		"period", hex.EncodeToString(periodArg))
 
 	// check period
 	if nil != period && len(period) != 0 && !bytes.Equal(period, periodArg) {
@@ -324,6 +329,9 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	vmRet, returnGas, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
 	if err != nil {
 		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
+		if errors.Is(err, ErrOutOfGas) {
+			return nil, ErrOutOfGas
+		}
 		err = ErrCallGameContract
 	}
 

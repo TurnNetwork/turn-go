@@ -911,7 +911,48 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 			return 0, err
 		}
 		balance := state.GetBalance(*args.From) // from can't be nil
+		if args.To != nil && vm.IsTxTxBehalfSignature(*args.Data, *args.To) {
+			workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(*args.Data)
+			if err != nil {
+				log.Error("Failed to GetBehalfSignatureParameterAddress", "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+				return 0, errors.New("invalid BehalfSignature parameters")
+			}
+
+			state, header, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+			if state == nil || err != nil {
+				return 0, err
+			}
+
+			// Get a new instance of the EVM.
+			msg := args.ToMessage(gasCap)
+			evm, _, err := b.GetEVM(ctx, msg, state, header)
+			if err != nil {
+				return 0, err
+			}
+			evm.Context.Ctx = context.Background()
+
+			lineOfCredit, err := vm.GetLineOfCredit(evm, workAddress, gameContractAddress)
+			if err != nil {
+				log.Error("Failed to GetLineOfCredit", "from", (*args.From).Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+				return 0, err
+			}
+
+			operator, err := vm.GetGameOperator(evm, workAddress, gameContractAddress)
+			if err != nil {
+				log.Error("Failed to GetGameOperator", "from", (*args.From).Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+				return 0, err
+			}
+
+			operatorBalance := state.GetBalance(operator)
+
+			if lineOfCredit.Cmp(operatorBalance) > 0 {
+				balance = operatorBalance
+			} else {
+				balance = lineOfCredit
+			}
+		}
 		available := new(big.Int).Set(balance)
+
 		if args.Value != nil {
 			if args.Value.ToInt().Cmp(available) >= 0 {
 				return 0, errors.New("insufficient funds for transfer")
