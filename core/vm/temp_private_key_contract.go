@@ -253,13 +253,13 @@ func (tpkc *TempPrivateKeyContract) invalidateTempPrivateKey(gameContractAddress
 	)
 
 	dbValue := state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
-	if nil == dbValue || len(dbValue) == 0 {
+	if nil == dbValue || len(dbValue) < common.AddressLength {
 		log.Error("no binding temporary private key")
 		err = ErrNoBindingTempPrivateKey
 		goto resultHandle
 	}
 
-	// check from
+	// check parameter
 	storeTempAddressBytes = dbValue[0:common.AddressLength]
 	storeTempAddress = common.BytesToAddress(storeTempAddressBytes)
 	if !bytes.Equal(tempAddress.Bytes(), storeTempAddress.Bytes()) {
