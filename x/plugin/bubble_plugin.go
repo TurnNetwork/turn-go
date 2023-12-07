@@ -108,6 +108,8 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 				continue
 			}
 			// prerelease and not contract OR current block is release block
+			log.Debug("start to ReleaseBubble", "curBlock", curBlock, "bubbleId", status.BubbleId, "bubbleState", status.State, "releaseBlock", status.ReleaseBlock,
+				"contractCount", status.ContractCount)
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
 				log.Error("Failed to release bubble on BubblePlugin EndBlock",
@@ -120,6 +122,8 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 	// destroy and clean bubble
 	if xutil.IsEndOfEpoch(preBlock) {
 		for _, status := range statuses {
+			log.Debug("prepare to RemoteDestroy", "bubbleID", status.BubbleId, "State", status.State, "curBlock", curBlock, "preBlock", preBlock,
+				"PreReleaseBlock", status.PreReleaseBlock, "releaseBlock", status.ReleaseBlock)
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
 				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
 					log.Error("Failed to destroy bubble on BubblePlugin EndBlock",
@@ -285,6 +289,10 @@ func (bp *BubblePlugin) GetStateInfoes(blockHash common.Hash) ([]*bubble.StateIn
 // GetStateInfo return the bubble state by bubble ID
 func (bp *BubblePlugin) GetStateInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.StateInfo, error) {
 	return bp.db.GetStateInfo(blockHash, bubbleID)
+}
+
+func (bp *BubblePlugin) StoreStateInfo(blockHash common.Hash, stateInfo *bubble.StateInfo) error {
+	return bp.db.StoreStateInfo(blockHash, stateInfo.BubbleId, stateInfo)
 }
 
 func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.Size) error {
