@@ -166,16 +166,17 @@ func (bcr *BlockChainReactor) handleTask() {
 			}
 			task, ok := msg.Data.(bubble.RemoteCallTask)
 			if !ok {
-				log.Error("blockchain_reactor failed to receive settlement data conversion type")
+				log.Error("blockchain_reactor failed to receive remoteCall task", "msg", msg.Data)
 				continue
 			}
 			// handle task
 			hash, err := plugin.BubbleInstance().HandleRemoteCallTask(&task)
 			if err != nil {
-				log.Error("blockchainReactor failed to handle the remoteCall task")
+				log.Error("blockchain_reactor failed to process RemoteCall task", "err", err.Error())
 				continue
 			}
-			log.Info("blockchainReactor handle the remoteCall task succeed", common.BytesToHash(hash).Hex())
+			log.Info("The processing and RemoteCall task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
+				"txHash", task.TxHash, "remoteTxHash", common.BytesToHash(hash).Hex())
 		}
 	}
 }
