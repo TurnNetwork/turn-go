@@ -241,6 +241,16 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 		return nil, err
 	}
 
+	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		return nil, err
+	}
+
+	statusInfo.ContractCount = statusInfo.ContractCount + 1
+	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+		return nil, err
+	}
+
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteDeployTask{
 		TxHash:    txHash,
@@ -301,6 +311,15 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Addres
 	}
 	state.SubBalance(vm.BubbleContractAddr, contractInfo.Amount)
 	state.AddBalance(origin, contractInfo.Amount)
+
+	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		return nil, err
+	}
+	statusInfo.ContractCount = statusInfo.ContractCount - 1
+	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+		return nil, err
+	}
 
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteRemoveTask{
