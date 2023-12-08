@@ -112,10 +112,10 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 	bc.Contract.CallerAddress = *sender
 	bc.Contract.self = AccountRef(*address)
 	bc.Contract.SetCallCode(address, bc.Evm.StateDB.GetCodeHash(*address), bytecode)
-	if data != nil {
+	if len(data) != 0 {
 		_, err := RunEvm(bc.Evm, bc.Contract, data)
 		if err != nil {
-			errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
+			errMsg := fmt.Sprintf("failed to call data when remoteDeployExecutor, error:%v", err)
 			log.Error(errMsg)
 			if isEstimateGas {
 				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
@@ -241,7 +241,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 		bc.Contract.self = AccountRef(*contract)
 		bc.Contract.SetCallCode(contract, bc.Evm.StateDB.GetCodeHash(*contract), code)
 		// todo: call destroy and send destroy event once
-		input, _ := hex.DecodeString("87646573")
+		input, _ := hex.DecodeString("83197ef0")
 
 		// destroy contract error
 		if _, err = RunEvm(bc.Evm, bc.Contract, input); err != nil {
