@@ -69,7 +69,7 @@ func (sk *StakingL2Plugin) EndBlock(blockHash common.Hash, header *types.Header,
 		err := sk.HandleUnCandidateItem(state, header.Number.Uint64(), blockHash, epoch)
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateItem on StakingL2Plugin EndBlock",
-				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err.Error())
 			return err
 		}
 	}
@@ -122,26 +122,26 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 		return err
 	}
 
 	if can.IsOperator {
 		if err := sk.db.SetOperatorStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Operator info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 	} else {
 		if err := sk.db.SetCommitteeStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Committee info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 
 		if err := sk.db.AddCommitteeCount(blockHash, 1); err != nil {
 			log.Error("Failed to CreateCandidate on StakingL2Plugin: add Committee count is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 	}
@@ -150,7 +150,7 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to CreateCandidate on StakingL2Plugin: Store Staking Account Reference Count (add) is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "NodeID", can.NodeId.String(),
-			"staking Account", can.StakingAddress.String(), "err", err)
+			"staking Account", can.StakingAddress.String(), "err", err.Error())
 		return err
 	}
 
@@ -160,12 +160,12 @@ func (sk *StakingL2Plugin) CreateCandidate(state xcom.StateDB, blockHash common.
 func (sk *StakingL2Plugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, canAddr common.NodeAddress, can *stakingL2.Candidate) error {
 	if err := sk.db.SetCanBaseStore(blockHash, canAddr, can.CandidateBase); nil != err {
 		log.Error("Failed to EditCandidate on StakingL2Plugin: Store CandidateBase info is failed", "nodeId", can.NodeId.String(),
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err.Error())
 		return err
 	}
 	if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 		log.Error("Failed to EditCandidate on StakingL2Plugin: Store CandidateMutable info is failed", "nodeId", can.NodeId.String(),
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err.Error())
 		return err
 	}
 	return nil
@@ -193,7 +193,7 @@ func (sk *StakingL2Plugin) EditCandidate(blockHash common.Hash, blockNumber *big
 //	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 //		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Delete Candidate old power is failed",
 //			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err)
+//			"nodeId", can.NodeId.String(), "err", err.Error())
 //		return err
 //	}
 //
@@ -203,14 +203,14 @@ func (sk *StakingL2Plugin) EditCandidate(blockHash common.Hash, blockNumber *big
 //	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 //		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Store Candidate new power is failed",
 //			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err)
+//			"nodeId", can.NodeId.String(), "err", err.Error())
 //		return err
 //	}
 //
 //	if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 //		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Store CandidateMutable info is failed",
 //			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err)
+//			"nodeId", can.NodeId.String(), "err", err.Error())
 //		return err
 //	}
 //
@@ -233,7 +233,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 	if can.LockedShares.Cmp(common.Big0) > 0 {
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Store CandidateMutable info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 	} else {
@@ -241,19 +241,19 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 		if can.IsOperator {
 			if err := sk.db.DelOperatorStore(blockHash, canAddr); err != nil {
 				log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Operator info is failed",
-					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 				return err
 			}
 		} else {
 			if err := sk.db.DelCommitteeStore(blockHash, canAddr); err != nil {
 				log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Operator info is failed",
-					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 				return err
 			}
 		}
 		if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Candidate info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 	}
@@ -262,7 +262,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to WithdrewStaking on StakingL2Plugin: Store Staking Account Reference Count (sub) is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
-			"staking Account", can.StakingAddress.String(), "err", err)
+			"staking Account", can.StakingAddress.String(), "err", err.Error())
 		return err
 	}
 
@@ -283,7 +283,7 @@ func (sk *StakingL2Plugin) withdrewStakeAmount(state xcom.StateDB, blockHash com
 	if can.LockedShares.Cmp(common.Big0) > 0 {
 		if err := sk.addUnStakeRecord(state, blockNumber, blockHash, epoch, can.NodeId, canAddr, can.StakingBlockNum); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Add UnStakeRecordStore failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
 			return err
 		}
 	}
@@ -315,7 +315,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 		stakeItem, err := sk.db.GetUnStakeRecordStore(blockHash, epoch, uint64(index))
 		if nil != err {
 			log.Error("Failed to HandleUnCandidateItem: Query the unStakeRecord node addr is failed",
-				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 			return err
 		}
 
@@ -324,7 +324,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 		if _, ok := filterAddr[canAddr]; ok {
 			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: Delete already handle unStakeRecord failed",
-					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 				return err
 			}
 			continue
@@ -333,7 +333,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 		can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 		if snapshotdb.NonDbNotFoundErr(err) {
 			log.Error("Failed to HandleUnCandidateItem: Query candidate failed",
-				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "canAddr", canAddr.Hex(), "err", err)
+				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "canAddr", canAddr.Hex(), "err", err.Error())
 			return err
 		}
 
@@ -342,7 +342,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 
 			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: Candidate is no exist, Delete unStakeRecord failed",
-					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 				return err
 			}
 
@@ -357,7 +357,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 			if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: The Item is invilad, cause the stakingBlockNum is less "+
 					"than stakingBlockNum of curr candidate, Delete unStakeRecord failed",
-					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+					"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 				return err
 			}
 
@@ -370,7 +370,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 
 		if err := sk.db.DelUnStakeRecordStore(blockHash, epoch, uint64(index)); nil != err {
 			log.Error("Failed to HandleUnCandidateItem: Delete unStakeRecord failed",
-				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 			return err
 		}
 
@@ -379,7 +379,7 @@ func (sk *StakingL2Plugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber
 
 	if err := sk.db.DelUnStakeCountStore(blockHash, epoch); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete unstakeCount failed",
-			"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 		return err
 	}
 
@@ -409,14 +409,14 @@ func (sk *StakingL2Plugin) handleUnStake(state xcom.StateDB, blockNumber uint64,
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"nodeId", can.NodeId.String(), "err", err)
+			"nodeId", can.NodeId.String(), "err", err.Error())
 		return err
 	}
 
 	if can.IsOperator == false {
 		if err := sk.db.SubCommitteeCount(blockHash, 1); err != nil {
 			log.Error("Failed to HandleUnCandidateItem: Subtraction unStakeRecord failed",
-				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 			return err
 		}
 	}
