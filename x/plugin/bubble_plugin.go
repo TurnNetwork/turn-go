@@ -121,7 +121,7 @@ func (bp *BubblePlugin) DelBubContract(blockHash common.Hash, address *common.Ad
 
 func (bp *BubblePlugin) PostRemoteCallTask(task *bubble.RemoteCallTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post remoteCallTask failed", "err", err)
+		log.Error("post remoteCallTask failed", "err", err.Error())
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 
 	client, err := ethclient.Dial(tp.OpConfig.MainChain.Rpc)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error())
 		return nil, errors.New("failed connect operator node")
 	}
 
@@ -157,7 +157,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	toAddr := common.HexToAddress(remoteBubbleContract)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("wrong private key", "err", err)
+		log.Error("wrong private key", "err", err.Error())
 		return nil, err
 	}
 	publicKey := privateKey.Public()
@@ -174,7 +174,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("failed to obtain the account nonce", "err", err)
+		log.Error("failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 	chainID, err := client.ChainID(context.Background())
@@ -183,7 +183,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	}
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -199,14 +199,14 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("sign remoteCall transaction failed", "err", err)
+		log.Error("sign remoteCall transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("failed to send remoteCall transaction", "err", err)
+		log.Error("failed to send remoteCall transaction", "err", err.Error())
 		return nil, err
 	}
 	hash := signedTx.Hash()

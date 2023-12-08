@@ -115,7 +115,7 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 	if len(data) != 0 {
 		_, err := RunEvm(bc.Evm, bc.Contract, data)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to call data when remoteDeployExecutor, error:%v", err)
+			errMsg := fmt.Sprintf("failed to call data when remoteDeployExecutor, error:%v", err.Error())
 			log.Error(errMsg)
 			if isEstimateGas {
 				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
@@ -182,7 +182,7 @@ func (bc *BubbleContract) remoteRemoveExecutor(remoteTxHash common.Hash, address
 	}
 
 	if err := bc.Plugin.DelBubContract(blockHash, address); err != nil {
-		log.Error("failed to delete contract info", "error", err)
+		log.Error("failed to delete contract info", "error", err.Error())
 		return nil, err
 	}
 
@@ -245,13 +245,13 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 
 		// destroy contract error
 		if _, err = RunEvm(bc.Evm, bc.Contract, input); err != nil {
-			log.Error("contract destroy returned an error", "error", err)
+			log.Error("contract destroy returned an error", "error", err.Error())
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "contract destroy returned an error", TxRemoteRemoveExecutor,
 				bubble.ErrContractReturns.Wrap(err.Error()))
 		}
 
 		if err := bc.Plugin.DelBubContract(blockHash, contract); err != nil {
-			log.Error("failed to delete contract info", "error", err)
+			log.Error("failed to delete contract info", "error", err.Error())
 			return nil, err
 		}
 	}
@@ -287,7 +287,7 @@ func (bc *BubbleContract) remoteCall(contract *common.Address, data []byte) ([]b
 		}
 
 		if err := bc.Plugin.PostRemoteCallTask(task); err != nil {
-			log.Error("post remote call task failed", "error", err)
+			log.Error("post remote call task failed", "error", err.Error())
 			return nil, err
 		}
 	}
@@ -335,7 +335,7 @@ func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller *c
 
 	_, err := RunEvm(bc.Evm, bc.Contract, data)
 	if err != nil {
-		log.Error("call contract error", "contract", contract, "error", err)
+		log.Error("call contract error", "contract", contract, "error", err.Error())
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract returned an error", TxRemoteCallExecutor,
 			bubble.ErrContractReturns.Wrap(err.Error()))
 	}
