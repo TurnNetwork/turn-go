@@ -129,13 +129,13 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to createStaking by parse nodeId", "txHash", txHash, "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"nodeId", nodeId.String(), "err", err)
+			"nodeId", nodeId.String(), "err", err.Error())
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", fmt.Sprintf("nodeid %s to address fail: %s",
 			nodeId.String(), err.Error()), TxCreateStakingL2, stakingL2.ErrNodeID2Addr)
 	}
 	canOld, err := stk.Plugin.GetCandidateInfo(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+		log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 		return nil, err
 	}
 	if !canOld.IsEmpty() {
@@ -183,7 +183,7 @@ func (stk *StakingL2Contract) createStaking(nodeId discover.NodeID, amount *big.
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking", bizErr.Error(), TxCreateStakingL2, bizErr)
 		} else {
-			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -209,7 +209,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to editCandidate by parse nodeId", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err.Error())
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking",
 			fmt.Sprintf("nodeid %s to address fail: %s",
 				nodeId.String(), err.Error()),
@@ -219,7 +219,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	canOld, err := stk.Plugin.GetCandidateInfo(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to editCandidate by GetCandidateInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err.Error())
 		return nil, err
 	}
 
@@ -267,7 +267,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 				bizErr.Error(), TxEditorCandidateL2, bizErr)
 		} else {
 			log.Error("Failed to editCandidate by EditCandidate", "txHash", txHash,
-				"blockNumber", blockNumber, "err", err)
+				"blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -300,7 +300,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 //	canAddr, err := xutil.NodeId2Addr(nodeId)
 //	if nil != err {
 //		log.Error("Failed to increaseStaking by parse nodeId", "txHash", txHash,
-//			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+//			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err.Error())
 //		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking",
 //			fmt.Sprintf("nodeid %s to address fail: %s",
 //				nodeId.String(), err.Error()),
@@ -310,7 +310,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 //	canOld, err := stk.Plugin.GetCandidateInfo(blockHash, canAddr)
 //	if snapshotdb.NonDbNotFoundErr(err) {
 //		log.Error("Failed to increaseStaking by GetCandidateInfo", "txHash", txHash,
-//			"blockNumber", blockNumber, "err", err)
+//			"blockNumber", blockNumber, "err", err.Error())
 //		return nil, err
 //	}
 //
@@ -343,7 +343,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 //
 //		} else {
 //			log.Error("Failed to increaseStaking by EditCandidate", "txHash", txHash,
-//				"blockNumber", blockNumber, "err", err)
+//				"blockNumber", blockNumber, "err", err.Error())
 //			return nil, err
 //		}
 //
@@ -370,7 +370,7 @@ func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, e
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to withdrewStaking by parse nodeId", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err.Error())
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "createStaking",
 			fmt.Sprintf("nodeid %s to address fail: %s",
 				nodeId.String(), err.Error()),
@@ -380,7 +380,7 @@ func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, e
 	canOld, err := stk.Plugin.GetCandidateInfo(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to withdrewStaking by GetCandidateInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err.Error())
 		return nil, err
 	}
 
@@ -410,7 +410,7 @@ func (stk *StakingL2Contract) withdrewStaking(nodeId discover.NodeID) ([]byte, e
 				bizErr.Error(), TxWithdrewCandidateL2, bizErr)
 		} else {
 			log.Error("Failed to withdrewStaking by WithdrewStaking", "txHash", txHash,
-				"blockNumber", blockNumber, "err", err)
+				"blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 
