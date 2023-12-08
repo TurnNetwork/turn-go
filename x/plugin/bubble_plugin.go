@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bubblenet/bubble/common"
-	"github.com/bubblenet/bubble/core/rawdb"
 	"github.com/bubblenet/bubble/core/types"
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/ethclient"
@@ -25,7 +24,7 @@ import (
 )
 
 const (
-	remoteBubbleContract = "0x2000000000000000000000000000000000000001"
+	remoteBubbleContract = "0x2000000000000000000000000000000000000002"
 )
 
 var (
@@ -136,13 +135,13 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	}
 
 	time.Sleep(3 * time.Second)
-	receipt, _, _, _ := rawdb.ReadReceipt(bp.chainReaderDB, task.TxHash, bp.chainConfig)
-	if receipt == nil {
-		return nil, errors.New(fmt.Sprintf("transaction %s not in the chain", task.TxHash.String()))
-	}
-	if receipt.Status != 1 {
-		return nil, errors.New(fmt.Sprintf("transaction %s failed", task.TxHash.String()))
-	}
+	//receipt, _, _, _ := rawdb.ReadReceipt(bp.chainReaderDB, task.TxHash, bp.chainConfig)
+	//if receipt == nil {
+	//	return nil, errors.New(fmt.Sprintf("transaction %s not in the chain", task.TxHash.String()))
+	//}
+	//if receipt.Status != 1 {
+	//	return nil, errors.New(fmt.Sprintf("transaction %s failed", task.TxHash.String()))
+	//}
 
 	// get token plugin
 	tp := TokenInstance()
@@ -182,11 +181,6 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("get chainId error: %s", err.Error()))
 	}
-
-	if chainID.Cmp(task.BubbleID) != 0 {
-		return nil, errors.New(fmt.Sprintf("chainID is wrong, expect %d, actual %d", task.BubbleID.Uint64(), chainID.Uint64()))
-	}
-
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Error("Failed to get gasPrice", "err", err)
@@ -223,7 +217,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 func encodeRemoteCall(task *bubble.RemoteCallTask) []byte {
 	queue := make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(8007))
+	fnType, _ := rlp.EncodeToBytes(uint16(8008))
 	bubbleID, _ := rlp.EncodeToBytes(task.BubbleID)
 	txHash, _ := rlp.EncodeToBytes(task.TxHash)
 	caller, _ := rlp.EncodeToBytes(task.Caller)
