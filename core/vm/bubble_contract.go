@@ -97,7 +97,7 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 			bubble.ErrSenderIsNotOperator)
 	}
 
-	if byteCode := bc.Evm.StateDB.GetCode(*address); byteCode != nil {
+	if byteCode := bc.Evm.StateDB.GetCode(*address); len(byteCode) != 0 {
 		log.Error("the contract is existed", "address", address)
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "contract is existed", TxRemoteDeployExecutor, bubble.ErrContractIsExist)
 	}
@@ -216,7 +216,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 	}
 
 	contracts, err := bc.Plugin.GetBubContracts(blockHash)
-	if err != nil || contracts == nil {
+	if err != nil || len(contracts) == 0 {
 		log.Error("no contracts needs destroy")
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "no contracts needs destroy", TxRemoteDestroyExecutor,
 			bubble.ErrContractNotExist)
@@ -229,7 +229,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 	for _, contract := range contracts {
 		// contract code is empty
 		code := bc.Evm.StateDB.GetCode(*contract)
-		if code == nil {
+		if len(code) == 0 {
 			log.Info("the contract code is empty", "address", contract)
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "the contract code is empty", TxRemoteDestroyExecutor,
 				bubble.ErrEmptyContractCode.Wrap(fmt.Sprintf("address: %s", contract.Hex())))
