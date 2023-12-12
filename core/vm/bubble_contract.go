@@ -97,7 +97,7 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 			bubble.ErrSenderIsNotOperator)
 	}
 
-	if byteCode := bc.Evm.StateDB.GetCode(*address); byteCode != nil {
+	if byteCode := bc.Evm.StateDB.GetCode(*address); len(byteCode) != 0 {
 		log.Error("the contract is existed", "address", address)
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDeployExecutor", "contract is existed", TxRemoteDeployExecutor, bubble.ErrContractIsExist)
 	}
@@ -112,10 +112,10 @@ func (bc *BubbleContract) remoteDeployExecutor(remoteTxHash common.Hash, sender 
 	bc.Contract.CallerAddress = *sender
 	bc.Contract.self = AccountRef(*address)
 	bc.Contract.SetCallCode(address, bc.Evm.StateDB.GetCodeHash(*address), bytecode)
-	if data != nil {
+	if len(data) != 0 {
 		_, err := RunEvm(bc.Evm, bc.Contract, data)
 		if err != nil {
-			errMsg := fmt.Sprintf("Failed to get Address ERC20 Token, error:%v", err)
+			errMsg := fmt.Sprintf("failed to call data when remoteDeployExecutor, error:%v", err.Error())
 			log.Error(errMsg)
 			if isEstimateGas {
 				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
@@ -182,7 +182,7 @@ func (bc *BubbleContract) remoteRemoveExecutor(remoteTxHash common.Hash, address
 	}
 
 	if err := bc.Plugin.DelBubContract(blockHash, address); err != nil {
-		log.Error("failed to delete contract info", "error", err)
+		log.Error("failed to delete contract info", "error", err.Error())
 		return nil, err
 	}
 
@@ -216,7 +216,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 	}
 
 	contracts, err := bc.Plugin.GetBubContracts(blockHash)
-	if err != nil || contracts == nil {
+	if err != nil || len(contracts) == 0 {
 		log.Error("no contracts needs destroy")
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "no contracts needs destroy", TxRemoteDestroyExecutor,
 			bubble.ErrContractNotExist)
@@ -229,7 +229,7 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 	for _, contract := range contracts {
 		// contract code is empty
 		code := bc.Evm.StateDB.GetCode(*contract)
-		if code == nil {
+		if len(code) == 0 {
 			log.Info("the contract code is empty", "address", contract)
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "the contract code is empty", TxRemoteDestroyExecutor,
 				bubble.ErrEmptyContractCode.Wrap(fmt.Sprintf("address: %s", contract.Hex())))
@@ -241,17 +241,17 @@ func (bc *BubbleContract) remoteDestroyExecutor(remoteBlockNumber *big.Int) ([]b
 		bc.Contract.self = AccountRef(*contract)
 		bc.Contract.SetCallCode(contract, bc.Evm.StateDB.GetCodeHash(*contract), code)
 		// todo: call destroy and send destroy event once
-		input, _ := hex.DecodeString("87646573")
+		input, _ := hex.DecodeString("83197ef0")
 
 		// destroy contract error
 		if _, err = RunEvm(bc.Evm, bc.Contract, input); err != nil {
-			log.Error("contract destroy returned an error", "error", err)
+			log.Error("contract destroy returned an error", "error", err.Error())
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteDestroyExecutor", "contract destroy returned an error", TxRemoteRemoveExecutor,
 				bubble.ErrContractReturns.Wrap(err.Error()))
 		}
 
 		if err := bc.Plugin.DelBubContract(blockHash, contract); err != nil {
-			log.Error("failed to delete contract info", "error", err)
+			log.Error("failed to delete contract info", "error", err.Error())
 			return nil, err
 		}
 	}
@@ -287,7 +287,7 @@ func (bc *BubbleContract) remoteCall(contract *common.Address, data []byte) ([]b
 		}
 
 		if err := bc.Plugin.PostRemoteCallTask(task); err != nil {
-			log.Error("post remote call task failed", "error", err)
+			log.Error("post remote call task failed", "error", err.Error())
 			return nil, err
 		}
 	}
@@ -335,7 +335,7 @@ func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller *c
 
 	_, err := RunEvm(bc.Evm, bc.Contract, data)
 	if err != nil {
-		log.Error("call contract error", "contract", contract, "error", err)
+		log.Error("call contract error", "contract", contract, "error", err.Error())
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract returned an error", TxRemoteCallExecutor,
 			bubble.ErrContractReturns.Wrap(err.Error()))
 	}
