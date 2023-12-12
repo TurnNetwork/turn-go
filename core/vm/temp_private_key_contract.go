@@ -307,7 +307,6 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 		tempAddress                              common.Address
 		sender                                   = AccountRef(workAddress)
 		vmRet, dbValue, tempAddressBytes, period []byte
-		returnGas                                uint64
 	)
 	dbValue = state.GetState(vm.TempPrivateKeyContractAddr, getTempPrivateKeyDBKey(workAddress, gameContractAddress))
 	if nil == dbValue || len(dbValue) < common.AddressLength {
@@ -337,8 +336,13 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 		goto resultHandle
 	}
 
+	// Calculating gas
+	if !tpkc.Contract.UseGas(params.CallStipend) {
+		return nil, ErrOutOfGas
+	}
+
 	// run contract invoke
-	vmRet, returnGas, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
+	vmRet, tpkc.Contract.Gas, err = tpkc.Evm.Call(sender, gameContractAddress, input, tpkc.Contract.Gas, big.NewInt(0))
 	if err != nil {
 		log.Error("Failed to call game contract", "gameContractAddress", gameContractAddress, "err", err)
 		if errors.Is(err, ErrOutOfGas) {
@@ -346,9 +350,6 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 		}
 		err = ErrCallGameContract
 	}
-
-	// Calculating gas
-	tpkc.Contract.Gas = returnGas
 
 resultHandle:
 
