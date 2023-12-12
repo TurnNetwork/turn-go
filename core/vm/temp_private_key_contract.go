@@ -161,7 +161,7 @@ func (tpkc *TempPrivateKeyContract) RequiredGas(input []byte) uint64 {
 	if checkInputEmpty(input) {
 		return 0
 	}
-	return params.TokenGas
+	return params.TempPrivateKeyGas
 }
 
 func (tpkc *TempPrivateKeyContract) Run(input []byte) ([]byte, error) {
