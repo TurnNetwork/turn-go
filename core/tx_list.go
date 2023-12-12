@@ -340,6 +340,7 @@ func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainCo
 		if tx.To() != nil && vm.IsTxTxBehalfSignature(tx.Data(), *(tx.To())) {
 			workAddress, gameContractAddress, err := vm.GetBehalfSignatureParameterAddress(tx.Data())
 			if err != nil {
+				log.Error("Failed to GetBehalfSignatureParameterAddress", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return true
 			}
 			vmenv := vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, snapshotdb.Instance(), currentState, chainconfig, vm.Config{})
@@ -348,16 +349,20 @@ func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainCo
 
 			lineOfCredit, err := vm.GetLineOfCredit(vmenv, workAddress, gameContractAddress)
 			if err != nil {
+				log.Error("Failed to GetLineOfCredit", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return true
 			}
 			if lineOfCredit.Cmp(tx.Cost()) < 0 {
+				log.Error("lineOfCredit.Cmp(tx.Cost()) < 0")
 				return true
 			}
 			operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
 			if err != nil {
+				log.Error("Failed to GetGameOperator", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return true
 			}
 			if currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
+				log.Error("currentState.GetBalance(operator).Cmp(tx.Cost()) < 0")
 				return true
 			}
 
