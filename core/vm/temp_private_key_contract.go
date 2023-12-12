@@ -348,9 +348,7 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 	}
 
 	// Calculating gas
-	if !tpkc.Contract.UseGas(tpkc.Contract.Gas - returnGas) {
-		return nil, ErrOutOfGas
-	}
+	tpkc.Contract.Gas = returnGas
 
 resultHandle:
 
