@@ -134,8 +134,9 @@ type Candidate struct {
 }
 
 func (can *Candidate) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
+	return fmt.Sprintf(`{"NodeId": "%s",Enode": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","DelegateEpoch": %d,"DelegateTotal": %d,"DelegateTotalHes": %d,"RewardPer": %d,"NextRewardPer": %d}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		can.Enode,
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
@@ -170,6 +171,7 @@ func (can *Candidate) IsEmpty() bool {
 
 type CandidateBase struct {
 	NodeId discover.NodeID
+	Enode  string
 	// bls public key
 	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
@@ -188,8 +190,9 @@ type CandidateBase struct {
 }
 
 func (can *CandidateBase) String() string {
-	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","Enode": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		can.Enode,
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
