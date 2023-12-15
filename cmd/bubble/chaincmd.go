@@ -190,7 +190,7 @@ func initGenesis(ctx *cli.Context) error {
 			}
 
 		}
-		_, _, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
+		_, _, _, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}

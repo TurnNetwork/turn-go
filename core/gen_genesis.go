@@ -16,6 +16,7 @@ var _ = (*genesisSpecMarshaling)(nil)
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config        *params.ChainConfig               `json:"config"`
+		MulSigner     *params.MulSigner                 `json:"mulSigner"`
 		OpConfig      *params.OpConfig                  `json:"opConfig"`
 		EconomicModel *xcom.EconomicModel               `json:"economicModel"`
 		Nonce         hexutil.Bytes                     `json:"nonce"`
@@ -30,6 +31,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	}
 	var enc Genesis
 	enc.Config = g.Config
+	enc.MulSigner = g.MulSigner
 	enc.OpConfig = g.OpConfig
 	enc.EconomicModel = g.EconomicModel
 	enc.Nonce = g.Nonce
@@ -48,6 +50,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config        *params.ChainConfig               `json:"config"`
+		MulSigner     *params.MulSigner                 `json:"mulSigner"`
 		OpConfig      *params.OpConfig                  `json:"opConfig"`
 		EconomicModel *xcom.EconomicModel               `json:"economicModel"`
 		Nonce         *hexutil.Bytes                    `json:"nonce"`
@@ -71,6 +74,11 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.EconomicModel != nil {
 		g.EconomicModel = dec.EconomicModel
 	}
+
+	if dec.MulSigner != nil {
+		g.MulSigner = dec.MulSigner
+	}
+
 	if dec.OpConfig != nil {
 		g.OpConfig = dec.OpConfig
 	}

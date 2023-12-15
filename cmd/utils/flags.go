@@ -1387,7 +1387,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	config, _, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	config, _, _, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
 	if err != nil {
 		Fatalf("%v", err)
 	}

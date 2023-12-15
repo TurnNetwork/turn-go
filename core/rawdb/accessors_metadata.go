@@ -83,6 +83,34 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 	}
 }
 
+// ReadMulSigner retrieves the Multi-signature verifier configuration information settings based on the given genesis hash.
+func ReadMulSigner(db ethdb.KeyValueReader, hash common.Hash) *params.MulSigner {
+	data, _ := db.Get(mulSignerKey(hash))
+	if len(data) == 0 {
+		return nil
+	}
+	var mulSigner params.MulSigner
+	if err := json.Unmarshal(data, &mulSigner); err != nil {
+		log.Error("Invalid Multi-signature verifier config JSON", "hash", hash, "err", err)
+		return nil
+	}
+	return &mulSigner
+}
+
+// WriteMulSigner writes the Multi-signature verifier configuration information settings to the database.
+func WriteMulSigner(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.MulSigner) {
+	if cfg == nil {
+		return
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.Crit("Failed to JSON encode Multi-signature verifier config", "err", err)
+	}
+	if err := db.Put(mulSignerKey(hash), data); err != nil {
+		log.Crit("Failed to store Multi-signature verifier config", "err", err)
+	}
+}
+
 // ReadOperatorConfig retrieves the consensus settings based on the given genesis hash.
 func ReadOperatorConfig(db ethdb.KeyValueReader, hash common.Hash) *params.OpConfig {
 	data, _ := db.Get(opConfigKey(hash))

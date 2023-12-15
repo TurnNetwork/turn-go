@@ -61,6 +61,7 @@ var (
 	codePrefix                = []byte("c")                        // codePrefix + code hash -> account code
 	preimagePrefix            = []byte("secure-key-")              // preimagePrefix + hash -> preimage
 	configPrefix              = []byte("ethereum-config-")         // config prefix for the db
+	mulSignerPrefix           = []byte("multi-signer-")            // Multi-signature verifier config prefix for the db
 	opConfigPrefix            = []byte("operator-config-")         // operator config prefix for the db
 	economicModelPrefix       = []byte("economicModel-key-")       // economicModel prefix for the db
 	economicModelExtendPrefix = []byte("economicModelExtend-key-") // economicModelExtend prefix for the db
@@ -177,6 +178,11 @@ func IsCodeKey(key []byte) (bool, []byte) {
 // configKey = configPrefix + hash
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
+}
+
+// mulSignerKey = mulSignerPrefix + hash
+func mulSignerKey(hash common.Hash) []byte {
+	return append(mulSignerPrefix, hash.Bytes()...)
 }
 
 // opConfigKey = opConfigPrefix + hash

@@ -54,6 +54,7 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
 	Config        *params.ChainConfig `json:"config"`
+	MulSigner     *params.MulSigner   `json:"mulSigner"`
 	OpConfig      *params.OpConfig    `json:"opConfig"`
 	EconomicModel *xcom.EconomicModel `json:"economicModel"`
 	Nonce         []byte              `json:"nonce"`
@@ -145,11 +146,11 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, genesis *Genesis) (*params.ChainConfig, *params.OpConfig, common.Hash, error) {
+func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, genesis *Genesis) (*params.ChainConfig, *params.MulSigner, *params.OpConfig, common.Hash, error) {
 
-	if genesis != nil && (genesis.Config == nil || genesis.OpConfig == nil) {
+	if genesis != nil && (genesis.Config == nil || genesis.MulSigner == nil || genesis.OpConfig == nil) {
 		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
-		return params.AllEthashProtocolChanges, &params.OpConfig{}, common.Hash{}, errGenesisNoConfig
+		return params.AllEthashProtocolChanges, &params.MulSigner{}, &params.OpConfig{}, common.Hash{}, errGenesisNoConfig
 	}
 
 	// Just commit the new block if there is no stored genesis block.
@@ -166,15 +167,15 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
-			return nil, nil, common.Hash{}, err
+			return nil, nil, nil, common.Hash{}, err
 		}
 		block, err := genesis.Commit(db, snapshotBaseDB)
 		if err != nil {
 			log.Error("genesis.Commit fail", "err", err)
-			return nil, nil, common.ZeroHash, err
+			return nil, nil, nil, common.ZeroHash, err
 		}
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
-		return genesis.Config, genesis.OpConfig, block.Hash(), nil
+		return genesis.Config, genesis.MulSigner, genesis.OpConfig, block.Hash(), nil
 	}
 
 	// We have the genesis block in database(perhaps in ancient database)
@@ -188,18 +189,18 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
-			return nil, nil, common.Hash{}, err
+			return nil, nil, nil, common.Hash{}, err
 		}
 		// Ensure the stored genesis matches with the given one.
 		hash := genesis.ToBlock(nil, snapshotBaseDB).Hash()
 		if hash != stored {
-			return genesis.Config, genesis.OpConfig, hash, &GenesisMismatchError{stored, hash}
+			return genesis.Config, genesis.MulSigner, genesis.OpConfig, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db, snapshotBaseDB)
 		if err != nil {
-			return genesis.Config, genesis.OpConfig, hash, err
+			return genesis.Config, genesis.MulSigner, genesis.OpConfig, hash, err
 		}
-		return genesis.Config, genesis.OpConfig, block.Hash(), nil
+		return genesis.Config, genesis.MulSigner, genesis.OpConfig, block.Hash(), nil
 	}
 
 	// Check whether the genesis block is already written.
@@ -207,7 +208,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
 			log.Error("Failed to compare the genesisHash and stored", "genesisHash", hash, "stored", stored)
-			return genesis.Config, genesis.OpConfig, hash, &GenesisMismatchError{stored, hash}
+			return genesis.Config, genesis.MulSigner, genesis.OpConfig, hash, &GenesisMismatchError{stored, hash}
 		}
 	}
 
@@ -219,14 +220,15 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		log.Warn("Found genesis block without chain config")
 
 		rawdb.WriteChainConfig(db, stored, newcfg)
-		return newcfg, &params.OpConfig{}, stored, nil
+		return newcfg, &params.MulSigner{}, &params.OpConfig{}, stored, nil
 	}
 
 	// Get the existing Operator configuration
 	opCfg := rawdb.ReadOperatorConfig(db, stored)
-	if opCfg == nil {
-		log.Error("Found genesis block without operator config")
-		return newcfg, &params.OpConfig{}, stored, errors.New("No operational node information is configured")
+	mulSigner := rawdb.ReadMulSigner(db, stored)
+	if opCfg == nil || mulSigner == nil {
+		log.Error("Found genesis block without operator config or Multi-signature verifier configuration information")
+		return newcfg, &params.MulSigner{}, &params.OpConfig{}, stored, errors.New("no operational node information is configured")
 	}
 
 	// Get the existing EconomicModel configuration.
@@ -250,7 +252,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
-		return storedcfg, opCfg, stored, nil
+		return storedcfg, mulSigner, opCfg, stored, nil
 	}
 
 	// Check config compatibility and write the config. Compatibility errors
@@ -258,15 +260,15 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
 	if height == nil {
 		log.Error("Failed to query header number by header hash", "headerHash", rawdb.ReadHeadHeaderHash(db))
-		return newcfg, opCfg, stored, fmt.Errorf("missing block number for head header hash")
+		return newcfg, mulSigner, opCfg, stored, fmt.Errorf("missing block number for head header hash")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, *height)
 	if compatErr != nil && *height != 0 && compatErr.RewindTo != 0 {
 		log.Error("Failed to CheckCompatible", "height", *height, "err", compatErr)
-		return newcfg, opCfg, stored, compatErr
+		return newcfg, mulSigner, opCfg, stored, compatErr
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
-	return newcfg, opCfg, stored, nil
+	return newcfg, mulSigner, opCfg, stored, nil
 }
 
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
@@ -299,7 +301,10 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return errors.New("genesis configuration is missed")
 	}
 	if nil == g.OpConfig {
-		return errors.New("The genesis block configuration is missing operator information configuration.")
+		return errors.New("genesis block configuration is missing operator information")
+	}
+	if nil == g.MulSigner {
+		return errors.New("genesis block configuration is missing Multi-signature verifier information")
 	}
 	if nil == g.Config.Cbft {
 		return errors.New("cbft configuration is missed")
@@ -500,6 +505,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 		config = params.AllEthashProtocolChanges
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
+	rawdb.WriteMulSigner(db, block.Hash(), g.MulSigner)
 	rawdb.WriteOperatorConfig(db, block.Hash(), g.OpConfig)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 

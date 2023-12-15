@@ -50,6 +50,7 @@ var (
 
 type TokenPlugin struct {
 	IsSubOpNode bool // Whether it is a child chain operator node
+	MulSigner   *params.MulSigner
 	OpConfig    *params.OpConfig
 	ChainID     *big.Int
 	eventMux    *event.TypeMux
@@ -184,6 +185,11 @@ func (tkp *TokenPlugin) HandleSettleTask(settleTask *token.SettleTask) ([]byte, 
 // SetChainID Set bubble's chainId
 func (tkp *TokenPlugin) SetChainID(chainId *big.Int) {
 	tkp.ChainID = chainId
+}
+
+// SetMulSigner Set up a multi-signature verifier
+func (tkp *TokenPlugin) SetMulSigner(mulSigner *params.MulSigner) {
+	tkp.MulSigner = mulSigner
 }
 
 // SetOpConfig Set the main chain operator address

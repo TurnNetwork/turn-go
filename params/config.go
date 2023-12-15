@@ -159,6 +159,12 @@ type OpConfig struct {
 	SubChain    *OperatorInfo `json:"subChain,omitempty"`  // Child chain operator information configuration
 }
 
+// MulSigner is the multi-signer verifier information,
+// which is the bls public key of the verifier participating in the multi-signer
+type MulSigner struct {
+	BlsPubKeys []bls.PublicKey `json:"blsPubKeys,omitempty"`
+}
+
 func (opConfig *OpConfig) SetSubOpPriKey(subOpPriKey string) error {
 	if "" == subOpPriKey {
 		return nil

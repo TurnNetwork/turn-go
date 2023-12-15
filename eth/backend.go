@@ -191,7 +191,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		}
 	}
 
-	chainConfig, opConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	chainConfig, mulSigner, opConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
 	if err := snapshotBaseDB.Close(); err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			if err := opConfig.SetSubOpPriKey(config.SubOpPriKey); err != nil {
 				return nil, errors.New("failed to set the private key of child-chain operation address")
 			}
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, opConfig, chainConfig.ChainID)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory, mulSigner, opConfig, chainConfig.ChainID)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -865,7 +865,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, opConfig *params.OpConfig, chainId *big.Int) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool, mulSigner *params.MulSigner, opConfig *params.OpConfig, chainId *big.Int) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -873,6 +873,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+	xplugin.TokenInstance().SetMulSigner(mulSigner)
 	xplugin.TokenInstance().SetOpConfig(opConfig)
 	xplugin.TokenInstance().SetChainID(chainId)
 	if reactor.NodeId == opConfig.SubChain.NodeId {
