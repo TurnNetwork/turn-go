@@ -126,7 +126,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, rewardPer uint16, programVersion uint32,
+	enode, externalId, nodeName, website, details string, amount *big.Int, rewardPer uint16, programVersion uint32,
 	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex, blsProof bls.SchnorrProofHex) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
@@ -260,6 +260,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	*/
 	canBase := &staking.CandidateBase{
 		NodeId:          nodeId,
+		Enode:           enode,
 		BlsPubKey:       blsPubKey,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
