@@ -20,6 +20,7 @@ type InnerContract struct {
 func NewInnerContract(sks []*ecdsa.PrivateKey, blsPrivate []*bls.SecretKey, bubble map[uint64][]uint64) *InnerContract {
 	var vs []*types.Validator
 	for i, sk := range sks {
+		//fmt.Println("inner validator", "index", i, "PubId", common.BlsID(blsPrivate[i].GetPublicKey()))
 		//wallet := wallet2.FromSk(blsPrivate[i])
 		pub := hex.EncodeToString(crypto.FromECDSAPub(&sk.PublicKey)[1:])
 		vs = append(vs, &types.Validator{
@@ -64,6 +65,7 @@ func (i *InnerContract) GetValidators(chainId uint64) map[uint64]*types.Validato
 	if vs != nil {
 		s := make(map[uint64]*types.Validator)
 		for _, v := range vs.Validators {
+			//fmt.Println("validator:", common.BlsID(v.BlsPubKey))
 			s[v.Index] = v
 		}
 		return s

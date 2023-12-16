@@ -3,10 +3,12 @@ package p2p
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"github.com/bubblenet/bubble/core/rawdb"
 	"github.com/bubblenet/bubble/crypto"
 	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/datavalidator/common"
 	"github.com/bubblenet/bubble/log"
 	"github.com/bubblenet/bubble/log/term"
 	"github.com/mattn/go-colorable"
@@ -58,10 +60,10 @@ var skstr = []string{
 }
 
 var blsKeyStrs = []string{
-	"2488270d920dd57f0a2c7f69577b019c575480663356df4e94f90d5a1d6a72ec",
-	"6b5ac12b43001b4f53f407878de9e0225bbfeb92541ed8a6e66af514bdac05ed",
-	"1bf528b31769a7d1bfaf041ade586e2896a503e39e85bd0d463ef19bc45d3aa7",
-	"4c2ea01368827230e8c86e27ad4f8a8f7925f32c49a70a98435e50b9e1411495",
+	"f958b2708c0a6eae0ea5761edcf0257526a8bbe521cc099e32adbff14b049734",
+	"86e71e0d2feb7cb2233aaf084beaca51a1dfa0107d4e8ae4417555786820de1a",
+	"079d678e6e61d949c60d43237c5b62d9fb2b4e71747ddd804673358e5bbd253f",
+	"6ad2849adea42f1a9f981a7caa3733024c08bcba3849cc7f7ec2fe808debaf5b",
 }
 
 func init() {
@@ -78,10 +80,16 @@ func init() {
 	log.Root().SetHandler(glogger)
 }
 func TestBls(t *testing.T) {
-	for i := 0; i < 4; i++ {
-		sk := bls.GenerateKey()
-		t.Log(sk.GetHexString())
-	}
+	//for i := 0; i < 4; i++ {
+	//	sk := bls.GenerateKey()
+	//	fmt.Println(fmt.Sprintf("\"%s\",", hex.EncodeToString(sk.GetLittleEndian())))
+	//}
+	buf, _ := hex.DecodeString("86e71e0d2feb7cb2233aaf084beaca51a1dfa0107d4e8ae4417555786820de1a")
+	var sec bls.SecretKey
+	sec.SetLittleEndian(buf)
+	fmt.Println(hex.EncodeToString(sec.GetLittleEndian()))
+	fmt.Println(hex.EncodeToString(sec.GetPublicKey().Serialize()), common.BlsID(sec.GetPublicKey()))
+
 }
 func TestNetworkFlow(t *testing.T) {
 
@@ -92,7 +100,8 @@ func TestNetworkFlow(t *testing.T) {
 		sk, _ := crypto.HexToECDSA(skstr[i])
 		sks = append(sks, sk)
 		var key bls.SecretKey
-		key.SetHexString(blsKeyStrs[i])
+		buf, _ := hex.DecodeString(blsKeyStrs[i])
+		key.SetLittleEndian(buf)
 		blsKeys = append(blsKeys, &key)
 	}
 	innercontract := mock.NewInnerContract(sks, blsKeys, map[uint64][]uint64{
@@ -115,7 +124,8 @@ func TestNetworkFlow(t *testing.T) {
 	fmt.Println("peer1", peer1.ID().TerminalString(), "peer2", peer2.ID().TerminalString())
 	go vs.Network.Protocols().Run(peer2, rw2)
 	queryDetail, err := querydb.GetUnSignChainIdNonce(1, 0)
-	require.NotNil(t, err)
+	require.Nil(t, err)
+	require.Nil(t, queryDetail)
 	vs.Sync.HandleMessage(context.Background())
 	queryDetail, err = querydb.GetUnSignChainIdNonce(1, 0)
 	require.Nil(t, err)
@@ -159,7 +169,8 @@ func TestNetworkFlow(t *testing.T) {
 	readMsg(t, rw1)
 	//require.NotNil(t, msg)
 	queryDetail, err = querydb.GetUnSignChainIdNonce(detail.Log.ChainId, detail.Log.Nonce)
-	require.NotNil(t, err)
+	require.Nil(t, err)
+	require.Nil(t, queryDetail)
 	queryDetail, err = querydb.GetQuorumChainIdNonce(detail.Log.ChainId, detail.Log.Nonce)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(queryDetail.Signatures))

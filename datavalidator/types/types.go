@@ -14,10 +14,6 @@ import (
 	"github.com/bubblenet/bubble/rlp"
 )
 
-type BlockState interface {
-	BlockNumber() uint64
-}
-
 type Signature struct {
 	Index     uint64
 	Signature []byte

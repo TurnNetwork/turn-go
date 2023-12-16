@@ -3,6 +3,7 @@ package datavalidator
 import (
 	"context"
 	"github.com/bubblenet/bubble/crypto/bls"
+	"github.com/bubblenet/bubble/datavalidator/common"
 	_ "github.com/bubblenet/bubble/datavalidator/contracts"
 	"github.com/bubblenet/bubble/datavalidator/db"
 	"github.com/bubblenet/bubble/datavalidator/mock"
@@ -34,7 +35,7 @@ func NewDataValidatorMock(sk *bls.SecretKey, dbPath string, blockState types.Blo
 	var wallet wallet2.Wallet
 	if sk != nil {
 		wallet = wallet2.FromSk(sk)
-		log.Debug("init wallet success", "addr", wallet.PublicKey().GetHexString())
+		log.Debug("init wallet success", "addr", common.BlsID(wallet.PublicKey()))
 	}
 
 	vdb.StoreScanLog(0)

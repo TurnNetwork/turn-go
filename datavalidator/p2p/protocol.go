@@ -39,6 +39,7 @@ type Heartbeat struct {
 	Counter   uint64
 	Timestamp uint64
 	Version   string
+	BlsPub    string
 	//ValidatorAddr common.Address
 	BootTimestamp uint64
 	ScanBlock     uint64

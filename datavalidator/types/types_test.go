@@ -16,7 +16,7 @@ func TestMessageMarshal(t *testing.T) {
 		Payload:  []byte{15, 2, 3},
 	}
 	q := &QuorumLog{
-		MessagePublished: m,
+		Log: m,
 		Signatures: []*Signature{
 			&Signature{
 				Index:     0,
@@ -30,5 +30,5 @@ func TestMessageMarshal(t *testing.T) {
 	m2 := new(QuorumLog)
 	err = json.Unmarshal(value, &m2)
 	require.Nil(t, err)
-	require.Equal(t, len(m.Payload), len(m2.Payload))
+	require.Equal(t, len(m.Payload), len(m2.Log.Payload))
 }

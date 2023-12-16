@@ -7,6 +7,9 @@ import (
 	"math/big"
 )
 
+type BlockState interface {
+	BlockNumber() uint64
+}
 type P2PServer interface {
 	AddPeer(node *discover.Node)
 	RemovePeer(node *discover.Node)

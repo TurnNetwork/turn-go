@@ -1,11 +1,15 @@
 package common
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/datavalidator/types"
 )
 
+func BlsID(pub *bls.PublicKey) string {
+	return hex.EncodeToString(pub.Serialize()[0:8])
+}
 func VerifySignature(id []byte, signature *types.Signature, key *bls.PublicKey) bool {
 	var sign bls.Sign
 	sign.Deserialize(signature.Signature)

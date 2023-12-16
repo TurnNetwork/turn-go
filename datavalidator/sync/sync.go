@@ -97,7 +97,9 @@ func (s *Sync) RefreshValidator() types.ValidatorSets {
 				continue
 			}
 			members[common2.PeerID(node.ID.Bytes())] = v
+			log.Debug("find match bubble chain", "other", common2.BlsID(v.BlsPubKey), "owner", common2.BlsID(s.owner))
 			if v.BlsPubKey.IsEqual(s.owner) {
+				log.Debug("find bubble chain", "chainId", chainId)
 				flag = true
 			}
 		}

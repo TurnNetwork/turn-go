@@ -64,7 +64,7 @@ func NewNetwork(wallet wallet.Wallet, validators Validators, dataCheck DataCheck
 		p2pServer:  p2pServer,
 	}
 	if wallet != nil {
-		network.log = log.New("self", wallet.PublicKey().GetHexString())
+		network.log = log.New("self", datacommon.BlsID(wallet.PublicKey()))
 	}
 	return network
 }
@@ -128,10 +128,10 @@ func (n *Network) HeartbeatLoop(ctx context.Context, duration time.Duration) {
 			for _, v := range n.peerSet.Peers() {
 				n.log.Debug("send heartbeat", "peer", v.id)
 				n.Send(v.id, &Heartbeat{
-					Counter:   counter,
-					Timestamp: uint64(time.Now().UnixNano()),
-					Version:   "1",
-					//ValidatorAddr: n.wallet.Address(),
+					Counter:       counter,
+					Timestamp:     uint64(time.Now().UnixNano()),
+					Version:       "1",
+					BlsPub:        datacommon.BlsID(n.wallet.PublicKey()),
 					BootTimestamp: bootTimestamp,
 					ScanBlock:     scanBlock,
 				})
@@ -315,6 +315,15 @@ func (n *Network) handleSignMessageType(p *peer, msg *SignMessageMsg) error {
 				return err
 			}
 			log.Debug("verify sign message success", "id", id, "current sign", len(detail.Signatures), "msg sign", len(msg.SignMessageData.Signatures))
+			//print signature
+			//for _, d := range detail.Signatures {
+			//	log.Debug("detail signature", "index", d.Index)
+			//}
+			//for _, d := range msg.SignMessageData.Signatures {
+			//	log.Debug("msg signature", "index", d.Index)
+			//
+			//}
+			//
 			detail.AddSignature(msg.SignMessageData.Signatures)
 			if len(detail.Signatures) >= group.Threshold {
 				n.log.Debug("sign message had quorum", "id", id)
