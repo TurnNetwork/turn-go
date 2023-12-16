@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"github.com/bubblenet/bubble/crypto/bls"
 	"github.com/bubblenet/bubble/miner"
 	"math/big"
 	"time"
@@ -103,7 +104,8 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	CbftConfig types.OptionsConfig `toml:",omitempty"`
-
+	//DataValidator
+	DataValidatorKey *bls.SecretKey
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode

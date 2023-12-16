@@ -128,7 +128,7 @@ func NewPeerByNodeID(nodeId1 discover.NodeID, nodeId2 discover.NodeID, protos []
 	}
 
 	peer1 := newPeer(c1, protos)
-	peer2 := newPeer(c1, protos)
+	peer2 := newPeer(c2, protos)
 	return peer1, c1, peer2, c2
 }
 

@@ -190,6 +190,9 @@ var (
 	frpsFlags = []cli.Flag{
 		utils.FrpsFlag,
 	}
+	dataValidatorFlags = []cli.Flag{
+		utils.DVPrivateKey,
+	}
 )
 
 func init() {
@@ -242,7 +245,7 @@ func init() {
 
 	// for frps
 	app.Flags = append(app.Flags, frpsFlags...)
-
+	app.Flags = append(app.Flags, dataValidatorFlags...)
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 		err := bls.Init(int(bls.BLS12_381))

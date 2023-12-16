@@ -22,9 +22,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
-
+	types2 "github.com/bubblenet/bubble/consensus/cbft/types"
+	rpc2 "github.com/bubblenet/bubble/datavalidator/rpc"
+	types3 "github.com/bubblenet/bubble/datavalidator/types"
 	"github.com/bubblenet/bubble/params"
+	"math/big"
 
 	bubble "github.com/bubblenet/bubble"
 	"github.com/bubblenet/bubble/common"
@@ -94,6 +96,60 @@ func (ec *Client) BlockNumber(ctx context.Context) (uint64, error) {
 	var result hexutil.Uint64
 	err := ec.c.CallContext(ctx, &result, "eth_blockNumber")
 	return uint64(result), err
+}
+func (ec *Client) GetBlockQuorumCertByHash(ctx context.Context, hashes common.Hash) (*types2.QuorumCert, error) {
+	var raw json.RawMessage
+	err := ec.c.CallContext(ctx, raw, "bub_getBlockQuorumCertByHash", hashes)
+	if err != nil {
+		return nil, err
+	} else if len(raw) == 0 {
+		return nil, bubble.NotFound
+	}
+	var qc types2.QuorumCert
+	if err := json.Unmarshal(raw, &qc); err != nil {
+		return nil, err
+	}
+	return &qc, nil
+}
+
+func (ec *Client) GetDataValidatorLogRangeNonce(ctx context.Context, chainId, startNonce, limit uint64) (*types3.QuorumLog, error) {
+	var raw json.RawMessage
+	err := ec.c.CallContext(ctx, raw, "datavalidator_rangeNonce", chainId, startNonce, limit)
+	if err != nil {
+		return nil, err
+	} else if len(raw) == 0 {
+		return nil, bubble.NotFound
+	}
+	var qc types3.QuorumLog
+	if err := json.Unmarshal(raw, &qc); err != nil {
+		return nil, err
+	}
+	return &qc, nil
+}
+
+func (ec *Client) GetDataValidatorLogByTransaction(ctx context.Context, hash common.Hash) ([]*types3.QuorumLog, error) {
+	var raw json.RawMessage
+	err := ec.c.CallContext(ctx, raw, "datavalidator_logByTransaction", hash)
+	if err != nil {
+		return nil, err
+	} else if len(raw) == 0 {
+		return nil, bubble.NotFound
+	}
+	var qc []*types3.QuorumLog
+	if err := json.Unmarshal(raw, &qc); err != nil {
+		return nil, err
+	}
+	return qc, nil
+}
+
+func (ec *Client) GetDataValidatorStatus(ctx context.Context) (*rpc2.DataValidatorStatus, error) {
+	var raw json.RawMessage
+	err := ec.c.CallContext(ctx, raw, "datavalidator_status")
+	var status *rpc2.DataValidatorStatus
+	if err := json.Unmarshal(raw, &status); err != nil {
+		return nil, err
+	}
+	return status, err
 }
 
 type rpcBlock struct {

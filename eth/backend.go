@@ -21,6 +21,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/bubblenet/bubble/datavalidator"
+	"github.com/bubblenet/bubble/datavalidator/chain"
 	"math/big"
 	"os"
 	"strconv"
@@ -93,9 +95,9 @@ type Ethereum struct {
 	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
 
-	p2pServer *p2p.Server
-
-	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+	p2pServer     *p2p.Server
+	dataValidator *datavalidator.DataValidator
+	lock          sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
 // Generate the frps profile
@@ -435,7 +437,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.blockchain.Config().ChainID)
 	node.GetCryptoHandler().SetPrivateKey(stack.Config().NodeKey())
-
+	eth.dataValidator, err = datavalidator.NewDataValidator(config.DataValidatorKey, stack.ResolvePath("datavalidator"), chain.NewChainBlockState(eth.blockchain), nil)
+	if err != nil {
+		return nil, err
+	}
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
 		core.NewExecutor(eth.blockchain.Config(), eth.blockchain, vmConfig, eth.txPool)
@@ -535,6 +540,7 @@ func (s *Ethereum) APIs() []rpc.API {
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
+	apis = append(apis, s.dataValidator.Api()...)
 
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
@@ -686,7 +692,7 @@ func (s *Ethereum) Protocols() []p2p.Protocol {
 	protocols := make([]p2p.Protocol, 0)
 	protocols = append(protocols, s.protocolManager.SubProtocols...)
 	protocols = append(protocols, s.engine.Protocols()...)
-
+	protocols = append(protocols, s.dataValidator.P2P()...)
 	return protocols
 }
 
@@ -700,7 +706,6 @@ func (s *Ethereum) Start() error {
 	maxPeers := s.p2pServer.MaxPeers
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
-
 	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		if flag := cbftEngine.IsConsensusNode(); flag {
@@ -714,7 +719,8 @@ func (s *Ethereum) Start() error {
 		s.StartMining()
 	}
 	s.p2pServer.StartWatching(s.eventMux)
-
+	s.dataValidator.Network.SetP2PServer(s.p2pServer)
+	s.dataValidator.Start()
 	return nil
 }
 
@@ -736,6 +742,7 @@ func (s *Ethereum) Stop() error {
 	core.GetReactorInstance().Close()
 	s.chainDb.Close()
 	s.eventMux.Stop()
+	s.dataValidator.Stop()
 	return nil
 }
 

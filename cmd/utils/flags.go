@@ -654,6 +654,11 @@ var (
 		Name:  "stun_server",
 		Usage: "Specifies the stun server to use for nat holes",
 	}
+	DVPrivateKey = cli.StringFlag{
+		Name:   "dv.key",
+		Usage:  "Data Validator Sign key",
+		EnvVar: "DvKey",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1251,6 +1256,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Private key of main-chain operation address (pledged address of operation node)
 	if ctx.GlobalIsSet(OpPriKeyFlag.Name) {
 		cfg.OpPriKey = ctx.GlobalString(OpPriKeyFlag.Name)
+	}
+	if ctx.GlobalIsSet(DVPrivateKey.Name) {
+		file := ctx.GlobalString(DVPrivateKey.Name)
+		sk, err := bls.LoadBLS(file)
+		if err != nil {
+			Fatalf("Invalid data validator %v", file, err)
+		}
+		cfg.DataValidatorKey = sk
 	}
 }
 

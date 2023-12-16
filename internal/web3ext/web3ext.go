@@ -18,14 +18,15 @@
 package web3ext
 
 var Modules = map[string]string{
-	"admin":    AdminJs,
-	"debug":    DebugJs,
-	"bub":      BubbleJs,
-	"miner":    MinerJs,
-	"net":      NetJs,
-	"personal": PersonalJs,
-	"rpc":      RpcJs,
-	"txpool":   TxpoolJs,
+	"admin":         AdminJs,
+	"debug":         DebugJs,
+	"bub":           BubbleJs,
+	"datavalidator": DataValidatorJs,
+	"miner":         MinerJs,
+	"net":           NetJs,
+	"personal":      PersonalJs,
+	"rpc":           RpcJs,
+	"txpool":        TxpoolJs,
 }
 
 const AdminJs = `
@@ -378,7 +379,32 @@ web3._extend({
 	properties: []
 });
 `
-
+const DataValidatorJs = `
+web3._extend({
+	property: 'datavalidator',
+	methods: [
+		new web3._extend.Method({
+			name: 'rangeNonce',
+			call: 'datavalidator_rangeNonce',
+			params: 3
+		}),
+		new web3._extend.Method({
+			name: 'logByTransaction',
+			call: 'datavalidator_logByTransaction',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'status',
+			call: 'datavalidator_status',
+		}),
+		new web3._extend.Method({
+			name: 'testAddLog',
+			call: 'datavalidator_testAddLog',
+			params: 2
+		}),
+	]
+});
+`
 const BubbleJs = `
 web3._extend({
 	property: 'bub',
