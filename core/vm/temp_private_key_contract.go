@@ -20,9 +20,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 
+	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/byteutil"
 	"github.com/bubblenet/bubble/common/math"
@@ -55,6 +57,11 @@ var (
 	ErrGetLineOfCredit         = common.NewBizError(700004, "Failed to get line of credit")
 	ErrCallGameContract        = common.NewBizError(700005, "Failed to call game contract")
 )
+
+func newCallContractError(errorInfo string) *common.BizError {
+	info := "Failed to call game contract: " + errorInfo
+	return common.NewBizError(700005, info)
+}
 
 func IsTxTxBehalfSignature(input []byte, to common.Address) bool {
 	if len(input) == 0 {
@@ -348,7 +355,17 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 		if errors.Is(err, ErrOutOfGas) {
 			return nil, ErrOutOfGas
 		}
-		err = ErrCallGameContract
+		if errors.Is(err, ErrExecutionReverted) {
+			reason, errUnpack := abi.UnpackRevert(vmRet)
+			info := "execution reverted"
+			if errUnpack == nil {
+				info = fmt.Sprintf("execution reverted: %v", reason)
+			}
+			err = newCallContractError(info)
+		} else {
+			err = newCallContractError(err.Error())
+		}
+
 	}
 
 resultHandle:
