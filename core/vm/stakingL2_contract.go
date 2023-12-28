@@ -199,9 +199,9 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	blockHash := stk.Evm.Context.BlockHash
 	from := stk.Contract.CallerAddress
 
-	log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
-		"name", *name, "detail", *detail, "rpcURI", *rpcURI)
+	//log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
+	//	"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
+	//	"name", *name, "detail", *detail, "rpcURI", *rpcURI)
 
 	if !stk.Contract.UseGas(params.EditCandidateL2Gas) {
 		return nil, ErrOutOfGas
