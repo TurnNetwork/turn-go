@@ -200,7 +200,7 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	from := stk.Contract.CallerAddress
 
 	log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress.String(),
+		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
 		"name", *name, "detail", *detail, "rpcURI", *rpcURI)
 
 	if !stk.Contract.UseGas(params.EditCandidateL2Gas) {
@@ -251,12 +251,11 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	}
 
 	if rpcURI != nil {
-		rpcURL, err := url.ParseRequestURI(*rpcURI)
+		_, err := url.ParseRequestURI(*rpcURI)
 		if err != nil {
-			return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
-				"can is nil", TxEditorCandidateL2, stakingL2.ErrCanNoExist)
+			return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate", "RLP url is incorrect", TxEditorCandidateL2, stakingL2.ErrRlpUrl)
 		}
-		canOld.RPCURI = rpcURL.String()
+		canOld.RPCURI = *rpcURI
 	}
 
 	if err := canOld.CheckDescription(); nil != err {

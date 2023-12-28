@@ -30,6 +30,7 @@ var (
 	ErrCanNoExist              = common.NewBizError(321102, "The candidate does not exist")
 	ErrCanStatusInvalid        = common.NewBizError(321103, "This candidate status is expired")
 	ErrIncreaseStakeVonTooLow  = common.NewBizError(321104, "Increased stake is insufficient")
+	ErrRlpUrl                  = common.NewBizError(321105, "RLP url is incorrect")
 	ErrAccountVonNoEnough      = common.NewBizError(321111, "The account balance is insufficient")
 	ErrGetCandidateList        = common.NewBizError(321202, "Retreiving candidate list failed")
 	ErrQueryCandidateInfo      = common.NewBizError(321201, "Query candidate info failed")
