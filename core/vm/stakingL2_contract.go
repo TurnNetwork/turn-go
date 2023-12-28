@@ -19,6 +19,7 @@ package vm
 import (
 	"fmt"
 	"math/big"
+	"net/url"
 
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/hexutil"
@@ -199,8 +200,8 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	from := stk.Contract.CallerAddress
 
 	log.Debug("Call editCandidate of StakingL2Contract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress,
-		"name", name, "detail", detail, "rpcURI", rpcURI)
+		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "from", from, "benefitAddress", benefitAddress.String(),
+		"name", *name, "detail", *detail, "rpcURI", *rpcURI)
 
 	if !stk.Contract.UseGas(params.EditCandidateL2Gas) {
 		return nil, ErrOutOfGas
@@ -248,9 +249,16 @@ func (stk *StakingL2Contract) editCandidate(nodeId discover.NodeID, benefitAddre
 	if detail != nil {
 		canOld.Detail = *detail
 	}
+
 	if rpcURI != nil {
-		canOld.RPCURI = *rpcURI
+		rpcURL, err := url.ParseRequestURI(*rpcURI)
+		if err != nil {
+			return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
+				"can is nil", TxEditorCandidateL2, stakingL2.ErrCanNoExist)
+		}
+		canOld.RPCURI = rpcURL.String()
 	}
+
 	if err := canOld.CheckDescription(); nil != err {
 		return txResultHandler(vm.StakingL2ContractAddr, stk.Evm, "editCandidate",
 			stakingL2.ErrDescriptionLen.Msg+":"+err.Error(),
