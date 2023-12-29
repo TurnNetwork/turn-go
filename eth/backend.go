@@ -450,7 +450,7 @@ func genFrpCfgFile(stack *node.Node, chainConfig *params.ChainConfig) error {
 	}
 	// 1.3 Add the rpc proxy configuration
 	if 0 != nodeCfg.HTTPPort && 0 != nodeCfg.ProxyRpcPort {
-		if err := addFrpProxy(nodeCfg.HTTPPort, nodeCfg.ProxyRpcPort, "rpc_proxy", writer); nil != err {
+		if err := addFrpProxy(nodeCfg.HTTPPort, nodeCfg.ProxyRpcPort, "rpc_proxy", nodeId, writer); nil != err {
 			return err
 		}
 	}
@@ -588,8 +588,9 @@ func addFrpVisitor(cbftNode *discover.Node, writer *bufio.Writer, startPort, end
 }
 
 // Add the frpc agent configuration
-func addFrpProxy(localPort, proxyPort int, proxyName string, writer *bufio.Writer) error {
-	labelName := "[" + proxyName + "]"
+func addFrpProxy(localPort, proxyPort int, proxyName string, nodeId discover.NodeID, writer *bufio.Writer) error {
+	shortKey := nodeId.ShortString()
+	labelName := "[" + proxyName + "_" + shortKey + "]"
 	fmt.Fprintln(writer, labelName)
 	fmt.Fprintln(writer, "type = tcp")
 	fmt.Fprintln(writer, "local_ip = 127.0.0.1")
