@@ -437,6 +437,9 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.blockchain.Config().ChainID)
 	node.GetCryptoHandler().SetPrivateKey(stack.Config().NodeKey())
+	if config.DataValidatorKey == nil {
+		config.DataValidatorKey = config.CbftConfig.BlsPriKey
+	}
 	eth.dataValidator, err = datavalidator.NewDataValidator(config.DataValidatorKey, stack.ResolvePath("datavalidator"), chain.NewChainBlockState(eth.blockchain), nil)
 	if err != nil {
 		return nil, err
