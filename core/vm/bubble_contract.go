@@ -335,17 +335,16 @@ func (bc *BubbleContract) remoteCallExecutor(remoteTxHash common.Hash, caller *c
 	bc.Contract.SetCallCode(contract, bc.Evm.StateDB.GetCodeHash(*contract), bc.Evm.StateDB.GetCode(*contract))
 
 	vmRet, err := RunEvm(bc.Evm, bc.Contract, data)
-	if errors.Is(err, ErrExecutionReverted) {
-		reason, errUnpack := abi.UnpackRevert(vmRet)
-		info := "execution reverted"
-		if errUnpack == nil {
-			info = fmt.Sprintf("execution reverted: %v", reason)
+	if err != nil {
+		if errors.Is(err, ErrExecutionReverted) {
+			reason, errUnpack := abi.UnpackRevert(vmRet)
+			info := "execution reverted"
+			if errUnpack == nil {
+				info = fmt.Sprintf("execution reverted: %v", reason)
+			}
+			err = newCallContractError(info)
 		}
-		err = newCallContractError(info)
-		log.Error("call contract error", "contract", contract, "error", err.Error())
-		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract returned an error", TxRemoteCallExecutor,
-			bubble.ErrContractReturns.Wrap(err.Error()))
-	} else {
+
 		log.Error("call contract error", "contract", contract, "error", err.Error())
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the contract returned an error", TxRemoteCallExecutor,
 			bubble.ErrContractReturns.Wrap(err.Error()))
