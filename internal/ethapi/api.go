@@ -1917,13 +1917,13 @@ func (s *PublicNetAPI) AvailablePorts(bubbleID hexutil.Big, portNum int, sig hex
 	fmt.Printf("public key:%s\n", discover.PubkeyID(rpk).String())
 
 	// get bubble info
-	basics, err := s.plugin.GetBasicsInfo(common.ZeroHash, bubbleID.ToInt())
-	if nil != err || nil == basics {
+	val, err := s.plugin.GetValidatorInfo(common.ZeroHash, bubbleID.ToInt())
+	if nil != err || nil == val {
 		return nil, fmt.Errorf("the bubble is not exist, bubbleID:%s", bubbleID.String())
 	}
 
 	// Compare NodeID
-	if discover.PubkeyID(rpk) != basics.OperatorsL2[0].NodeId {
+	if discover.PubkeyID(rpk) != val.OperatorsL2[0].NodeId {
 		return nil, fmt.Errorf("only the child-chain operator node has the right to call this interface")
 	}
 
