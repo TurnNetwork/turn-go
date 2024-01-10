@@ -79,41 +79,41 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 	curBlock := header.Number.Uint64()
 	preBlock := curBlock + 20
 
-	statuses, err := bp.GetStateInfoes(blockHash)
+	bubs, err := bp.GetBubbles(blockHash)
 	if err != nil {
 		return err
 	}
 
 	if xutil.IsEndOfEpoch(curBlock) {
-		for _, status := range statuses {
+		for _, bub := range bubs {
 
-			if curBlock < status.PreReleaseBlock {
+			if curBlock < bub.PreReleaseBlock {
 				continue
 			}
 			// preRelease bubble
-			if curBlock < status.ReleaseBlock {
-				if status.State < bubble.PreReleaseState {
-					status.State = bubble.PreReleaseState
-					if err := bp.db.StoreStateInfo(blockHash, status.BubbleId, status); err != nil {
-						log.Error("Failed to store stateInfo on BubblePlugin EndBlock",
-							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
+			if curBlock < bub.ReleaseBlock {
+				if bub.State < bubble.PreReleaseState {
+					bub.State = bubble.PreReleaseState
+					if err := bp.db.StoreBasicsInfo(blockHash, bub.BubbleId, bub); err != nil {
+						log.Error("Failed to store bubble on BubblePlugin EndBlock",
+							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", bub.BubbleId, "err", err.Error())
 						return err
 					}
 				}
-				if status.ContractCount > 0 {
+				if bub.ContractCount > 0 {
 					continue
 				}
 			}
-			if status.State == bubble.ReleasedState {
+			if bub.State == bubble.ReleasedState {
 				continue
 			}
 			// prerelease and not contract OR current block is release block
-			log.Debug("start to ReleaseBubble", "curBlock", curBlock, "bubbleId", status.BubbleId, "bubbleState", status.State, "releaseBlock", status.ReleaseBlock,
-				"contractCount", status.ContractCount)
-			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
+			log.Debug("start to ReleaseBubble", "curBlock", curBlock, "bubbleId", bub.BubbleId, "bubbleState", bub.State, "releaseBlock", bub.ReleaseBlock,
+				"contractCount", bub.ContractCount)
+			err := bp.ReleaseBubble(blockHash, header.Number, bub.BubbleId)
 			if err != nil {
 				log.Error("Failed to release bubble on BubblePlugin EndBlock",
-					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
+					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", bub.BubbleId, "err", err.Error())
 				return err
 			}
 		}
@@ -121,13 +121,13 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 
 	// destroy and clean bubble
 	if xutil.IsEndOfEpoch(preBlock) {
-		for _, status := range statuses {
-			log.Debug("prepare to RemoteDestroy", "bubbleID", status.BubbleId, "State", status.State, "curBlock", curBlock, "preBlock", preBlock,
-				"PreReleaseBlock", status.PreReleaseBlock, "releaseBlock", status.ReleaseBlock)
-			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
-				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
+		for _, bub := range bubs {
+			log.Debug("prepare to RemoteDestroy", "bubbleID", bub.BubbleId, "State", bub.State, "curBlock", curBlock, "preBlock", preBlock,
+				"PreReleaseBlock", bub.PreReleaseBlock, "releaseBlock", bub.ReleaseBlock)
+			if bub.State == bubble.PreReleaseState && preBlock == bub.ReleaseBlock {
+				if err := bp.DestroyBubble(blockHash, curBlock, bub.BubbleId); err != nil {
 					log.Error("Failed to destroy bubble on BubblePlugin EndBlock",
-						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
+						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", bub.BubbleId, "err", err.Error())
 					return err
 				}
 			}
@@ -174,85 +174,64 @@ func (bp *BubblePlugin) GetNodeUseRatio(blockHash common.Hash) (float32, error) 
 	return float32(used) / float32(total), nil
 }
 
-// GetBubbleInfo return the bubble information by bubble ID
-func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.Bubble, error) {
-	// return bp.db.GetBubbleStore(blockHash, bubbleID)
-	// get bubble basics
-	basics, err := bp.GetBasicsInfo(blockHash, bubbleID)
-	if nil == basics || err != nil {
-		return nil, errors.New("failed to get bubble basics information")
+// GetBubbles return the all bubble information
+func (bp *BubblePlugin) GetBubbles(blockHash common.Hash) ([]*bubble.BasicsInfo, error) {
+	iter := bp.db.IteratorBasicsInfo(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	var infos []*bubble.BasicsInfo
+	for iter.Valid(); iter.Next(); {
+		data := iter.Value()
+		stateInfo := new(bubble.BasicsInfo)
+		if err := rlp.DecodeBytes(data, stateInfo); err != nil {
+			return nil, err
+		}
+		infos = append(infos, stateInfo)
 	}
 
-	// get bubble state
-	state, err := bp.GetStateInfo(blockHash, bubbleID)
-	if nil == state || err != nil {
-		return nil, errors.New("failed to get bubble state")
-	}
-	//bub.State = *state
-	// get bubble txHashList
-	// get StakingToken Hash List
-	stTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.StakingToken)
-	if snapshotdb.NonDbNotFoundErr(err) {
-		return nil, errors.New("failed to get bubble StakingToken transaction hash list")
-	}
-	//bub.StakingTokenTxHashList = stTxHashList
-
-	// get WithdrewToken Hash List
-	wdTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.WithdrewToken)
-	if snapshotdb.NonDbNotFoundErr(err) {
-		return nil, errors.New("failed to get bubble WithdrewToken transaction hash list")
-	}
-	//bub.WithdrewTokenTxHashList = wdTxHashList
-
-	// get SettleBubble Hash List
-	sbTxHashList, err := bp.GetTxHashListByBub(blockHash, bubbleID, bubble.SettleBubble)
-	if snapshotdb.NonDbNotFoundErr(err) {
-		return nil, errors.New("failed to get bubble SettleBubble transaction hash list")
-	}
-	//bub.SettleBubbleTxHashList = sbTxHashList
-
-	bub := &bubble.Bubble{
-		BasicsInfo: basics,
-		StateInfo:  state,
-		TransactionInfo: &bubble.TransactionInfo{
-			StakingTokenTxHashList:  stTxHashList,
-			WithdrewTokenTxHashList: wdTxHashList,
-			SettleBubbleTxHashList:  sbTxHashList,
-		},
-	}
-
-	return bub, nil
+	return infos, nil
 }
 
-// GetBasicsInfo return the bubble basics by bubble ID
-func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.BasicsInfo, error) {
-	bubBasic, err := bp.db.GetBasicsInfo(blockHash, bubbleID)
-	if err != nil || nil == bubBasic {
+// GetBubbleInfo return the bubble information by bubble ID
+func (bp *BubblePlugin) GetBubbleInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.BasicsInfo, error) {
+	return bp.db.GetBasicsInfo(blockHash, bubbleID)
+}
+
+func (bp *BubblePlugin) SetBubbleInfo(blockHash common.Hash, bubble *bubble.BasicsInfo) error {
+	return bp.db.StoreBasicsInfo(blockHash, bubble.BubbleId, bubble)
+}
+
+// GetValidatorInfo return the bubble Validators by bubble ID
+func (bp *BubblePlugin) GetValidatorInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.ValidatorInfo, error) {
+	validator, err := bp.db.GetValidatorInfo(blockHash, bubbleID)
+	if err != nil || validator == nil {
 		return nil, err
 	}
 
-	sk := StakingL2Instance()
 	// update operators rpc url
-	nodeId := bubBasic.OperatorsL2[0].NodeId
+	nodeId := validator.OperatorsL2[0].NodeId
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		return nil, err
 	}
-	base, err := sk.db.GetCanBaseStore(blockHash, canAddr)
+	base, err := bp.stk2Plugin.db.GetCanBaseStore(blockHash, canAddr)
 	if err != nil {
 		return nil, err
 	}
 	// When the rpc url in the micro-node information is not empty, it will be updated
 	if "" != base.RPCURI {
-		bubBasic.OperatorsL2[0].RPC = base.RPCURI
+		validator.OperatorsL2[0].RPC = base.RPCURI
 	}
 	// update nodes rpc url
-	for _, node := range bubBasic.MicroNodes {
+	for _, node := range validator.MicroNodes {
 		addr, err := xutil.NodeId2Addr(node.NodeId)
 		if nil != err {
 			return nil, err
 		}
-		base, err := sk.db.GetCanBaseStore(blockHash, addr)
+		base, err := bp.stk2Plugin.db.GetCanBaseStore(blockHash, addr)
 		if err != nil {
 			return nil, err
 		}
@@ -262,37 +241,7 @@ func (bp *BubblePlugin) GetBasicsInfo(blockHash common.Hash, bubbleID *big.Int) 
 		}
 	}
 
-	return bubBasic, nil
-}
-
-func (bp *BubblePlugin) GetStateInfoes(blockHash common.Hash) ([]*bubble.StateInfo, error) {
-	iter := bp.db.IteratorStateInfo(blockHash, 0)
-	if err := iter.Error(); nil != err {
-		return nil, err
-	}
-	defer iter.Release()
-
-	var queue []*bubble.StateInfo
-	for iter.Valid(); iter.Next(); {
-		data := iter.Value()
-		stateInfo := new(bubble.StateInfo)
-		if err := rlp.DecodeBytes(data, stateInfo); err != nil {
-			return nil, err
-		}
-
-		queue = append(queue, stateInfo)
-	}
-
-	return queue, nil
-}
-
-// GetStateInfo return the bubble state by bubble ID
-func (bp *BubblePlugin) GetStateInfo(blockHash common.Hash, bubbleID *big.Int) (*bubble.StateInfo, error) {
-	return bp.db.GetStateInfo(blockHash, bubbleID)
-}
-
-func (bp *BubblePlugin) StoreStateInfo(blockHash common.Hash, stateInfo *bubble.StateInfo) error {
-	return bp.db.StoreStateInfo(blockHash, stateInfo.BubbleId, stateInfo)
+	return validator, nil
 }
 
 func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.Size) error {
@@ -317,7 +266,7 @@ func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.S
 }
 
 // CreateBubble run the non-business logic to create bubble
-func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, from common.Address, nonce uint64, parentNonce [][]byte, size bubble.Size) (*bubble.Bubble, error) {
+func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, from common.Address, nonce uint64, parentNonce [][]byte, size bubble.Size) (*bubble.BasicsInfo, error) {
 	bubbleSize, err := bubble.GetConfig(size)
 	if err != nil {
 		return nil, err
@@ -372,17 +321,11 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		return nil, errors.New(fmt.Sprintf("bubble %d already exist", bubbleID))
 	}
 
-	basics := &bubble.BasicsInfo{
-		BubbleId:    bubbleID,
-		Size:        size,
-		OperatorsL1: OperatorsL1,
-		OperatorsL2: OperatorsL2,
-		MicroNodes:  microNodes,
-	}
-
 	baseBlock := uint64(gomath.Ceil(float64(blockNumber.Uint64())/float64(xutil.CalcBlocksEachEpoch()))) * xutil.CalcBlocksEachEpoch()
-	status := &bubble.StateInfo{
+
+	bub := &bubble.BasicsInfo{
 		BubbleId:        bubbleID,
+		Size:            size,
 		State:           bubble.ActiveState,
 		CreateBlock:     blockNumber.Uint64(),
 		PreReleaseBlock: baseBlock + preReleaseLife,
@@ -390,37 +333,40 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		ContractCount:   0,
 	}
 
-	bub := &bubble.Bubble{
-		BasicsInfo: basics,
-		StateInfo:  status,
+	validator := &bubble.ValidatorInfo{
+		BubbleId:    bubbleID,
+		OperatorsL1: OperatorsL1,
+		OperatorsL2: OperatorsL2,
+		MicroNodes:  microNodes,
 	}
 
 	// store bubble basics
-	if err := bp.db.StoreBasicsInfo(blockHash, basics.BubbleId, basics); err != nil {
+	if err := bp.db.StoreBasicsInfo(blockHash, bub.BubbleId, bub); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble basics failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
-		return nil, err
-	}
-	// store bubble state
-	if err := bp.db.StoreStateInfo(blockHash, basics.BubbleId, status); err != nil {
-		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble state failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err.Error())
 		return nil, err
 	}
 
-	if err := bp.db.StoreBubbleIdBySize(blockHash, size, basics.BubbleId); err != nil {
+	// store bubble state
+	if err := bp.db.StoreValidatorInfo(blockHash, validator.BubbleId, validator); err != nil {
+		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble validator failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", validator.BubbleId, "err", err.Error())
+		return nil, err
+	}
+
+	if err := bp.db.StoreBubbleIdBySize(blockHash, size, bub.BubbleId); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble sized info failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err.Error())
 		return nil, err
 	}
 
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.CreateBubbleTask{
-		BubbleID: bub.BasicsInfo.BubbleId,
+		BubbleID: bub.BubbleId,
 		TxHash:   txHash,
 	}
 
-	for _, operators := range bub.BasicsInfo.OperatorsL1 {
+	for _, operators := range validator.OperatorsL1 {
 		if operators.NodeId == bp.NodeID {
 			if err := bp.PostCreateBubbleEvent(task); err != nil {
 				return nil, err
@@ -676,7 +622,7 @@ func (bp *BubblePlugin) ElectBubble(blockHash common.Hash, nonce uint64, preNonc
 }
 
 func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, blockNumber uint64, bubbleID *big.Int) error {
-	bub, err := bp.GetBasicsInfo(blockHash, bubbleID)
+	val, err := bp.GetValidatorInfo(blockHash, bubbleID)
 	if err != nil {
 		return err
 	}
@@ -684,11 +630,11 @@ func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, blockNumber uint64,
 	task := &bubble.RemoteDestroyTask{
 		BlockNumber: blockNumber,
 		BubbleID:    bubbleID,
-		RPC:         bub.OperatorsL2[0].RPC,
-		OpAddr:      bub.OperatorsL1[0].OpAddr,
+		RPC:         val.OperatorsL2[0].RPC,
+		OpAddr:      val.OperatorsL1[0].OpAddr,
 	}
 
-	for _, operators := range bub.OperatorsL1 {
+	for _, operators := range val.OperatorsL1 {
 		if operators.NodeId == bp.NodeID {
 			if err := bp.PostRemoteDestroyEvent(task); err != nil {
 				return err
@@ -703,36 +649,40 @@ func (bp *BubblePlugin) DestroyBubble(blockHash common.Hash, blockNumber uint64,
 func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.Int, bubbleID *big.Int) error {
 	bub, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
+		log.Error("Failed to GetBubbleInfo on ReleaseBubble", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID",
+			bub.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
-	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
-	if err != nil {
-		log.Error("Failed to GetStateInfo on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
-		return err
-	}
-	if status.State <= bubble.ReleasedState {
-		status.State = bubble.ReleasedState
+	if bub.State <= bubble.ReleasedState {
+		bub.State = bubble.ReleasedState
 	} else {
 		log.Error("bubble is already released")
 		return errors.New("bubble is already released")
 	}
 
+	// release the committee nodes to the DB
 	var committeeCount uint32
-	// release the committeeL2 nodes to the DB
-	for _, microNode := range bub.MicroNodes {
+	val, err := bp.GetValidatorInfo(blockHash, bubbleID)
+	if err != nil {
+		log.Error("Failed to GetValidatorInfo on ReleaseBubble", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID",
+			bub.BubbleId.String(), "err", err.Error())
+		return err
+	}
+
+	for _, microNode := range val.MicroNodes {
 		addr, err := xutil.NodeId2Addr(microNode.NodeId)
 		if err != nil {
 			return err
 		}
 		// check whether the node has been withdrawn
 		can, err := bp.stk2Plugin.db.GetCandidateStore(blockHash, addr)
-		if can == nil || err == snapshotdb.ErrNotFound {
+		if can == nil || err != nil {
 			break
 		}
 
 		if microNode.IsOperator {
+			// release operator node
 			Operator, _ := bp.stk2Plugin.db.GetOperatorStore(blockHash, addr)
 			if Operator != nil {
 				log.Error("Failed to SetOperatorStore on ReleaseBubble: Operator info is exist",
@@ -746,6 +696,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 				return err
 			}
 		} else {
+			// release committee node
 			committeeCount += 1
 			Committee, _ := bp.stk2Plugin.db.GetCommitteeStore(blockHash, addr)
 			if Committee != nil {
@@ -762,30 +713,30 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 		}
 	}
 
+	if err := bp.db.StoreBasicsInfo(blockHash, bubbleID, bub); err != nil {
+		log.Error("Failed to StoreBasicsInfo on ReleaseBubble",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BubbleId.String(), "err", err.Error())
+		return err
+	}
+
 	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
 		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
-	if err := bp.db.DelBubbleIdBySize(blockHash, bub.Size, bub.BasicsInfo.BubbleId); err != nil {
+	if err := bp.db.DelBubbleIdBySize(blockHash, bub.Size, bub.BubbleId); err != nil {
 		log.Error("Failed to DelBubbleIdBySize on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
-		return err
-	}
-
-	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
-		log.Error("Failed to StoreBubState on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
 	// send release bubble event to the blockchain Mux if local node is operator
 	task := &bubble.ReleaseBubbleTask{
-		BubbleID: bub.BasicsInfo.BubbleId,
+		BubbleID: val.BubbleId,
 	}
 
-	for _, operators := range bub.BasicsInfo.OperatorsL1 {
+	for _, operators := range val.OperatorsL1 {
 		if operators.NodeId == bp.NodeID {
 			if err := bp.PostReleaseBubbleEvent(task); err != nil {
 				return err
@@ -1458,10 +1409,10 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	return hash.Bytes(), nil
 }
 
-func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
+func makeGenesisL2(val *bubble.ValidatorInfo) *bubble.GenesisL2 {
 
 	var initNodes []params.InitNode
-	for _, node := range bub.MicroNodes {
+	for _, node := range val.MicroNodes {
 		initNode := params.InitNode{
 			Enode:     node.P2PURI,
 			BlsPubkey: node.BlsPubKey.String(),
@@ -1483,7 +1434,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 
 	genesisL2 := &bubble.GenesisL2{
 		Config: &params.ChainConfig{
-			ChainID: bub.BasicsInfo.BubbleId,
+			ChainID: val.BubbleId,
 			Frps:    params.GlobalFrpsCfg,
 			Cbft: &params.CbftConfig{
 				Period:        10000,
@@ -1494,8 +1445,8 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 			GenesisVersion: gov.L2Version,
 		},
 		OpConfig: &bubble.OpConfig{
-			MainChain: bub.OperatorsL1[0],
-			SubChain:  bub.OperatorsL2[0],
+			MainChain: val.OperatorsL1,
+			SubChain:  val.OperatorsL2,
 		},
 		EconomicModel: em,
 		Nonce:         []byte{},
@@ -1512,7 +1463,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 		ParentHash: common.ZeroHash,
 	}
 	// The ip address of the frps is updated to be the ip address of the operating node of L1
-	rpcUrl := bub.OperatorsL1[0].RPC
+	rpcUrl := val.OperatorsL1[0].RPC
 	index := strings.Index(rpcUrl, "//")
 	if index != -1 {
 		rpcUrl = rpcUrl[index+2:]
@@ -1535,13 +1486,13 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 	// wait for blocks to be written to the db
 	// TODO：if not, panic by BLS segmentation violation
 	time.Sleep(3 * time.Second)
-	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	val, err := bp.GetValidatorInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error(), "bubbleId", task.BubbleID)
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
 	}
 
-	genesisL2 := makeGenesisL2(bub)
+	genesisL2 := makeGenesisL2(val)
 	genesisData, err := json.Marshal(genesisL2)
 	if err != nil {
 		log.Error("failed to marshal genesis", "error", err.Error())
@@ -1551,13 +1502,13 @@ func (bp *BubblePlugin) HandleCreateBubbleTask(task *bubble.CreateBubbleTask) er
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(bub.BasicsInfo.MicroNodes))
+	waitGroup.Add(len(val.MicroNodes))
 
 	client := &http.Client{}
 	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.CreateBubble, string(genesisData))
 
 	// make request
-	for _, microNode := range bub.BasicsInfo.MicroNodes {
+	for _, microNode := range val.MicroNodes {
 		// send and retry CreateBubbleTask
 		log.Debug("prepare to send CreateBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
 		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)
@@ -1585,7 +1536,7 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 	// wait for blocks to be written to the db
 	// TODO：if not, panic by BLS segmentation violation
 	time.Sleep(3 * time.Second)
-	bub, err := bp.GetBubbleInfo(common.ZeroHash, task.BubbleID)
+	val, err := bp.GetValidatorInfo(common.ZeroHash, task.BubbleID)
 	if err != nil {
 		log.Error("failed to get bubble info", "error", err.Error())
 		return errors.New(fmt.Sprintf("failed to get bubble info: %s", err.Error()))
@@ -1594,13 +1545,13 @@ func (bp *BubblePlugin) HandleReleaseBubbleTask(task *bubble.ReleaseBubbleTask) 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(bub.BasicsInfo.MicroNodes))
+	waitGroup.Add(len(val.MicroNodes))
 
 	client := &http.Client{}
-	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, bub.BasicsInfo.BubbleId)
+	data := fmt.Sprintf("{\"type\": %d, \"data\": %s}", bubble.ReleaseBubble, val.BubbleId)
 
 	// make request
-	for _, microNode := range bub.BasicsInfo.MicroNodes {
+	for _, microNode := range val.MicroNodes {
 		// send and retry ReleaseBubbleTask
 		log.Debug("prepare to send ReleaseBubbleTask", "ElectronURI", microNode.ElectronURI, "data", data)
 		go sendTask(ctx, waitGroup, client, microNode.ElectronURI, data)

@@ -23,10 +23,10 @@ type Config struct {
 }
 
 var (
-	microBubbleConfig  = &Config{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 3, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(5))}
-	smallBubbleConfig  = &Config{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 6, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(10))}
-	mediumBubbleConfig = &Config{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 12, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(20))}
-	largeBubbleConfig  = &Config{OperatorL1Size: 1, OperatorL2Size: 1, CommitteeSize: 24, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(40))}
+	microBubbleConfig  = &Config{OperatorL1Size: 2, OperatorL2Size: 2, CommitteeSize: 5, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(5))}
+	smallBubbleConfig  = &Config{OperatorL1Size: 4, OperatorL2Size: 4, CommitteeSize: 9, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(10))}
+	mediumBubbleConfig = &Config{OperatorL1Size: 6, OperatorL2Size: 6, CommitteeSize: 13, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(20))}
+	largeBubbleConfig  = &Config{OperatorL1Size: 8, OperatorL2Size: 8, CommitteeSize: 17, MinStakingAmount: new(big.Int).Mul(big.NewInt(params.BUB), big.NewInt(40))}
 )
 
 var configsTable = map[Size]*Config{
@@ -72,32 +72,26 @@ type CommitteeQueue []*stakingL2.Candidate
 // BasicsInfo stores the basic information when the bubble network is created,
 // and the data will not be chang during the lifetime of the bubble network
 type BasicsInfo struct {
-	BubbleId    *big.Int
-	Size        Size
-	OperatorsL1 []*Operator
-	OperatorsL2 []*Operator
-	MicroNodes  ValidatorQueue
-}
-
-type StateInfo struct {
 	BubbleId        *big.Int
-	State           State
+	Size            Size
 	CreateBlock     uint64
 	PreReleaseBlock uint64
 	ReleaseBlock    uint64
+	State           State
 	ContractCount   uint
+}
+
+type ValidatorInfo struct {
+	BubbleId    *big.Int
+	OperatorsL1 []*Operator
+	OperatorsL2 []*Operator
+	MicroNodes  ValidatorQueue
 }
 
 type TransactionInfo struct {
 	StakingTokenTxHashList  []common.Hash // List of stakingToken transaction hashes
 	WithdrewTokenTxHashList []common.Hash // List of withdrewToken transaction hashes
 	SettleBubbleTxHashList  []common.Hash // List of settleBubble transaction hashes
-}
-
-type Bubble struct {
-	*BasicsInfo // Bubble Basics
-	*StateInfo
-	*TransactionInfo
 }
 
 const (

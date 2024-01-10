@@ -135,14 +135,14 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 		Balance:     Op2Amount,
 	}
 	opL2s = append(opL2s, &opL2)
-	basics := BasicsInfo{
+	validator := ValidatorInfo{
 		BubbleId:    testBubbleId,
 		OperatorsL1: opL1s,
 		OperatorsL2: opL2s,
 		MicroNodes:  nil,
 	}
 	// store bubble basics
-	if err := bubDB.StoreBasicsInfo(newBlockHash, testBubbleId, &basics); err != nil {
+	if err := bubDB.StoreValidatorInfo(newBlockHash, testBubbleId, &validator); err != nil {
 		fmt.Errorf("failed to StoreBasicsInfo, %v", err)
 	}
 
@@ -154,17 +154,17 @@ func TestBubbleDB_StoreBubBasic_GetBubBasic(t *testing.T) {
 	assert.True(t, nil != basic)
 	assert.Equal(t, basic.BubbleId, testBubbleId, "Query Bubble ID error")
 
-	assert.Equal(t, basic.OperatorsL1[0].NodeId, Op1NodeId, "Query Bubble main-chain Operator NodeID error")
-	assert.Equal(t, basic.OperatorsL1[0].ElectronRPC, Op1ElectronRPC, "Query Bubble main-chain Operator ElectronRPC error")
-	assert.Equal(t, basic.OperatorsL1[0].RPC, Op1RPC, "Query Bubble main-chain Operator RPC error")
-	assert.Equal(t, basic.OperatorsL1[0].OpAddr, Op1Addr, "Query Bubble main-chain Operator address error")
-	assert.Equal(t, basic.OperatorsL1[0].Balance, Op1Amount, "Query Bubble main-chain Operator balance error")
+	assert.Equal(t, validator.OperatorsL1[0].NodeId, Op1NodeId, "Query Bubble main-chain Operator NodeID error")
+	assert.Equal(t, validator.OperatorsL1[0].ElectronRPC, Op1ElectronRPC, "Query Bubble main-chain Operator ElectronRPC error")
+	assert.Equal(t, validator.OperatorsL1[0].RPC, Op1RPC, "Query Bubble main-chain Operator RPC error")
+	assert.Equal(t, validator.OperatorsL1[0].OpAddr, Op1Addr, "Query Bubble main-chain Operator address error")
+	assert.Equal(t, validator.OperatorsL1[0].Balance, Op1Amount, "Query Bubble main-chain Operator balance error")
 
-	assert.Equal(t, basic.OperatorsL2[0].NodeId, Op2NodeId, "Query Bubble sub-chain Operator NodeID error")
-	assert.Equal(t, basic.OperatorsL2[0].ElectronRPC, Op2ElectronRPC, "Query Bubble sub-chain Operator ElectronRPC error")
-	assert.Equal(t, basic.OperatorsL2[0].RPC, Op2RPC, "Query Bubble sub-chain Operator RPC error")
-	assert.Equal(t, basic.OperatorsL2[0].OpAddr, Op2Addr, "Query Bubble sub-chain Operator address error")
-	assert.Equal(t, basic.OperatorsL2[0].Balance, Op2Amount, "Query Bubble sub-chain Operator balance error")
+	assert.Equal(t, validator.OperatorsL2[0].NodeId, Op2NodeId, "Query Bubble sub-chain Operator NodeID error")
+	assert.Equal(t, validator.OperatorsL2[0].ElectronRPC, Op2ElectronRPC, "Query Bubble sub-chain Operator ElectronRPC error")
+	assert.Equal(t, validator.OperatorsL2[0].RPC, Op2RPC, "Query Bubble sub-chain Operator RPC error")
+	assert.Equal(t, validator.OperatorsL2[0].OpAddr, Op2Addr, "Query Bubble sub-chain Operator address error")
+	assert.Equal(t, validator.OperatorsL2[0].Balance, Op2Amount, "Query Bubble sub-chain Operator balance error")
 
 }
 
@@ -172,7 +172,7 @@ func TestBubbleDB_StoreStateInfo_GetStateInfo(t *testing.T) {
 	newBlockHash := newFirstBlock()
 	bubDB := NewDB()
 	// store bubble state
-	status := &StateInfo{
+	bub := &BasicsInfo{
 		BubbleId:        testBubbleId,
 		State:           ActiveState,
 		ContractCount:   0,
@@ -180,17 +180,17 @@ func TestBubbleDB_StoreStateInfo_GetStateInfo(t *testing.T) {
 		PreReleaseBlock: 1,
 		ReleaseBlock:    2,
 	}
-	if err := bubDB.StoreStateInfo(newBlockHash, testBubbleId, status); err != nil {
+	if err := bubDB.StoreBasicsInfo(newBlockHash, testBubbleId, bub); err != nil {
 		fmt.Errorf("failed to StoreBasicsInfo, %v", err)
 	}
 
-	state, err := bubDB.GetStateInfo(newBlockHash, testBubbleId)
-	if state == nil || err != nil {
+	bub, err := bubDB.GetBasicsInfo(newBlockHash, testBubbleId)
+	if bub == nil || err != nil {
 		fmt.Errorf("failed to get bubble state, %v", err)
 	}
 	assert.True(t, nil == err)
-	assert.True(t, nil != state)
-	assert.Equal(t, *state, ActiveState, "Query Bubble State error")
+	assert.True(t, nil != bub)
+	assert.Equal(t, *bub, ActiveState, "Query Bubble State error")
 }
 
 func TestBubbleDB_StoreAccListOfBub_GetAccListOfBub(t *testing.T) {

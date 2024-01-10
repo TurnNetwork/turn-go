@@ -43,6 +43,8 @@ const (
 	CallGetBubbleInfo     = 8100
 	CallGetL1HashByL2Hash = 8101
 	CallGetBubTxHashList  = 8102
+	CallGetValidatorInfo  = 8103
+	CallGetAllBubble      = 8104
 )
 
 type BubbleContract struct {
@@ -82,6 +84,8 @@ func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 		CallGetBubbleInfo:     bc.getBubbleInfo,
 		CallGetL1HashByL2Hash: bc.getL1HashByL2Hash,
 		CallGetBubTxHashList:  bc.getBubTxHashList,
+		CallGetValidatorInfo:  bc.getBubbleValidator,
+		CallGetAllBubble:      bc.GetAllBubble,
 	}
 }
 
@@ -128,7 +132,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 			if err != nil {
 				log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			} else {
-				return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bub.BasicsInfo.BubbleId), nil
+				return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bub), nil
 			}
 		}
 	}
@@ -149,6 +153,18 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 	return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bubbleId), nil
 }
 
+func (bc *BubbleContract) GetAllBubble() ([]byte, error) {
+	blockHash := bc.Evm.Context.BlockHash
+
+	bubs, err := bc.Plugin.GetBubbles(blockHash)
+	if err != nil {
+		return callResultHandler(bc.Evm, "getAllBubble", bubs,
+			bubble.ErrBubbleNotExist.Wrap(err.Error())), nil
+	}
+
+	return callResultHandler(bc.Evm, "getAllBubble", bubs, nil), nil
+}
+
 // getBubbleInfo return the bubble information by bubble ID
 func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	blockHash := bc.Evm.Context.BlockHash
@@ -160,6 +176,19 @@ func (bc *BubbleContract) getBubbleInfo(bubbleID *big.Int) ([]byte, error) {
 	}
 
 	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), bub, nil), nil
+}
+
+// getBubbleValidator return the bubble validator by bubble ID
+func (bc *BubbleContract) getBubbleValidator(bubbleID *big.Int) ([]byte, error) {
+	blockHash := bc.Evm.Context.BlockHash
+
+	val, err := bc.Plugin.GetValidatorInfo(blockHash, bubbleID)
+	if err != nil {
+		return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), val,
+			bubble.ErrBubbleNotExist.Wrap(err.Error())), nil
+	}
+
+	return callResultHandler(bc.Evm, fmt.Sprintf("getBubbleInfo, bubbleID: %d", bubbleID), val, nil), nil
 }
 
 func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Address, amount *big.Int, data []byte) ([]byte, error) {
@@ -241,13 +270,18 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 		return nil, err
 	}
 
-	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	bub, err = bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
 	if err != nil {
 		return nil, err
 	}
 
-	statusInfo.ContractCount = statusInfo.ContractCount + 1
-	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+	bub.ContractCount = bub.ContractCount + 1
+	if err := bc.Plugin.SetBubbleInfo(blockHash, bub); err != nil {
+		return nil, err
+	}
+
+	val, err := bc.Plugin.GetValidatorInfo(blockHash, bubbleID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -259,11 +293,11 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 		BubbleID:  bubbleID,
 		Address:   contract,
 		Data:      data,
-		RPC:       bub.OperatorsL2[0].RPC,
-		OpAddr:    bub.OperatorsL1[0].OpAddr,
+		RPC:       val.OperatorsL2[0].RPC,
+		OpAddr:    val.OperatorsL1[0].OpAddr,
 	}
 
-	for _, operators := range bub.OperatorsL1 {
+	for _, operators := range val.OperatorsL1 {
 		if operators.NodeId == bc.Plugin.NodeID {
 			if err := bc.Plugin.PostRemoteDeployEvent(task); err != nil {
 				return nil, err
@@ -312,12 +346,12 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Addres
 	state.SubBalance(vm.BubbleContractAddr, contractInfo.Amount)
 	state.AddBalance(origin, contractInfo.Amount)
 
-	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	val, err := bc.Plugin.GetValidatorInfo(blockHash, bubbleID)
 	if err != nil {
 		return nil, err
 	}
-	statusInfo.ContractCount = statusInfo.ContractCount - 1
-	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+	bub.ContractCount = bub.ContractCount - 1
+	if err := bc.Plugin.SetBubbleInfo(blockHash, bub); err != nil {
 		return nil, err
 	}
 
@@ -327,11 +361,11 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Addres
 		BlockHash: blockHash,
 		BubbleID:  bubbleID,
 		Contract:  contract,
-		RPC:       bub.OperatorsL2[0].RPC,
-		OpAddr:    bub.OperatorsL1[0].OpAddr,
+		RPC:       val.OperatorsL2[0].RPC,
+		OpAddr:    val.OperatorsL1[0].OpAddr,
 	}
 
-	for _, operators := range bub.OperatorsL1 {
+	for _, operators := range val.OperatorsL1 {
 		if operators.NodeId == bc.Plugin.NodeID {
 			if err := bc.Plugin.PostRemoteRemoveEvent(task); err != nil {
 				return nil, err
@@ -356,7 +390,7 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 		return nil, ErrOutOfGas
 	}
 
-	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	val, err := bc.Plugin.GetValidatorInfo(blockHash, bubbleID)
 	if err != nil {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCall", "the bubble is not exist", TxRemoteCall, bubble.ErrBubbleNotExist)
 	}
@@ -377,11 +411,11 @@ func (bc *BubbleContract) remoteCall(bubbleID *big.Int, contract common.Address,
 		BubbleID: bubbleID,
 		Contract: contract,
 		Data:     data,
-		RPC:      bub.OperatorsL2[0].RPC,
-		OpAddr:   bub.OperatorsL1[0].OpAddr,
+		RPC:      val.OperatorsL2[0].RPC,
+		OpAddr:   val.OperatorsL1[0].OpAddr,
 	}
 
-	for _, operators := range bub.OperatorsL1 {
+	for _, operators := range val.OperatorsL1 {
 		if operators.NodeId == bc.Plugin.NodeID {
 			if err := bc.Plugin.PostRemoteCallEvent(task); err != nil {
 				return nil, err
@@ -405,12 +439,12 @@ func (bc *BubbleContract) remoteCallExecutor(bubbleID *big.Int, remoteTxHash com
 	}
 
 	// sender only operator
-	bub, err := bc.Plugin.GetBubbleInfo(blockHash, bubbleID)
+	val, err := bc.Plugin.GetValidatorInfo(blockHash, bubbleID)
 	if err != nil {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "the bubble is not exist", TxRemoteCallExecutor, bubble.ErrBubbleNotExist)
 	}
 
-	if from != bub.OperatorsL2[0].OpAddr {
+	if from != val.OperatorsL2[0].OpAddr {
 		return txResultHandler(vm.BubbleContractAddr, bc.Evm, "remoteCallExecutor", "sender is not operator", TxRemoteCallExecutor, bubble.ErrSenderNotOperator)
 	}
 
@@ -581,18 +615,18 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		return nil, bubble.ErrStakingAccount
 	}
 	// Get Bubble Basics
-	basics, err := bp.GetBasicsInfo(blockHash, bubbleID)
+	basics, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == basics {
 		return nil, bubble.ErrBubbleNotExist
 	}
+	if basics.State == bubble.ReleasedState {
+		return nil, bubble.ErrBubbleIsRelease
+	}
 
 	// check bubble state
-	bubState, err := bp.GetStateInfo(blockHash, bubbleID)
-	if nil != err || nil == bubState {
+	validator, err := bp.GetValidatorInfo(blockHash, bubbleID)
+	if nil != err || nil == validator {
 		return nil, bubble.ErrBubbleNotExist
-	}
-	if bubState.State == bubble.ReleasedState {
-		return nil, bubble.ErrBubbleIsRelease
 	}
 
 	// staking native tokens
@@ -668,12 +702,12 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 	}
 	// Send the corresponding minting task
 	// Only bubble's main-chain operator node needs to handle this task
-	if bc.Plugin.NodeID == basics.OperatorsL1[0].NodeId {
+	if bc.Plugin.NodeID == validator.OperatorsL1[0].NodeId {
 		mintTokenTask := bubble.MintTokenTask{
 			BubbleID: bubbleID,
 			TxHash:   state.TxHash(),
-			RPC:      basics.OperatorsL2[0].RPC,
-			OpAddr:   basics.OperatorsL1[0].OpAddr,
+			RPC:      validator.OperatorsL2[0].RPC,
+			OpAddr:   validator.OperatorsL1[0].OpAddr,
 			AccAsset: &stakingAsset,
 		}
 
@@ -692,18 +726,11 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 	state := bc.Evm.StateDB
 
 	// Get Bubble Basics
-	basics, err := bp.GetBasicsInfo(blockHash, bubbleID)
+	basics, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == basics {
 		return nil, bubble.ErrBubbleNotExist
 	}
-
-	// check bubble state
-	stateInfo, err := bp.GetStateInfo(blockHash, bubbleID)
-	if nil != err || nil == stateInfo {
-		return nil, bubble.ErrBubbleNotExist
-	}
-	// check bubble state
-	if stateInfo.State != bubble.ReleasedState {
+	if basics.State != bubble.ReleasedState {
 		return nil, bubble.ErrBubbleIsNotRelease
 	}
 
@@ -791,22 +818,22 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 	from := bc.Contract.CallerAddress
 
 	// Get Bubble Basics
-	basics, err := bp.GetBasicsInfo(blockHash, bubbleID)
+	basics, err := bp.GetBubbleInfo(blockHash, bubbleID)
 	if nil != err || nil == basics {
 		return nil, bubble.ErrBubbleNotExist
 	}
-
-	// check bubble state
-	stateInfo, err := bp.GetStateInfo(blockHash, bubbleID)
-	if nil != err || nil == stateInfo {
-		return nil, bubble.ErrBubbleNotExist
-	}
-	if stateInfo.State == bubble.ReleasedState {
+	if basics.State == bubble.ReleasedState {
 		return nil, bubble.ErrBubbleIsRelease
 	}
 
+	// check bubble state
+	validator, err := bp.GetValidatorInfo(blockHash, bubbleID)
+	if nil != err || nil == validator {
+		return nil, bubble.ErrBubbleNotExist
+	}
+
 	// Only the sub-chain operating address has the authority to submit settlement transactions
-	if from != basics.OperatorsL2[0].OpAddr {
+	if from != validator.OperatorsL2[0].OpAddr {
 		return nil, bubble.ErrIsNotSubChainOpAddr
 	}
 
@@ -859,5 +886,6 @@ func SettleBubble(bc *BubbleContract, L2SettleTxHash common.Hash, bubbleID *big.
 	if err := bp.StoreTxHashToBub(blockHash, bubbleID, bc.Evm.StateDB.TxHash(), bubble.SettleBubble); nil != err {
 		return nil, err
 	}
+
 	return []byte{0x1}, nil
 }

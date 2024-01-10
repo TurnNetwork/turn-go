@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	AccListKeyPrefix    = []byte("AccList")  // the key prefix of the accounts list of the staking token
-	AccAssetKeyPrefix   = []byte("AccAsset") // key prefix of the asset information of the pledge account
-	TxHashKeyPrefix     = []byte("TxHash")
-	TxHashListKeyPrefix = []byte("TxHashList")    // The key prefix of the transaction hash list
-	BasicsInfoKeyPrefix = []byte("BubBasicsInfo") // The key prefix of the bubble basics
-	StateInfoKeyPrefix  = []byte("BubStateInfo")  // The key prefix of the bubble state
-	SizeRootPrefix      = []byte("BubSize")
-	ByteCodePrefix      = []byte("BubBytecode")
-	ContractInfoPrefix  = []byte("BubContractInfo")
+	AccListKeyPrefix       = []byte("AccList")  // the key prefix of the accounts list of the staking token
+	AccAssetKeyPrefix      = []byte("AccAsset") // key prefix of the asset information of the pledge account
+	TxHashKeyPrefix        = []byte("TxHash")
+	TxHashListKeyPrefix    = []byte("TxHashList")       // The key prefix of the transaction hash list
+	BasicsInfoKeyPrefix    = []byte("BubBasicsInfo")    // The key prefix of the bubble basics
+	ValidatorInfoKeyPrefix = []byte("BubValidatorInfo") // The key prefix of the bubble basics
+	SizeRootPrefix         = []byte("BubSize")
+	ByteCodePrefix         = []byte("BubBytecode")
+	ContractInfoPrefix     = []byte("BubContractInfo")
 )
 
 // getBasicsInfoKey bubble basics that press bubbleId key
@@ -27,13 +27,13 @@ func getBasicsInfoKey(bubbleID *big.Int) []byte {
 	return append(BasicsInfoKeyPrefix, bid...)
 }
 
-// getStateInfoKey bubble state that press bubbleId key
-func getStateInfoKey(bubbleID *big.Int) []byte {
+// getValidatorInfoKey bubble basics that press bubbleId key
+func getValidatorInfoKey(bubbleID *big.Int) []byte {
 	bid, err := rlp.EncodeToBytes(bubbleID)
 	if nil != err {
 		return nil
 	}
-	return append(StateInfoKeyPrefix, bid...)
+	return append(ValidatorInfoKeyPrefix, bid...)
 }
 
 func getBubbleSizePrefix(size Size) []byte {

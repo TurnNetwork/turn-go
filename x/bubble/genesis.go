@@ -24,8 +24,8 @@ type Operator struct {
 // OpConfig is operator profiles, including main-chain operator
 // and sub-chain operator profiles, interact between main-chain and sub-chain through the operator
 type OpConfig struct {
-	MainChain *Operator `json:"mainChain,omitempty"` // Main chain operator information configuration
-	SubChain  *Operator `json:"subChain,omitempty"`  // Child chain operator information configuration
+	MainChain []*Operator `json:"mainChain,omitempty"` // Main chain operator information configuration
+	SubChain  []*Operator `json:"subChain,omitempty"`  // Child chain operator information configuration
 }
 
 type StakingConfig struct {

@@ -54,29 +54,38 @@ func (db *DB) DelBasicsInfo(blockHash common.Hash, bubbleID *big.Int) error {
 	return nil
 }
 
-func (db *DB) IteratorStateInfo(blockHash common.Hash, ranges int) iterator.Iterator {
-	return db.db.Ranking(blockHash, StateInfoKeyPrefix, ranges)
-}
+/*
+ValidatorInfo
+*/
 
-func (db *DB) GetStateInfo(blockHash common.Hash, bubbleId *big.Int) (*StateInfo, error) {
-	data, err := db.db.Get(blockHash, getStateInfoKey(bubbleId))
+func (db *DB) GetValidatorInfo(blockHash common.Hash, bubbleId *big.Int) (*ValidatorInfo, error) {
+	data, err := db.db.Get(blockHash, getValidatorInfoKey(bubbleId))
 	if err != nil {
+		log.Error("failed to GetValidatorInfo", "error", err.Error())
 		return nil, err
 	}
-	var stateInfo StateInfo
-	if err := rlp.DecodeBytes(data, &stateInfo); err != nil {
+	var validator ValidatorInfo
+	if err := rlp.DecodeBytes(data, &validator); err != nil {
+		log.Error("failed to decode ValidatorInfo", "error", err.Error())
 		return nil, err
 	} else {
-		return &stateInfo, nil
+		return &validator, nil
 	}
 }
 
-func (db *DB) StoreStateInfo(blockHash common.Hash, bubbleId *big.Int, stateInfo *StateInfo) error {
-	if data, err := rlp.EncodeToBytes(stateInfo); err != nil {
+func (db *DB) StoreValidatorInfo(blockHash common.Hash, bubbleId *big.Int, validator *ValidatorInfo) error {
+	if data, err := rlp.EncodeToBytes(validator); err != nil {
 		return err
 	} else {
-		return db.db.Put(blockHash, getStateInfoKey(bubbleId), data)
+		return db.db.Put(blockHash, getValidatorInfoKey(bubbleId), data)
 	}
+}
+
+func (db *DB) DelValidatorInfo(blockHash common.Hash, bubbleID *big.Int) error {
+	if err := db.db.Del(blockHash, getValidatorInfoKey(bubbleID)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *DB) IteratorBubbleIdBySize(blockHash common.Hash, size Size, ranges int) iterator.Iterator {
