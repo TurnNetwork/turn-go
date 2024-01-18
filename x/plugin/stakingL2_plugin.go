@@ -171,52 +171,6 @@ func (sk *StakingL2Plugin) EditCandidate(blockHash common.Hash, blockNumber *big
 	return nil
 }
 
-//func (sk *StakingL2Plugin) IncreaseStaking(state xcom.StateDB, blockHash common.Hash, blockNumber,
-//	amount *big.Int, canAddr common.NodeAddress, can *stakingL2.Candidate) error {
-//
-//	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
-//
-//	lazyCalcL2StakeAmount(epoch, can.CandidateMutable)
-//
-//	origin := state.GetBalance(can.StakingAddress)
-//	if origin.Cmp(amount) < 0 {
-//		log.Error("Failed to IncreaseStaking on StakingL2Plugin: the account free von is not Enough",
-//			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "account", can.StakingAddress,
-//			"originVon", origin, "stakingVon", amount)
-//		return stakingL2.ErrAccountVonNoEnough
-//	}
-//	state.SubBalance(can.StakingAddress, amount)
-//	state.AddBalance(vm.StakingContractAddr, amount)
-//	can.PendingShares = new(big.Int).Add(can.PendingShares, amount)
-//
-//	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-//		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Delete Candidate old power is failed",
-//			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err.Error())
-//		return err
-//	}
-//
-//	can.StakingEpoch = uint32(epoch)
-//	can.AddShares(amount)
-//
-//	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-//		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Store Candidate new power is failed",
-//			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err.Error())
-//		return err
-//	}
-//
-//	if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
-//		log.Error("Failed to IncreaseStaking on StakingL2Plugin: Store CandidateMutable info is failed",
-//			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
-//			"nodeId", can.NodeId.String(), "err", err.Error())
-//		return err
-//	}
-//
-//	return nil
-//}
-
 func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	canAddr common.NodeAddress, can *stakingL2.Candidate) error {
 
@@ -231,6 +185,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 	can.StakingEpoch = uint32(epoch)
 
 	if can.LockedShares.Cmp(common.Big0) > 0 {
+		// update shares
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Store CandidateMutable info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
@@ -251,6 +206,7 @@ func (sk *StakingL2Plugin) WithdrewStaking(state xcom.StateDB, blockHash common.
 				return err
 			}
 		}
+
 		if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on StakingL2Plugin: Delete Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err.Error())
@@ -535,8 +491,20 @@ func lazyCalcL2StakeAmount(epoch uint64, can *stakingL2.CandidateMutable) {
 
 func (sk *StakingL2Plugin) addUnStakeRecord(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
 	nodeId discover.NodeID, canAddr common.NodeAddress, stakingBlockNum uint64) error {
+	refundBlock := blockNumber
 
-	refundEpoch := xutil.CalculateEpoch(blockNumber) + 0
+	// if the node is in an bubble, its withdraw block number is the release block number of the bubble
+	bp := BubbleInstance()
+	bubbleId, _ := bp.GetJoinBubble(blockHash, nodeId)
+	if bubbleId != nil {
+		bubble, _ := bp.GetBubbleInfo(blockHash, bubbleId)
+		if bubble != nil {
+			refundBlock = bubble.ReleaseBlock
+		}
+	}
+
+	refundEpoch := xutil.CalculateEpoch(refundBlock) + 0
+
 	log.Debug("Call addUnStakeRecord, AddUnStakeRecordStore start", "current blockNumber", blockNumber,
 		"unStakeFreeze Epoch", 0, "unStake record refund Epoch", refundEpoch, "nodeId", nodeId.String())
 

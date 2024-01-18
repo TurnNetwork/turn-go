@@ -244,6 +244,18 @@ func (bp *BubblePlugin) GetValidatorInfo(blockHash common.Hash, bubbleID *big.In
 	return validator, nil
 }
 
+func (bp *BubblePlugin) GetJoinBubble(blockHash common.Hash, nodeId discover.NodeID) (*big.Int, error) {
+	return bp.db.GetJoinBubble(blockHash, nodeId)
+}
+
+func (bp *BubblePlugin) SetJoinBubble(blockHash common.Hash, nodeId discover.NodeID, bubbleId *big.Int) error {
+	return bp.db.StoreJoinBubble(blockHash, nodeId, bubbleId)
+}
+
+func (bp *BubblePlugin) DelJoinBubble(blockHash common.Hash, nodeId discover.NodeID) error {
+	return bp.db.DelJoinBubble(blockHash, nodeId)
+}
+
 func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.Size) error {
 	bubbleSize, err := bubble.GetConfig(size)
 	if err != nil {
@@ -358,6 +370,15 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble sized info failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", bub.BubbleId, "err", err.Error())
 		return nil, err
+	}
+
+	// store the joined bubble of the micro nodes
+	for _, node := range validator.MicroNodes {
+		if err := bp.SetJoinBubble(blockHash, node.NodeId, bubbleID); err != nil {
+			log.Error("Failed to CreateBubble on bubblePlugin: Set node to join bubble failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", node.NodeId, "bubbleId", bub.BubbleId, "err", err.Error())
+			return nil, err
+		}
 	}
 
 	// send create bubble event to the blockchain Mux if local node is operator
@@ -710,6 +731,13 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err.Error())
 				return err
 			}
+		}
+
+		// exist the bubble for micro nodes
+		if err := bp.DelJoinBubble(blockHash, microNode.NodeId); err != nil {
+			log.Error("Failed to DelJoinBubble on ReleaseBubble", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId",
+				microNode.NodeId.String(), "err", err.Error())
+			return err
 		}
 	}
 

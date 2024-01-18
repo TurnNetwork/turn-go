@@ -1,6 +1,7 @@
 package bubble
 
 import (
+	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 
@@ -86,6 +87,24 @@ func (db *DB) DelValidatorInfo(blockHash common.Hash, bubbleID *big.Int) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) GetJoinBubble(blockHash common.Hash, nodeId discover.NodeID) (*big.Int, error) {
+	data, err := db.db.Get(blockHash, getJoinBubbleKey(nodeId))
+	if err != nil {
+		return nil, err
+	}
+	bubbleId := new(big.Int).SetBytes(data)
+
+	return bubbleId, nil
+}
+
+func (db *DB) StoreJoinBubble(blockHash common.Hash, nodeId discover.NodeID, bubbleId *big.Int) error {
+	return db.db.Put(blockHash, getJoinBubbleKey(nodeId), bubbleId.Bytes())
+}
+
+func (db *DB) DelJoinBubble(blockHash common.Hash, nodeId discover.NodeID) error {
+	return db.db.Del(blockHash, getJoinBubbleKey(nodeId))
 }
 
 func (db *DB) IteratorBubbleIdBySize(blockHash common.Hash, size Size, ranges int) iterator.Iterator {

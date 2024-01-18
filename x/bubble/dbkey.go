@@ -2,6 +2,7 @@ package bubble
 
 import (
 	"github.com/bubblenet/bubble/common"
+	"github.com/bubblenet/bubble/p2p/discover"
 	"github.com/bubblenet/bubble/rlp"
 	"math/big"
 )
@@ -13,6 +14,7 @@ var (
 	TxHashListKeyPrefix    = []byte("TxHashList")       // The key prefix of the transaction hash list
 	BasicsInfoKeyPrefix    = []byte("BubBasicsInfo")    // The key prefix of the bubble basics
 	ValidatorInfoKeyPrefix = []byte("BubValidatorInfo") // The key prefix of the bubble basics
+	JoinBubblePrefix       = []byte("JoinBubble")
 	SizeRootPrefix         = []byte("BubSize")
 	ByteCodePrefix         = []byte("BubBytecode")
 	ContractInfoPrefix     = []byte("BubContractInfo")
@@ -34,6 +36,10 @@ func getValidatorInfoKey(bubbleID *big.Int) []byte {
 		return nil
 	}
 	return append(ValidatorInfoKeyPrefix, bid...)
+}
+
+func getJoinBubbleKey(nodeId discover.NodeID) []byte {
+	return append(JoinBubblePrefix, nodeId.Bytes()...)
 }
 
 func getBubbleSizePrefix(size Size) []byte {
