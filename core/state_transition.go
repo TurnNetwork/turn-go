@@ -214,7 +214,7 @@ func (st *StateTransition) buyGas() error {
 			return err
 		}
 
-		operatorCost := big.NewInt(0).Div(mgval.Mul(mgval, ratio), big.NewInt(100))
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(mgval, ratio), big.NewInt(100))
 		workCost := big.NewInt(0).Sub(mgval, operatorCost)
 
 		if lineOfCredit.Cmp(operatorCost) < 0 {
@@ -227,8 +227,8 @@ func (st *StateTransition) buyGas() error {
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, operator, st.state.GetBalance(operator), operatorCost)
 		}
 
-		if st.state.GetBalance(st.msg.From()).Cmp(workCost) < 0 {
-			log.Error("st.state.GetBalance(st.msg.From()).Cmp(workCost) < 0")
+		if st.state.GetBalance(workAddress).Cmp(workCost) < 0 {
+			log.Error("st.state.GetBalance(workAddress).Cmp(workCost) < 0")
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From(), st.state.GetBalance(st.msg.From()), workCost)
 		}
 
@@ -268,12 +268,12 @@ func (st *StateTransition) buyGas() error {
 			return err
 		}
 
-		operatorCost := big.NewInt(0).Div(mgval.Mul(mgval, ratio), big.NewInt(100))
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(mgval, ratio), big.NewInt(100))
 		workCost := big.NewInt(0).Sub(mgval, operatorCost)
 
 		st.state.SubBalance(operator, operatorCost)
 		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Sub(lineOfCredit, operatorCost))
-		st.state.SubBalance(st.msg.From(), workCost)
+		st.state.SubBalance(workAddress, workCost)
 	} else {
 		st.state.SubBalance(st.msg.From(), mgval)
 	}
@@ -419,13 +419,13 @@ func (st *StateTransition) refundGas() {
 			return
 		}
 
-		operatorRemaining := big.NewInt(0).Div(remaining.Mul(remaining, ratio), big.NewInt(100))
+		operatorRemaining := big.NewInt(0).Div(big.NewInt(0).Mul(remaining, ratio), big.NewInt(100))
 		workRemaining := big.NewInt(0).Sub(remaining, operatorRemaining)
 
 		st.state.AddBalance(operator, operatorRemaining)
 		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Add(lineOfCredit, operatorRemaining))
 
-		st.state.AddBalance(st.msg.From(), workRemaining)
+		st.state.AddBalance(workAddress, workRemaining)
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}

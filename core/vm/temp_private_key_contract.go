@@ -121,7 +121,16 @@ func GetRatio(evm *EVM, workAddress, gameContractAddress common.Address) (ratio 
 	if err != nil {
 		return big.NewInt(0), err
 	}
-	return new(big.Int).SetBytes(result), nil
+
+	ratioValue := new(big.Int).SetBytes(result)
+	if ratioValue.Cmp(big.NewInt(0)) < 0 {
+		ratioValue = big.NewInt(0)
+	}
+	if ratioValue.Cmp(big.NewInt(100)) > 0 {
+		ratioValue = big.NewInt(100)
+	}
+
+	return ratioValue, nil
 }
 
 func GetBehalfSignatureParameterAddress(input []byte) (workAddress, gameContractAddress common.Address, err error) {
