@@ -730,17 +730,35 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			log.Error("Failed to GetLineOfCredit", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return ErrInsufficientFunds
 		}
-		if lineOfCredit.Cmp(tx.Cost()) < 0 {
-			log.Error("lineOfCredit.Cmp(tx.Cost()) < 0")
-			return ErrInsufficientFunds
-		}
+
 		operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
 		if err != nil {
 			log.Error("Failed to GetGameOperator", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return ErrInsufficientFunds
 		}
-		if pool.currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
-			log.Error("pool.currentState.GetBalance(operator).Cmp(tx.Cost())")
+
+		ratio, err := vm.GetRatio(vmenv, workAddress, gameContractAddress)
+		if err != nil {
+			log.Error("Failed to GetRatio", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+			return ErrInsufficientFunds
+		}
+
+		cost := tx.Cost()
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(cost, ratio), big.NewInt(100))
+		workCost := big.NewInt(0).Sub(cost, operatorCost)
+
+		if lineOfCredit.Cmp(operatorCost) < 0 {
+			log.Error("lineOfCredit.Cmp(operatorCost) < 0")
+			return ErrInsufficientFunds
+		}
+
+		if pool.currentState.GetBalance(operator).Cmp(operatorCost) < 0 {
+			log.Error("pool.currentState.GetBalance(operator).Cmp(operatorCost)")
+			return ErrInsufficientFunds
+		}
+
+		if pool.currentState.GetBalance(workAddress).Cmp(workCost) < 0 {
+			log.Error("pool.currentState.GetBalance(from).Cmp(workCost) < 0")
 			return ErrInsufficientFunds
 		}
 	} else {

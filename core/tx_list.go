@@ -352,17 +352,33 @@ func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainCo
 				log.Error("Failed to GetLineOfCredit", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return true
 			}
-			if lineOfCredit.Cmp(tx.Cost()) < 0 {
-				log.Error("lineOfCredit.Cmp(tx.Cost()) < 0")
-				return true
-			}
 			operator, err := vm.GetGameOperator(vmenv, workAddress, gameContractAddress)
 			if err != nil {
 				log.Error("Failed to GetGameOperator", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return true
 			}
-			if currentState.GetBalance(operator).Cmp(tx.Cost()) < 0 {
-				log.Error("currentState.GetBalance(operator).Cmp(tx.Cost()) < 0")
+
+			ratio, err := vm.GetRatio(vmenv, workAddress, gameContractAddress)
+			if err != nil {
+				log.Error("Failed to GetRatio", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+				return true
+			}
+
+			cost := tx.Cost()
+			operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(cost, ratio), big.NewInt(100))
+			workCost := big.NewInt(0).Sub(cost, operatorCost)
+
+			if lineOfCredit.Cmp(operatorCost) < 0 {
+				log.Error("lineOfCredit.Cmp(operatorCost) < 0")
+				return true
+			}
+			if currentState.GetBalance(operator).Cmp(operatorCost) < 0 {
+				log.Error("currentState.GetBalance(operator).Cmp(operatorCost) < 0")
+				return true
+			}
+
+			if currentState.GetBalance(workAddress).Cmp(workCost) < 0 {
+				log.Error("currentState.GetBalance(workAddress).Cmp(workCost) < 0")
 				return true
 			}
 
