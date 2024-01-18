@@ -365,7 +365,7 @@ func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainCo
 			}
 
 			cost := tx.Cost()
-			operatorCost := big.NewInt(0).Div(cost.Mul(cost, ratio), big.NewInt(100))
+			operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(cost, ratio), big.NewInt(100))
 			workCost := big.NewInt(0).Sub(cost, operatorCost)
 
 			if lineOfCredit.Cmp(operatorCost) < 0 {
@@ -377,8 +377,8 @@ func (l *txList) Filter(currentState *state.StateDB, chainconfig *params.ChainCo
 				return true
 			}
 
-			if costLimit.Cmp(workCost) < 0 {
-				log.Error("costLimit.Cmp(workCost) < 0")
+			if currentState.GetBalance(workAddress).Cmp(workCost) < 0 {
+				log.Error("currentState.GetBalance(workAddress).Cmp(workCost) < 0")
 				return true
 			}
 

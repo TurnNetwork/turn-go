@@ -949,19 +949,22 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 				operatorBalance = lineOfCredit
 			}
 
-			fromBalance := state.GetBalance(*args.From)
-
 			ratio, err := vm.GetRatio(evm, workAddress, gameContractAddress)
 			if err != nil {
 				log.Error("Failed to GetRatio", "from", (*args.From).Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 				return 0, err
 			}
 
-			realOperatorBalance := big.NewInt(0).Div(operatorBalance.Mul(operatorBalance, big.NewInt(100)), ratio)
-			realFromRatio := big.NewInt(0).Div(fromBalance.Mul(fromBalance, big.NewInt(100)), ratio)
+			realOperatorBalance := big.NewInt(0).Div(big.NewInt(0).Mul(operatorBalance, big.NewInt(100)), ratio)
+			workBalance := state.GetBalance(workAddress)
+			ratio = ratio.Sub(big.NewInt(100), ratio)
+			realWorkBalance := big.NewInt(0)
+			if ratio.Cmp(big.NewInt(0)) > 0 {
+				realWorkBalance = big.NewInt(0).Div(big.NewInt(0).Mul(workBalance, big.NewInt(100)), ratio)
+			}
 
-			if realOperatorBalance.Cmp(realFromRatio) > 0 {
-				balance = realFromRatio
+			if realOperatorBalance.Cmp(realWorkBalance) > 0 {
+				balance = realWorkBalance
 			} else {
 				balance = realOperatorBalance
 			}

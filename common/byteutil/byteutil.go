@@ -18,8 +18,9 @@ package byteutil
 
 import (
 	"encoding/hex"
-	"github.com/bubblenet/bubble/x/token"
 	"math/big"
+
+	"github.com/bubblenet/bubble/x/token"
 
 	"github.com/bubblenet/bubble/crypto/bls"
 
@@ -38,6 +39,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[64]byte": BytesTo64Bytes,
 
 	"uint8":   BytesToUint8,
+	"[]uint8": BytesToUint8List,
 	"uint16":  BytesToUint16,
 	"*uint16": BytesToUint16Point,
 	"uint32":  BytesToUint32,
@@ -88,6 +90,14 @@ func BytesTo8Bytes(curByte []byte) [8]byte {
 	var arr [8]byte
 	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
 		panic("BytesTo8Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToUint8List(curByte []byte) []byte {
+	var arr []byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesToUint8List:" + err.Error())
 	}
 	return arr
 }
