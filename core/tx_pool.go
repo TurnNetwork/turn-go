@@ -744,7 +744,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 
 		cost := tx.Cost()
-		operatorCost := big.NewInt(0).Div(cost.Mul(cost, ratio), big.NewInt(100))
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(cost, ratio), big.NewInt(100))
 		workCost := big.NewInt(0).Sub(cost, operatorCost)
 
 		if lineOfCredit.Cmp(operatorCost) < 0 {
@@ -757,7 +757,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return ErrInsufficientFunds
 		}
 
-		if pool.currentState.GetBalance(from).Cmp(workCost) < 0 {
+		if pool.currentState.GetBalance(workAddress).Cmp(workCost) < 0 {
 			log.Error("pool.currentState.GetBalance(from).Cmp(workCost) < 0")
 			return ErrInsufficientFunds
 		}
