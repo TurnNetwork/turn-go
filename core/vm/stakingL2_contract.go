@@ -81,8 +81,8 @@ func (stk *StakingL2Contract) FnSigns() map[uint16]interface{} {
 		QueryCandidateListL2: stk.getCandidateList,
 		QueryCandidateInfoL2: stk.getCandidateInfo,
 		// Reward
-		GetPackageReward: stk.GetPackageReward,
-		GetStakingReward: stk.GetStakingReward,
+		//GetPackageReward: stk.GetPackageReward,
+		//GetStakingReward: stk.GetStakingReward,
 	}
 }
 
