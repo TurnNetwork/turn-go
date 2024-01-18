@@ -20,9 +20,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 
+	"github.com/bubblenet/bubble/accounts/abi"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/byteutil"
 	"github.com/bubblenet/bubble/common/math"
@@ -55,6 +57,11 @@ var (
 	ErrGetLineOfCredit         = common.NewBizError(700004, "Failed to get line of credit")
 	ErrCallGameContract        = common.NewBizError(700005, "Failed to call game contract")
 )
+
+func newCallContractError(errorInfo string) *common.BizError {
+	info := "Failed to call game contract: " + errorInfo
+	return common.NewBizError(700005, info)
+}
 
 func IsTxTxBehalfSignature(input []byte, to common.Address) bool {
 	if len(input) == 0 {
@@ -105,6 +112,25 @@ func GetGameOperator(evm *EVM, workAddress, gameContractAddress common.Address) 
 	}
 
 	return common.BytesToAddress(result), nil
+}
+
+func GetRatio(evm *EVM, workAddress, gameContractAddress common.Address) (ratio *big.Int, err error) {
+	contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
+	contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
+	result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("ratio()"))[:4])
+	if err != nil {
+		return big.NewInt(0), err
+	}
+
+	ratioValue := new(big.Int).SetBytes(result)
+	if ratioValue.Cmp(big.NewInt(0)) < 0 {
+		ratioValue = big.NewInt(0)
+	}
+	if ratioValue.Cmp(big.NewInt(100)) > 0 {
+		ratioValue = big.NewInt(100)
+	}
+
+	return ratioValue, nil
 }
 
 func GetBehalfSignatureParameterAddress(input []byte) (workAddress, gameContractAddress common.Address, err error) {
@@ -348,7 +374,17 @@ func (tpkc *TempPrivateKeyContract) behalfSignature(workAddress, gameContractAdd
 		if errors.Is(err, ErrOutOfGas) {
 			return nil, ErrOutOfGas
 		}
-		err = ErrCallGameContract
+		if errors.Is(err, ErrExecutionReverted) {
+			reason, errUnpack := abi.UnpackRevert(vmRet)
+			info := "execution reverted"
+			if errUnpack == nil {
+				info = fmt.Sprintf("execution reverted: %v", reason)
+			}
+			err = newCallContractError(info)
+		} else {
+			err = newCallContractError(err.Error())
+		}
+
 	}
 
 resultHandle:
