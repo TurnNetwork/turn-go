@@ -549,11 +549,11 @@ func CheckEconomicModel(version uint32) error {
 	// epoch duration of config
 	epochDuration := ec.Common.MaxEpochMinutes * 60
 	// package perblock duration
-	blockDuration := ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
+	blockDuration := float64(ec.Common.NodeBlockTimeWindow) / float64(ec.Common.PerRoundBlocks)
 	// round duration
-	roundDuration := ec.Common.MaxConsensusVals * ec.Common.PerRoundBlocks * blockDuration
+	roundDuration := float64(ec.Common.MaxConsensusVals*ec.Common.PerRoundBlocks) * blockDuration
 	// epoch Size, how many consensus round
-	epochSize := epochDuration / roundDuration
+	epochSize := float64(epochDuration) / roundDuration
 	//real epoch duration
 	realEpochDuration := epochSize * roundDuration
 
@@ -569,7 +569,7 @@ func CheckEconomicModel(version uint32) error {
 	}
 
 	// additionalCycle Size, how many epoch duration
-	additionalCycleSize := ec.Common.AdditionalCycleTime * 60 / realEpochDuration
+	additionalCycleSize := float64(ec.Common.AdditionalCycleTime*60) / realEpochDuration
 	// realAdditionalCycleDuration
 	realAdditionalCycleDuration := additionalCycleSize * realEpochDuration / 60
 
@@ -678,8 +678,8 @@ func SetPerRoundBlocks(amount uint64) {
 	}
 }
 
-func Interval() uint64 {
-	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
+func Interval() float64 {
+	return float64(ec.Common.NodeBlockTimeWindow) / float64(ec.Common.PerRoundBlocks)
 }
 func BlocksWillCreate() uint64 {
 	return ec.Common.PerRoundBlocks
@@ -696,13 +696,22 @@ func ConsensusSize() uint64 {
 	return BlocksWillCreate() * MaxConsensusVals()
 }
 
+//func EpochSize() float64 {
+//	consensusSize := ConsensusSize()
+//	em := MaxEpochMinutes()
+//	i := Interval()
+//
+//	epochSize := float64(em*60) / (i * float64(consensusSize))
+//	return epochSize
+//}
+
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
 	em := MaxEpochMinutes()
 	i := Interval()
 
-	epochSize := em * 60 / (i * consensusSize)
-	return epochSize
+	epochSize := float64(em*60) / (i * float64(consensusSize))
+	return uint64(epochSize)
 }
 
 /******

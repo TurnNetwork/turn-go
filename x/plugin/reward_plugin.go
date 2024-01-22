@@ -750,12 +750,12 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 
 	// First calculation, calculated according to the default block interval.
 	// In each subsequent settlement cycle, an average block generation interval needs to be calculated.
-	avgPackTime := xcom.Interval() * uint64(millisecond)
+	avgPackTime := xcom.Interval() * float64(millisecond)
 	if head.Number.Uint64() > yearStartBlockNumber {
 		diffNumber := head.Number.Uint64() - yearStartBlockNumber
 		diffTime := int64(head.Time) - yearStartTime
 
-		avgPackTime = uint64(diffTime) / diffNumber
+		avgPackTime = float64(diffTime) / float64(diffNumber)
 		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
 			"avgPackTime", avgPackTime)

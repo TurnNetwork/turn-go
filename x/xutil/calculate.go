@@ -76,7 +76,7 @@ func EpochSize() uint64 {
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
 	i := xcom.Interval()
-	return xcom.AdditionalCycleTime() * 60 / (i * epochBlocks)
+	return uint64(float64(xcom.AdditionalCycleTime()*60) / (i * float64(epochBlocks)))
 }
 
 // CalcBlocksEachEpoch return how many blocks per epoch
@@ -91,18 +91,19 @@ func EstimateConsensusRoundsForGov(seconds uint64) uint64 {
 }
 
 func EstimateEndVotingBlockForParaProposal(blockNumber uint64, seconds uint64) uint64 {
-	consensusSize := ConsensusSize()
-	epochMaxDuration := xcom.MaxEpochMinutes() //minutes
-	//estimate how many consensus rounds in a epoch.
-	consensusRoundsEachEpoch := epochMaxDuration * 60 / (xcom.Interval() * consensusSize)
-	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
-
-	//v0.7.5, hard code 1 second for block interval for estimating.
-	blockInterval := uint64(1)
-	durationEachEpoch := blocksEachEpoch * blockInterval
-
-	epochRounds := seconds / durationEachEpoch
-	return blockNumber + blocksEachEpoch - blockNumber%blocksEachEpoch + epochRounds*blocksEachEpoch
+	//consensusSize := ConsensusSize()
+	//epochMaxDuration := xcom.MaxEpochMinutes() //minutes
+	////estimate how many consensus rounds in a epoch.
+	//consensusRoundsEachEpoch := epochMaxDuration * 60 / (xcom.Interval() * consensusSize)
+	//blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
+	//
+	////v0.7.5, hard code 1 second for block interval for estimating.
+	//blockInterval := uint64(1)
+	//durationEachEpoch := blocksEachEpoch * blockInterval
+	//
+	//epochRounds := seconds / durationEachEpoch
+	//return blockNumber + blocksEachEpoch - blockNumber%blocksEachEpoch + epochRounds*blocksEachEpoch
+	return 100
 }
 
 // calculate returns how many blocks per year.
