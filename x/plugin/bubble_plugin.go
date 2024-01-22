@@ -1486,7 +1486,7 @@ func makeGenesisL2(bub *bubble.Bubble) *bubble.GenesisL2 {
 			ChainID: bub.BasicsInfo.BubbleId,
 			Frps:    params.GlobalFrpsCfg,
 			Cbft: &params.CbftConfig{
-				Period:        10000,
+				Period:        5000,
 				Amount:        10,
 				InitialNodes:  params.ConvertNodeUrl(initNodes),
 				ValidatorMode: "dpos",
