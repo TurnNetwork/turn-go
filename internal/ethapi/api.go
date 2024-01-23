@@ -19,6 +19,7 @@ package ethapi
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	ctypes "github.com/bubblenet/bubble/consensus/cbft/types"
@@ -2054,6 +2055,19 @@ func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
+}
+
+// SignData Returns the data signed by the node private key, which is used for the test of the AvailablePorts interface
+func (s *PublicNetAPI) SignData(nodePriKey string, portNum int) (string, error) {
+	key, _ := crypto.HexToECDSA(nodePriKey)
+	msg := crypto.Keccak256([]byte(fmt.Sprintf("%d", portNum)))
+	fmt.Printf("msg data:%s\n", hex.EncodeToString(msg))
+	sig, err := crypto.Sign(msg, key)
+	fmt.Printf("sign data:%s\n", hex.EncodeToString(sig))
+	if err != nil {
+		return "", fmt.Errorf("sign error: %s", err)
+	}
+	return hex.EncodeToString(sig), nil
 }
 
 // AvailablePorts Returns the available port number for the server.

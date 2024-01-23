@@ -518,6 +518,11 @@ web3._extend({
 			params: 3,
 			inputFormatter: [web3._extend.utils.fromDecimal, null, null]
 		}),
+		new web3._extend.Method({
+			name: 'signData',
+			call: 'net_signData',
+			params: 2,
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

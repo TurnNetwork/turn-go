@@ -70,10 +70,10 @@ func (bc *BubbleContract) Run(input []byte) ([]byte, error) {
 func (bc *BubbleContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		TxSelectBubble:       bc.selectBubble,
-		TxStakingToken:       bc.stakingToken,
-		TxWithdrewToken:      bc.withdrewToken,
-		TxSettleBubble:       bc.settleBubble,
+		TxSelectBubble:  bc.selectBubble,
+		TxStakingToken:  bc.stakingToken,
+		TxWithdrewToken: bc.withdrewToken,
+		//TxSettleBubble:       bc.settleBubble,
 		TxRemoteDeploy:       bc.remoteDeploy,
 		TxRemoteCall:         bc.remoteCall,
 		TxRemoteCallExecutor: bc.remoteCallExecutor,
@@ -106,7 +106,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 
 	useRatio, err := bc.Plugin.GetNodeUseRatio(blockHash)
 	if err != nil {
-		log.Error("Failed to GetNodeUseRatio", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+		log.Error("Failed to GetNodeUseRatio", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 		return nil, err
 	}
 
@@ -119,14 +119,14 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 	if useRatio < bubble.MaxNodeUseRatio {
 		// create bubble first
 		if err := bc.Plugin.CheckBubbleElements(blockHash, size); err != nil {
-			log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 		} else {
 			if txHash == common.ZeroHash {
 				return nil, nil
 			}
 			bub, err := bc.Plugin.CreateBubble(blockHash, blockNumber, txHash, from, currentNonce, parentNonces, size)
 			if err != nil {
-				log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+				log.Error("failed to createBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			} else {
 				return txResultExportHandler(vm.BubbleContractAddr, bc.Evm, "", "", TxSelectBubble, int(common.NoErr.Code), bub.BasicsInfo.BubbleId), nil
 			}
@@ -141,7 +141,7 @@ func (bc *BubbleContract) selectBubble(size bubble.Size) ([]byte, error) {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "selectBubble", bizErr.Error(), TxSelectBubble, bizErr)
 		} else {
-			log.Error("Failed to selectBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to selectBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -241,6 +241,16 @@ func (bc *BubbleContract) remoteDeploy(bubbleID *big.Int, contract common.Addres
 		return nil, err
 	}
 
+	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		return nil, err
+	}
+
+	statusInfo.ContractCount = statusInfo.ContractCount + 1
+	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+		return nil, err
+	}
+
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteDeployTask{
 		TxHash:    txHash,
@@ -301,6 +311,15 @@ func (bc *BubbleContract) remoteRemove(bubbleID *big.Int, contract common.Addres
 	}
 	state.SubBalance(vm.BubbleContractAddr, contractInfo.Amount)
 	state.AddBalance(origin, contractInfo.Amount)
+
+	statusInfo, err := bc.Plugin.GetStateInfo(blockHash, bubbleID)
+	if err != nil {
+		return nil, err
+	}
+	statusInfo.ContractCount = statusInfo.ContractCount - 1
+	if err := bc.Plugin.StoreStateInfo(blockHash, statusInfo); err != nil {
+		return nil, err
+	}
 
 	// send create bubble event to the blockchain Mux if local node is operator
 	task := &bubble.RemoteRemoveTask{
@@ -408,7 +427,7 @@ func (bc *BubbleContract) remoteCallExecutor(bubbleID *big.Int, remoteTxHash com
 
 	_, err = RunEvm(bc.Evm, bc.Contract, data)
 	if err != nil {
-		log.Error("call contract error", "contract", contract, "error", err)
+		log.Error("call contract error", "contract", contract, "error", err.Error())
 		if isEstimateGas {
 			return nil, errors.New(fmt.Sprintf("call contract error: %s", err.Error()))
 		} else {
@@ -476,7 +495,7 @@ func (bc *BubbleContract) stakingToken(bubbleID *big.Int, stakingAsset bubble.Ac
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "stakingToken", bizErr.Error(), TxStakingToken, bizErr)
 		} else {
-			log.Error("Failed to stakingToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to stakingToken", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -506,7 +525,7 @@ func (bc *BubbleContract) withdrewToken(bubbleID *big.Int) ([]byte, error) {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "withdrewToken", bizErr.Error(), TxWithdrewToken, bizErr)
 		} else {
-			log.Error("Failed to withdrewToken", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to withdrewToken", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -542,7 +561,7 @@ func (bc *BubbleContract) settleBubble(L2SettleTxHash common.Hash, bubbleID *big
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.BubbleContractAddr, bc.Evm, "settleBubble", bizErr.Error(), TxSettleBubble, bizErr)
 		} else {
-			log.Error("Failed to settleBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			log.Error("Failed to settleBubble", "txHash", txHash, "blockNumber", blockNumber, "err", err.Error())
 			return nil, err
 		}
 	}
@@ -615,13 +634,13 @@ func StakingToken(bc *BubbleContract, bubbleID *big.Int, stakingAsset bubble.Acc
 		// Generate data for ERC20 transfer transactions
 		input, err := encodeTransferFuncCall(vm.BubbleContractAddr, tokenAmount)
 		if err != nil {
-			log.Error("Failed to Staking ERC20 Token", "error", err)
+			log.Error("Failed to Staking ERC20 Token", "error", err.Error())
 			return nil, bubble.ErrEncodeTransferData
 		}
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
-			errMsg := fmt.Sprintf("Failed to Staking ERC20 Token, error:%v", err)
+			errMsg := fmt.Sprintf("Failed to Staking ERC20 Token, error:%v", err.Error())
 			log.Error(errMsg)
 			if isEstimateGas {
 				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,
@@ -730,13 +749,13 @@ func WithdrewToken(bc *BubbleContract, bubbleID *big.Int) (*bubble.AccountAsset,
 		// Generate data for ERC20 transfer transactions, Transfer from system contract to withdrew account
 		input, err := encodeTransferFuncCall(from, tokenAmount)
 		if err != nil {
-			log.Error("Failed to Withdrew ERC20 Token", "error", err)
+			log.Error("Failed to Withdrew ERC20 Token", "error", err.Error())
 			return nil, bubble.ErrEncodeTransferData
 		}
 		// Execute EVM
 		_, err = RunEvm(bc.Evm, contract, input)
 		if err != nil {
-			errMsg := fmt.Sprintf("Failed to Withdrew ERC20 Token, error:%v", err)
+			errMsg := fmt.Sprintf("Failed to Withdrew ERC20 Token, error:%v", err.Error())
 			log.Error(errMsg)
 			if isEstimateGas {
 				// The error returned by the action of deducting gas during the estimated gas process cannot be BizError,

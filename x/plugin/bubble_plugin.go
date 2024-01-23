@@ -96,7 +96,7 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 					status.State = bubble.PreReleaseState
 					if err := bp.db.StoreStateInfo(blockHash, status.BubbleId, status); err != nil {
 						log.Error("Failed to store stateInfo on BubblePlugin EndBlock",
-							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+							"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
 						return err
 					}
 				}
@@ -108,10 +108,12 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 				continue
 			}
 			// prerelease and not contract OR current block is release block
+			log.Debug("start to ReleaseBubble", "curBlock", curBlock, "bubbleId", status.BubbleId, "bubbleState", status.State, "releaseBlock", status.ReleaseBlock,
+				"contractCount", status.ContractCount)
 			err := bp.ReleaseBubble(blockHash, header.Number, status.BubbleId)
 			if err != nil {
 				log.Error("Failed to release bubble on BubblePlugin EndBlock",
-					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
 				return err
 			}
 		}
@@ -120,10 +122,12 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 	// destroy and clean bubble
 	if xutil.IsEndOfEpoch(preBlock) {
 		for _, status := range statuses {
+			log.Debug("prepare to RemoteDestroy", "bubbleID", status.BubbleId, "State", status.State, "curBlock", curBlock, "preBlock", preBlock,
+				"PreReleaseBlock", status.PreReleaseBlock, "releaseBlock", status.ReleaseBlock)
 			if status.State == bubble.PreReleaseState && preBlock == status.ReleaseBlock {
 				if err := bp.DestroyBubble(blockHash, curBlock, status.BubbleId); err != nil {
 					log.Error("Failed to destroy bubble on BubblePlugin EndBlock",
-						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err)
+						"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
 					return err
 				}
 			}
@@ -287,6 +291,10 @@ func (bp *BubblePlugin) GetStateInfo(blockHash common.Hash, bubbleID *big.Int) (
 	return bp.db.GetStateInfo(blockHash, bubbleID)
 }
 
+func (bp *BubblePlugin) StoreStateInfo(blockHash common.Hash, stateInfo *bubble.StateInfo) error {
+	return bp.db.StoreStateInfo(blockHash, stateInfo.BubbleId, stateInfo)
+}
+
 func (bp *BubblePlugin) CheckBubbleElements(blockHash common.Hash, size bubble.Size) error {
 	bubbleSize, err := bubble.GetConfig(size)
 	if err != nil {
@@ -390,19 +398,19 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	// store bubble basics
 	if err := bp.db.StoreBasicsInfo(blockHash, basics.BubbleId, basics); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble basics failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
 		return nil, err
 	}
 	// store bubble state
 	if err := bp.db.StoreStateInfo(blockHash, basics.BubbleId, status); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble state failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
 		return nil, err
 	}
 
 	if err := bp.db.StoreBubbleIdBySize(blockHash, size, basics.BubbleId); err != nil {
 		log.Error("Failed to CreateBubble on bubblePlugin: Store bubble sized info failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleId", basics.BubbleId, "err", err.Error())
 		return nil, err
 	}
 
@@ -701,7 +709,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 	status, err := bp.db.GetStateInfo(blockHash, bubbleID)
 	if err != nil {
 		log.Error("Failed to GetStateInfo on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
 		return err
 	}
 	if status.State <= bubble.ReleasedState {
@@ -734,7 +742,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 			if err := bp.stk2Plugin.db.SetOperatorStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to SetOperatorStore on ReleaseBubble: Store Operator info is failed",
-					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err)
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err.Error())
 				return err
 			}
 		} else {
@@ -748,7 +756,7 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 			if err := bp.stk2Plugin.db.SetCommitteeStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to SetCommitteeStore on ReleaseBubble: Store Committee info is failed",
-					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err)
+					"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", microNode.NodeId.String(), "err", err.Error())
 				return err
 			}
 		}
@@ -756,19 +764,19 @@ func (bp *BubblePlugin) ReleaseBubble(blockHash common.Hash, blockNumber *big.In
 
 	if err := bp.stk2Plugin.db.SubUsedCommitteeCount(blockHash, committeeCount); err != nil {
 		log.Error("Failed to SubUsedCommitteeCount on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
 	if err := bp.db.DelBubbleIdBySize(blockHash, bub.Size, bub.BasicsInfo.BubbleId); err != nil {
 		log.Error("Failed to DelBubbleIdBySize on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
 	if err := bp.db.StoreStateInfo(blockHash, bubbleID, status); err != nil {
 		log.Error("Failed to StoreBubState on ReleaseBubble",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "bubbleID", bub.BasicsInfo.BubbleId.String(), "err", err.Error())
 		return err
 	}
 
@@ -953,7 +961,7 @@ func (bp *BubblePlugin) AddAccAssetToBub(blockHash common.Hash, bubbleId *big.In
 // PostMintTokenEvent Send the coin mint event and wait for the coin mint task to be processed
 func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) error {
 	if err := bp.eventMux.Post(*mintTokenTask); nil != err {
-		log.Error("post mintToken task failed", "err", err)
+		log.Error("post mintToken task failed", "err", err.Error())
 		return err
 	}
 
@@ -963,7 +971,7 @@ func (bp *BubblePlugin) PostMintTokenEvent(mintTokenTask *bubble.MintTokenTask) 
 // PostCreateBubbleEvent Send the create bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post CreateBubble task failed", "err", err)
+		log.Error("post CreateBubble task failed", "err", err.Error())
 		return err
 	}
 
@@ -973,7 +981,7 @@ func (bp *BubblePlugin) PostCreateBubbleEvent(task *bubble.CreateBubbleTask) err
 // PostReleaseBubbleEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post ReleaseBubble task failed", "err", err)
+		log.Error("post ReleaseBubble task failed", "err", err.Error())
 		return err
 	}
 
@@ -983,7 +991,7 @@ func (bp *BubblePlugin) PostReleaseBubbleEvent(task *bubble.ReleaseBubbleTask) e
 // PostRemoteDestroyEvent Send the release bubble event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteDestroyEvent(task *bubble.RemoteDestroyTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post remoteDestroy task failed", "err", err)
+		log.Error("post remoteDestroy task failed", "err", err.Error())
 		return err
 	}
 
@@ -993,7 +1001,7 @@ func (bp *BubblePlugin) PostRemoteDestroyEvent(task *bubble.RemoteDestroyTask) e
 // PostRemoteDeployEvent Send the remote deploy contract event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post RemoteDeployTask failed", "err", err)
+		log.Error("post RemoteDeployTask failed", "err", err.Error())
 		return err
 	}
 
@@ -1003,7 +1011,7 @@ func (bp *BubblePlugin) PostRemoteDeployEvent(task *bubble.RemoteDeployTask) err
 // PostRemoteRemoveEvent Send the remote remove event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteRemoveEvent(task *bubble.RemoteRemoveTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post RemoteRemoveTask failed", "err", err)
+		log.Error("post RemoteRemoveTask failed", "err", err.Error())
 		return err
 	}
 
@@ -1013,7 +1021,7 @@ func (bp *BubblePlugin) PostRemoteRemoveEvent(task *bubble.RemoteRemoveTask) err
 // PostRemoteCallEvent Send the remote call contract function event and wait for the task to be processed
 func (bp *BubblePlugin) PostRemoteCallEvent(task *bubble.RemoteCallTask) error {
 	if err := bp.eventMux.Post(*task); nil != err {
-		log.Error("post RemoteCallTask failed", "err", err)
+		log.Error("post RemoteCallTask failed", "err", err.Error())
 		return err
 	}
 
@@ -1051,7 +1059,7 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	}
 	client, err := ethclient.Dial(mintToken.RPC)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error())
 		return nil, errors.New("failed connect operator node")
 	}
 	// Construct transaction parameters
@@ -1060,7 +1068,7 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	toAddr := common.HexToAddress(SubChainSysAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("Wrong private key", "err", err)
+		log.Error("Wrong private key", "err", err.Error())
 		return nil, err
 	}
 
@@ -1081,13 +1089,13 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("Failed to obtain the account nonce", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -1104,14 +1112,14 @@ func (bp *BubblePlugin) HandleMintTokenTask(mintToken *bubble.MintTokenTask) ([]
 	chainID, err := client.ChainID(context.Background())
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing mintToken transaction failed", "err", err)
+		log.Error("Signing mintToken transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send mintToken transaction", "err", err)
+		log.Error("Failed to send mintToken transaction", "err", err.Error())
 		return nil, err
 	}
 
@@ -1235,12 +1243,12 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("Failed to obtain the account nonce", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -1270,14 +1278,14 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing remoteDeploy transaction failed", "err", err)
+		log.Error("Signing remoteDeploy transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send remoteDeploy transaction", "err", err)
+		log.Error("Failed to send remoteDeploy transaction", "err", err.Error())
 		return nil, err
 	}
 
@@ -1293,7 +1301,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	}
 	client, err := ethclient.Dial(task.RPC)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error())
 		return nil, errors.New("failed connect operator node")
 	}
 	// Construct transaction parameters
@@ -1302,7 +1310,7 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("Wrong private key", "err", err)
+		log.Error("Wrong private key", "err", err.Error())
 		return nil, err
 	}
 
@@ -1323,12 +1331,12 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("Failed to obtain the account nonce", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -1352,14 +1360,14 @@ func (bp *BubblePlugin) HandleRemoteCallTask(task *bubble.RemoteCallTask) ([]byt
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing remoteCall transaction failed", "err", err)
+		log.Error("Signing remoteCall transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send remoteCall transaction", "err", err)
+		log.Error("Failed to send remoteCall transaction", "err", err.Error())
 		return nil, err
 	}
 
@@ -1375,7 +1383,7 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	}
 	client, err := ethclient.Dial(task.RPC)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error())
 		return nil, errors.New("failed connect operator node")
 	}
 	// Construct transaction parameters
@@ -1384,7 +1392,7 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("Wrong private key", "err", err)
+		log.Error("Wrong private key", "err", err.Error())
 		return nil, err
 	}
 
@@ -1405,12 +1413,12 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("Failed to obtain the account nonce", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -1434,14 +1442,14 @@ func (bp *BubblePlugin) HandleRemoteRemoveTask(task *bubble.RemoteRemoveTask) ([
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing remoteCall transaction failed", "err", err)
+		log.Error("Signing remoteCall transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send remoteCall transaction", "err", err)
+		log.Error("Failed to send remoteCall transaction", "err", err.Error())
 		return nil, err
 	}
 
@@ -1618,7 +1626,7 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	}
 	client, err := ethclient.Dial(task.RPC)
 	if err != nil || client == nil {
-		log.Error("failed connect operator node", "err", err)
+		log.Error("failed connect operator node", "err", err.Error())
 		return nil, errors.New("failed connect operator node")
 	}
 	// Construct transaction parameters
@@ -1627,7 +1635,7 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	toAddr := common.HexToAddress(remoteBubbleAddr)
 	privateKey, err := crypto.HexToECDSA(priKey)
 	if err != nil {
-		log.Error("Wrong private key", "err", err)
+		log.Error("Wrong private key", "err", err.Error())
 		return nil, err
 	}
 
@@ -1646,12 +1654,12 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 	// get account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddr)
 	if err != nil {
-		log.Error("Failed to obtain the account nonce", "err", err)
+		log.Error("Failed to obtain the account nonce", "err", err.Error())
 		return nil, err
 	}
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Error("Failed to get gasPrice", "err", err)
+		log.Error("Failed to get gasPrice", "err", err.Error())
 		return nil, err
 	}
 	value := big.NewInt(0)
@@ -1675,14 +1683,14 @@ func (bp *BubblePlugin) HandleRemoteDestroyTask(task *bubble.RemoteDestroyTask) 
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Error("Signing remoteDeploy transaction failed", "err", err)
+		log.Error("Signing remoteDeploy transaction failed", "err", err.Error())
 		return nil, err
 	}
 
 	// Sending transactions
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Error("Failed to send remoteDeploy transaction", "err", err)
+		log.Error("Failed to send remoteDeploy transaction", "err", err.Error())
 		return nil, err
 	}
 
@@ -1698,7 +1706,7 @@ func sendTask(ctx context.Context, waitGroup *sync.WaitGroup, client *http.Clien
 		dataReader := strings.NewReader(data)
 		req, err := http.NewRequest(http.MethodPost, url, dataReader)
 		if err != nil {
-			log.Error("new http request failed", "err", err)
+			log.Error("new http request failed", "err", err.Error())
 		}
 		req.WithContext(ctx)
 		req.Header.Set("Content-Type", "application/json")
@@ -1706,7 +1714,7 @@ func sendTask(ctx context.Context, waitGroup *sync.WaitGroup, client *http.Clien
 		// send request
 		resp, err := client.Do(req)
 		if err != nil || resp.StatusCode != 200 {
-			log.Debug("send task to microNode failed", "retry", i, "error", err, "response", resp)
+			log.Debug("send task to microNode failed", "retry", i, "error", err.Error(), "response", resp)
 			time.Sleep(time.Duration(3) * time.Second)
 			continue
 		}
