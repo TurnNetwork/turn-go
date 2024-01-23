@@ -75,7 +75,7 @@ const (
 )
 
 const (
-	L2Version = uint32(65536)
+	L2Version = uint32(256)
 )
 
 func WriteEcExtendHash(state xcom.StateDB) error {
