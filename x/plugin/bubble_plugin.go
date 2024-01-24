@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	bubble2 "github.com/bubblenet/bubble"
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/json"
 	"github.com/bubblenet/bubble/common/math"
@@ -1252,7 +1253,6 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 		return nil, err
 	}
 	value := big.NewInt(0)
-	gasLimit := uint64(300000)
 
 	time.Sleep(3 * time.Second)
 	byteCode, err := BubbleInstance().GetByteCode(task.BlockHash, task.Address)
@@ -1263,6 +1263,25 @@ func (bp *BubblePlugin) HandleRemoteDeployTask(task *bubble.RemoteDeployTask) ([
 	if nil == data {
 		return nil, errors.New("encode remoteDeploy transaction failed")
 	}
+
+	estimatedGas, err := client.EstimateGas(context.Background(), bubble2.CallMsg{
+		From: fromAddr,
+		To:   &toAddr,
+		Data: data,
+	})
+	log.Info("start remote estimate gas")
+	if err != nil {
+		log.Error("remote estimate gas failed", "error", err.Error())
+	}
+	log.Info("remote estimate gas done", "gas", estimatedGas)
+
+	var gasLimit uint64
+	if estimatedGas <= 300000 {
+		gasLimit = uint64(300000)
+	} else {
+		gasLimit = estimatedGas
+	}
+
 	// Creating transaction objects
 	tx := types.NewTransaction(nonce, toAddr, value, gasLimit, gasPrice, data)
 
