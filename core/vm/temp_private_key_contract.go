@@ -114,6 +114,25 @@ func GetGameOperator(evm *EVM, workAddress, gameContractAddress common.Address) 
 	return common.BytesToAddress(result), nil
 }
 
+func GetRatio(evm *EVM, workAddress, gameContractAddress common.Address) (ratio *big.Int, err error) {
+	contract := NewContract(AccountRef(workAddress), AccountRef(gameContractAddress), big.NewInt(0), uint64(math.MaxUint64/2))
+	contract.SetCallCode(&gameContractAddress, evm.StateDB.GetCodeHash(gameContractAddress), evm.StateDB.GetCode(gameContractAddress))
+	result, err := RunEvm(evm, contract, crypto.Keccak256([]byte("ratio()"))[:4])
+	if err != nil {
+		return big.NewInt(0), err
+	}
+
+	ratioValue := new(big.Int).SetBytes(result)
+	if ratioValue.Cmp(big.NewInt(0)) < 0 {
+		ratioValue = big.NewInt(0)
+	}
+	if ratioValue.Cmp(big.NewInt(100)) > 0 {
+		ratioValue = big.NewInt(100)
+	}
+
+	return ratioValue, nil
+}
+
 func GetBehalfSignatureParameterAddress(input []byte) (workAddress, gameContractAddress common.Address, err error) {
 	var args [][]byte
 	if err = rlp.Decode(bytes.NewReader(input), &args); nil != err {

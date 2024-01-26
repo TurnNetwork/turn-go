@@ -201,19 +201,37 @@ func (st *StateTransition) buyGas() error {
 			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
-		if lineOfCredit.Cmp(mgval) < 0 {
-			log.Error("lineOfCredit.Cmp(mgval) < 0")
-			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, workAddress, lineOfCredit, mgval)
-		}
+
 		operator, err := vm.GetGameOperator(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			log.Error("Failed to GetGameOperator", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
-		if st.state.GetBalance(operator).Cmp(mgval) < 0 {
-			log.Error("st.state.GetBalance(operator).Cmp(mgval) < 0")
-			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, operator, st.state.GetBalance(operator), mgval)
+
+		ratio, err := vm.GetRatio(st.evm, workAddress, gameContractAddress)
+		if err != nil {
+			log.Error("Failed to GetRatio", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+			return err
 		}
+
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(mgval, ratio), big.NewInt(100))
+		workCost := big.NewInt(0).Sub(mgval, operatorCost)
+
+		if lineOfCredit.Cmp(operatorCost) < 0 {
+			log.Error("lineOfCredit.Cmp(operatorCost) < 0")
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, workAddress, lineOfCredit, operatorCost)
+		}
+
+		if st.state.GetBalance(operator).Cmp(operatorCost) < 0 {
+			log.Error("st.state.GetBalance(operator).Cmp(operatorCost) < 0")
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, operator, st.state.GetBalance(operator), operatorCost)
+		}
+
+		if st.state.GetBalance(workAddress).Cmp(workCost) < 0 {
+			log.Error("st.state.GetBalance(workAddress).Cmp(workCost) < 0")
+			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From(), st.state.GetBalance(st.msg.From()), workCost)
+		}
+
 	} else {
 		if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
 			return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
@@ -238,13 +256,24 @@ func (st *StateTransition) buyGas() error {
 			return err
 		}
 
-		st.state.SubBalance(operator, mgval)
 		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return err
 		}
-		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Sub(lineOfCredit, mgval))
+
+		ratio, err := vm.GetRatio(st.evm, workAddress, gameContractAddress)
+		if err != nil {
+			log.Error("Failed to GetRatio", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+			return err
+		}
+
+		operatorCost := big.NewInt(0).Div(big.NewInt(0).Mul(mgval, ratio), big.NewInt(100))
+		workCost := big.NewInt(0).Sub(mgval, operatorCost)
+
+		st.state.SubBalance(operator, operatorCost)
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Sub(lineOfCredit, operatorCost))
+		st.state.SubBalance(workAddress, workCost)
 	} else {
 		st.state.SubBalance(st.msg.From(), mgval)
 	}
@@ -378,15 +407,25 @@ func (st *StateTransition) refundGas() {
 			return
 		}
 
-		st.state.AddBalance(operator, remaining)
-
 		lineOfCredit, err := vm.GetLineOfCredit(st.evm, workAddress, gameContractAddress)
 		if err != nil {
 			log.Error("Failed to GetLineOfCredit", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
 			return
 		}
 
-		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Add(lineOfCredit, remaining))
+		ratio, err := vm.GetRatio(st.evm, workAddress, gameContractAddress)
+		if err != nil {
+			log.Error("Failed to GetRatio", "to", st.to().Hex(), "err", err, "workAddress", workAddress, "gameContractAddress", gameContractAddress)
+			return
+		}
+
+		operatorRemaining := big.NewInt(0).Div(big.NewInt(0).Mul(remaining, ratio), big.NewInt(100))
+		workRemaining := big.NewInt(0).Sub(remaining, operatorRemaining)
+
+		st.state.AddBalance(operator, operatorRemaining)
+		vm.SetLineOfCredit(st.evm, workAddress, gameContractAddress, lineOfCredit.Add(lineOfCredit, operatorRemaining))
+
+		st.state.AddBalance(workAddress, workRemaining)
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}
