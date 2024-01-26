@@ -23,8 +23,8 @@ import (
 )
 
 // saves block average pack time (millisecond) to snapshot db.
-func StorageAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB, avgPackTime uint64) error {
-	if err := snapshotDB.Put(hash, AvgPackTimeKey, common.Uint64ToBytes(avgPackTime)); nil != err {
+func StorageAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB, avgPackTime float64) error {
+	if err := snapshotDB.Put(hash, AvgPackTimeKey, common.Float64ToBytes(avgPackTime)); nil != err {
 		log.Error("Failed to save block average pack time", "hash", hash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
 		return err
 	}
