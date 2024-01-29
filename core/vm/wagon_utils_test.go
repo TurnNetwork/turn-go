@@ -2,25 +2,26 @@ package vm
 
 import (
 	"hash/fnv"
+	"io/ioutil"
 	"testing"
 
 	"github.com/bubblenet/bubble/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
-//func TestReadWasmModule(t *testing.T) {
-//	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
-//	assert.Nil(t, err)
-//	module, err := ReadWasmModule(buf, true)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, module)
-//
-//	buf, err = ioutil.ReadFile("./testdata/bad.wasm")
-//	assert.Nil(t, err)
-//	module, err = ReadWasmModule(buf, true)
-//	assert.NotNil(t, err)
-//	assert.Nil(t, module)
-//}
+func TestReadWasmModule(t *testing.T) {
+	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
+	assert.Nil(t, err)
+	module, err := ReadWasmModule(buf, true)
+	assert.Nil(t, err)
+	assert.NotNil(t, module)
+
+	buf, err = ioutil.ReadFile("./testdata/bad.wasm")
+	assert.Nil(t, err)
+	module, err = ReadWasmModule(buf, true)
+	assert.NotNil(t, err)
+	assert.Nil(t, module)
+}
 
 func TestDecodeFuncAndParams(t *testing.T) {
 

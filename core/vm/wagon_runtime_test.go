@@ -9,8 +9,10 @@ import (
 	"hash/fnv"
 	"io/ioutil"
 	"math/big"
+	"strings"
 	"testing"
 
+	"github.com/bubblenet/bubble/common/hexutil"
 	"github.com/bubblenet/bubble/common/vm"
 	"github.com/bubblenet/bubble/x/gov"
 
@@ -25,6 +27,11 @@ import (
 	"github.com/bubblenet/bubble/common"
 	"github.com/bubblenet/bubble/common/mock"
 	"github.com/bubblenet/bubble/crypto"
+
+	"github.com/bubblenet/bubble/common/math"
+
+	"github.com/PlatONnetwork/wagon/exec"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -1388,25 +1395,25 @@ func (testContract) Address() common.Address {
 	return common.Address{}
 }
 
-//func newTestVM(evm *EVM) *exec.VM {
-//	code := "0x0061736d010000000108026000006000017f03030200010405017001010105030100020615037f01418088040b7f00418088040b7f004180080b072c04066d656d6f727902000b5f5f686561705f6261736503010a5f5f646174615f656e640302046d61696e00010a090202000b0400412a0b004d0b2e64656275675f696e666f3d0000000400000000000401000000000c0023000000000000004300000005000000040000000205000000040000005c000000010439000000036100000005040000100e2e64656275675f6d6163696e666f0000400d2e64656275675f616262726576011101250e1305030e10171b0e110112060000022e0011011206030e3a0b3b0b49133f190000032400030e3e0b0b0b000000005e0b2e64656275675f6c696e654e000000040037000000010101fb0e0d0001010101000000010000012f746d702f6275696c645f7664717864336f336f316c2e24000066696c652e630001000000000502050000001505030a3d020100010100700a2e64656275675f737472636c616e672076657273696f6e20382e302e3020287472756e6b2033343139363029002f746d702f6275696c645f7664717864336f336f316c2e242f66696c652e63002f746d702f6275696c645f7664717864336f336f316c2e24006d61696e00696e74000021046e616d65011a0200115f5f7761736d5f63616c6c5f63746f727301046d61696e"
-//	module, _ := ReadWasmModule(hexutil.MustDecode(code), false)
-//
-//	vm, _ := exec.NewVM(module.RawModule)
-//	vm.SetHostCtx(&VMContext{evm: evm, contract: NewContract(&testContract{}, &testContract{}, big.NewInt(0), initExternalGas)})
-//	return vm
-//}
-//
-//func TestExternalFunction(t *testing.T) {
-//	buf, err := ioutil.ReadFile("./testdata/external.wasm")
-//	assert.Nil(t, err)
-//	module, err := ReadWasmModule(buf, false)
-//	assert.Nil(t, err)
-//
-//	for i, c := range testCase {
-//		ExecCase(t, module, c, i)
-//	}
-//}
+func newTestVM(evm *EVM) *exec.VM {
+	code := "0x0061736d010000000108026000006000017f03030200010405017001010105030100020615037f01418088040b7f00418088040b7f004180080b072c04066d656d6f727902000b5f5f686561705f6261736503010a5f5f646174615f656e640302046d61696e00010a090202000b0400412a0b004d0b2e64656275675f696e666f3d0000000400000000000401000000000c0023000000000000004300000005000000040000000205000000040000005c000000010439000000036100000005040000100e2e64656275675f6d6163696e666f0000400d2e64656275675f616262726576011101250e1305030e10171b0e110112060000022e0011011206030e3a0b3b0b49133f190000032400030e3e0b0b0b000000005e0b2e64656275675f6c696e654e000000040037000000010101fb0e0d0001010101000000010000012f746d702f6275696c645f7664717864336f336f316c2e24000066696c652e630001000000000502050000001505030a3d020100010100700a2e64656275675f737472636c616e672076657273696f6e20382e302e3020287472756e6b2033343139363029002f746d702f6275696c645f7664717864336f336f316c2e242f66696c652e63002f746d702f6275696c645f7664717864336f336f316c2e24006d61696e00696e74000021046e616d65011a0200115f5f7761736d5f63616c6c5f63746f727301046d61696e"
+	module, _ := ReadWasmModule(hexutil.MustDecode(code), false)
+
+	vm, _ := exec.NewVM(module.RawModule)
+	vm.SetHostCtx(&VMContext{evm: evm, contract: NewContract(&testContract{}, &testContract{}, big.NewInt(0), initExternalGas)})
+	return vm
+}
+
+func TestExternalFunction(t *testing.T) {
+	buf, err := ioutil.ReadFile("./testdata/external.wasm")
+	assert.Nil(t, err)
+	module, err := ReadWasmModule(buf, false)
+	assert.Nil(t, err)
+
+	for i, c := range testCase {
+		ExecCase(t, module, c, i)
+	}
+}
 
 type Case struct {
 	ctx      *VMContext
@@ -1416,68 +1423,68 @@ type Case struct {
 	stateDb  StateDB
 }
 
-//func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
-//
-//	if c.ctx.contract == nil {
-//		c.ctx.contract = &Contract{
-//			Gas: math.MaxUint64,
-//		}
-//	} else {
-//		if c.ctx.contract.Gas == 0 {
-//			c.ctx.contract.Gas = math.MaxUint64
-//		}
-//	}
-//
-//	if c.init != nil {
-//		c.init(c, t)
-//	}
-//
-//	var (
-//		snapshot    int
-//		canRevert   bool = false
-//		mockStateDb *mock.MockStateDB
-//	)
-//	if nil != c.ctx && nil != c.ctx.evm && nil != c.ctx.evm.StateDB {
-//		if state, ok := c.ctx.evm.StateDB.(*mock.MockStateDB); ok {
-//			canRevert = true
-//			mockStateDb = state
-//			snapshot = state.Snapshot()
-//
-//			stateTemp := &mock.MockStateDB{}
-//			stateTemp.DeepCopy(state)
-//			c.stateDb = stateTemp
-//		}
-//	}
-//
-//	vm, err := exec.NewVMWithCompiled(module, 1024*1024)
-//	assert.Nil(t, err)
-//
-//	vm.SetHostCtx(c.ctx)
-//
-//	entry, ok := module.RawModule.Export.Entries[c.funcName]
-//
-//	assert.True(t, ok, c.funcName)
-//
-//	index := int64(entry.Index)
-//	vm.RecoverPanic = true
-//
-//	_, err = vm.ExecCode(index)
-//
-//	if c.funcName == "bub_panic_test" {
-//		assert.NotNil(t, err)
-//	} else if strings.Contains(c.funcName, "_error_test") {
-//		assert.NotNil(t, err)
-//		if canRevert {
-//			mockStateDb.RevertToSnapshot(snapshot)
-//		}
-//	} else {
-//		if !assert.Nil(t, err) {
-//			t.Log("funcName:", c.funcName)
-//		}
-//	}
-//
-//	assert.True(t, c.check(c, err), "test failed "+c.funcName)
-//}
+func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
+
+	if c.ctx.contract == nil {
+		c.ctx.contract = &Contract{
+			Gas: math.MaxUint64,
+		}
+	} else {
+		if c.ctx.contract.Gas == 0 {
+			c.ctx.contract.Gas = math.MaxUint64
+		}
+	}
+
+	if c.init != nil {
+		c.init(c, t)
+	}
+
+	var (
+		snapshot    int
+		canRevert   bool = false
+		mockStateDb *mock.MockStateDB
+	)
+	if nil != c.ctx && nil != c.ctx.evm && nil != c.ctx.evm.StateDB {
+		if state, ok := c.ctx.evm.StateDB.(*mock.MockStateDB); ok {
+			canRevert = true
+			mockStateDb = state
+			snapshot = state.Snapshot()
+
+			stateTemp := &mock.MockStateDB{}
+			stateTemp.DeepCopy(state)
+			c.stateDb = stateTemp
+		}
+	}
+
+	vm, err := exec.NewVMWithCompiled(module, 1024*1024)
+	assert.Nil(t, err)
+
+	vm.SetHostCtx(c.ctx)
+
+	entry, ok := module.RawModule.Export.Entries[c.funcName]
+
+	assert.True(t, ok, c.funcName)
+
+	index := int64(entry.Index)
+	vm.RecoverPanic = true
+
+	_, err = vm.ExecCode(index)
+
+	if c.funcName == "bub_panic_test" {
+		assert.NotNil(t, err)
+	} else if strings.Contains(c.funcName, "_error_test") {
+		assert.NotNil(t, err)
+		if canRevert {
+			mockStateDb.RevertToSnapshot(snapshot)
+		}
+	} else {
+		if !assert.Nil(t, err) {
+			t.Log("funcName:", c.funcName)
+		}
+	}
+
+	assert.True(t, c.check(c, err), "test failed "+c.funcName)
+}
 
 func readContractCode() []byte {
 	buf, err := ioutil.ReadFile("./testdata/contract_hello.wasm")
@@ -1588,38 +1595,38 @@ func checkContractRet(ret []byte) bool {
 	return true
 }
 
-//func TestGetBlockHash(t *testing.T) {
-//
-//	testBlockHash := common.BytesToHash([]byte{1, 2, 3, 4})
-//	newProc := func(blockNumber int64) *exec.Process {
-//		return exec.NewProcess(newTestVM(&EVM{
-//			Context: BlockContext{
-//				GetHash: func(u uint64) common.Hash {
-//					return testBlockHash
-//				},
-//				BlockNumber: big.NewInt(blockNumber),
-//			},
-//		}))
-//	}
-//
-//	type TestCase struct {
-//		blockNumber int64
-//		getNumber   uint64
-//		expect      common.Hash
-//	}
-//	cases := []TestCase{
-//		{1, 123, common.Hash{}},
-//		{123, 123, common.Hash{}},
-//		{123, 122, testBlockHash},
-//		{1024, 122, common.Hash{}},
-//		{1024, 1024 - 256, testBlockHash},
-//	}
-//	for _, c := range cases {
-//		proc := newProc(c.blockNumber)
-//		BlockHash(proc, c.getNumber, 1024)
-//		res := common.Hash{}
-//		proc.ReadAt(res[:], 1024)
-//		assert.Equal(t, c.expect, res)
-//		assert.Equal(t, initExternalGas-GasExtStep, proc.HostCtx().(*VMContext).contract.Gas)
-//	}
-//}
+func TestGetBlockHash(t *testing.T) {
+
+	testBlockHash := common.BytesToHash([]byte{1, 2, 3, 4})
+	newProc := func(blockNumber int64) *exec.Process {
+		return exec.NewProcess(newTestVM(&EVM{
+			Context: BlockContext{
+				GetHash: func(u uint64) common.Hash {
+					return testBlockHash
+				},
+				BlockNumber: big.NewInt(blockNumber),
+			},
+		}))
+	}
+
+	type TestCase struct {
+		blockNumber int64
+		getNumber   uint64
+		expect      common.Hash
+	}
+	cases := []TestCase{
+		{1, 123, common.Hash{}},
+		{123, 123, common.Hash{}},
+		{123, 122, testBlockHash},
+		{1024, 122, common.Hash{}},
+		{1024, 1024 - 256, testBlockHash},
+	}
+	for _, c := range cases {
+		proc := newProc(c.blockNumber)
+		BlockHash(proc, c.getNumber, 1024)
+		res := common.Hash{}
+		proc.ReadAt(res[:], 1024)
+		assert.Equal(t, c.expect, res)
+		assert.Equal(t, initExternalGas-GasExtStep, proc.HostCtx().(*VMContext).contract.Gas)
+	}
+}
