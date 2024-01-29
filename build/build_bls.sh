@@ -10,7 +10,7 @@ BLS_ROOT=$BUBBLE_ROOT/crypto/bls
 
 if [ "`ls $BLS_ROOT/bls_win`" = "" ]; then
     # pull bls
-    git submodule update --init --recursive
+    git submodule update --init
 fi
 
 if [ `expr substr $(uname -s) 1 5` == "MINGW" ]; then
@@ -48,8 +48,8 @@ rm -rf $BLS_ROOT/bls_linux_darwin/src/bls/ffi
 cp $BLS_ROOT/bls_linux_darwin/src/bls/lib/*.a $BLS_ROOT/bls_linux_darwin/lib/
 
 # copy mcl header and lib files to destination directory
-cd $BLS_ROOT/bls_linux_darwin/src/bls/mcl
+cd $BLS_ROOT/bls_linux_darwin/src/mcl
 rm -rf ffi
-cp -r $BLS_ROOT/bls_linux_darwin/src/bls/mcl/include/mcl $BLS_ROOT/bls_linux_darwin/include/
-cp -r /$BLS_ROOT/bls_linux_darwin/src/bls/mcl/include/cybozu $BLS_ROOT/bls_linux_darwin/include/
-cp $BLS_ROOT/bls_linux_darwin/src/bls/mcl/lib/*.a $BLS_ROOT/bls_linux_darwin/lib/
+cp -r $BLS_ROOT/bls_linux_darwin/src/mcl/include/mcl $BLS_ROOT/bls_linux_darwin/include/
+cp -r /$BLS_ROOT/bls_linux_darwin/src/mcl/include/cybozu $BLS_ROOT/bls_linux_darwin/include/
+cp $BLS_ROOT/bls_linux_darwin/src/mcl/lib/*.a $BLS_ROOT/bls_linux_darwin/lib/
