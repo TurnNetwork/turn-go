@@ -1,3 +1,7 @@
+[submodule "crypto/bls/bls_linux_darwin/src/mcl"]
+	path = crypto/bls/bls_linux_darwin/src/mcl
+    url = https://github.com/herumi/mcl.git
+    ignore = dirty
 [submodule "crypto/bls/bls_linux_darwin/src/bls"]
 	path = crypto/bls/bls_linux_darwin/src/bls
 	url = https://github.com/herumi/bls.git
