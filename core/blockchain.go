@@ -1726,6 +1726,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	// Process block using the parent state as reference point.
 	start := time.Now()
 	receipts, _, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+	log.Info("ProcessDirectly info", "usedGas", usedGas)
 	if err != nil {
 		log.Error("Failed to ProcessDirectly", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 		bc.reportBlock(block, receipts, err)

@@ -35,6 +35,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 
+	log.Info("go to ParallelStateProcessor")
 	if bcr != nil {
 		// BeginBlocker()
 		if err := bcr.BeginBlocker(header, statedb); nil != err {
@@ -44,12 +45,22 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		}
 	}
 
+	txs := block.Transactions()
+	var hashes []common.Hash
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash())
+	}
+	log.Info("parallel processor block", "blockNumber", block.Number, "gasUsed", block.GasUsed(), "txCount", len(block.Transactions()), "txs", hashes)
+
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		tempContractCache := make(map[common.Address]struct{})
 		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().MakeSigner(statedb), tempContractCache)
 		ctx.SetBlockGasUsedHolder(usedGas)
+
+		log.Info("Block Gas Used Holder", "Holder", ctx.blockGasUsedHolder)
+
 		ctx.SetTxList(block.Transactions())
 
 		//wait tx from cal done

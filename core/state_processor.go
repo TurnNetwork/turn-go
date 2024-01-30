@@ -67,6 +67,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs  []*types.Log
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
+	log.Info("go to StateProcessor")
 	blockContext := NewEVMBlockContext(header, p.bc)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, p.config, cfg)
 	if bcr != nil {
