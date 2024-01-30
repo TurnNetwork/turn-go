@@ -221,6 +221,9 @@ func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 				//reset receipt.CumulativeGasUsed
 				receipt.CumulativeGasUsed = ctx.GetBlockGasUsed()
 
+				log.Info("Parallel transaction receipt", "blockNumber", receipt.BlockNumber, "txHash", receipt.TxHash, "GasUsed", receipt.GasUsed,
+					"CumulativeGasUsed", receipt.CumulativeGasUsed)
+
 				ctx.AddReceipt(resultList[idx].receipt)
 
 				ctx.AddPackedTx(ctx.GetTx(idx))

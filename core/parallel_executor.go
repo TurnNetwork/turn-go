@@ -97,6 +97,9 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 			}
 
 			if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
+
+				log.Info("execute Contract Transaction", "parallelTxIdxs", len(parallelTxIdxs), "isContract", txDag.IsContract(parallelTxIdxs[0]))
+
 				exe.executeContractTransaction(ctx, parallelTxIdxs[0])
 			} else {
 				for _, originIdx := range parallelTxIdxs {
@@ -120,6 +123,8 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						continue
 					}
 					tx.SetIntrinsicGas(intrinsicGas)
+					log.Info("start execute transaction", "intrinsicGas", intrinsicGas)
+
 					if err := ctx.gp.SubGas(intrinsicGas); err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue
@@ -234,7 +239,7 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	ctx.AddPackedTx(tx)
 	ctx.GetState().IncreaseTxIdx()
 	ctx.AddReceipt(receipt)
-	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
+	log.Info("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }
 
 func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx *ParallelContext) bool {
