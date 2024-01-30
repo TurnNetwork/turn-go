@@ -25,6 +25,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/bubblenet/bubble/x/bubble"
+
 	"github.com/bubblenet/bubble/x/token"
 
 	"github.com/bubblenet/bubble/common"
@@ -50,12 +52,13 @@ type BlockChainReactor struct {
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	settleTaskSub *event.TypeMuxSubscription // Settlement task subscription
-	basePluginMap map[int]plugin.BasePlugin  // xxPlugin container
-	beginRule     []int                      // Order rules for xxPlugins called in BeginBlocker
-	endRule       []int                      // Order rules for xxPlugins called in EndBlocker
-	validatorMode string                     // mode: static, inner, dpos
-	NodeId        discover.NodeID            // The nodeId of current node
-	exitCh        chan chan struct{}         // Used to receive an exit signal
+	remoteCallSub *event.TypeMuxSubscription
+	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
+	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
+	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
+	validatorMode string                    // mode: static, inner, dpos
+	NodeId        discover.NodeID           // The nodeId of current node
+	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
 }
@@ -84,6 +87,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 		bcr.settleTaskSub = bcr.eventMux.Subscribe(token.SettleTask{})
+		bcr.remoteCallSub = bcr.eventMux.Subscribe(bubble.RemoteCallTask{})
 		// start the loop rutine
 		go bcr.loop()
 		go bcr.handleTask()
@@ -156,6 +160,23 @@ func (bcr *BlockChainReactor) handleTask() {
 				continue
 			}
 			log.Info("The processing and settlement task succeeded, tx hash:", common.BytesToHash(hash).Hex())
+		case msg := <-bcr.remoteCallSub.Chan():
+			if msg == nil {
+				continue
+			}
+			task, ok := msg.Data.(bubble.RemoteCallTask)
+			if !ok {
+				log.Error("blockchain_reactor failed to receive remoteCall task", "msg", msg.Data)
+				continue
+			}
+			// handle task
+			hash, err := plugin.BubbleInstance().HandleRemoteCallTask(&task)
+			if err != nil {
+				log.Error("blockchain_reactor failed to process RemoteCall task", "err", err.Error())
+				continue
+			}
+			log.Info("The processing and RemoteCall task succeeded", "bubbleID", task.BubbleID, "Contract", task.Contract,
+				"txHash", task.TxHash, "remoteTxHash", common.BytesToHash(hash).Hex())
 		}
 	}
 }
@@ -197,6 +218,7 @@ func (bcr *BlockChainReactor) RegisterPlugin(pluginRule int, plugin plugin.BaseP
 func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
 	plugin.TokenInstance().SetEventMux(bcr.eventMux)
+	plugin.BubbleInstance().SetEventMux(bcr.eventMux)
 }
 
 func (bcr *BlockChainReactor) setValidatorMode(mode string) {
@@ -375,6 +397,9 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 	switch to {
 	case cvm.TokenContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.TokenContractAddr]
+		contract = c.(vm.BubblePrecompiledContract)
+	case cvm.BubbleContractAddr:
+		c := vm.BubblePrecompiledContracts[cvm.BubbleContractAddr]
 		contract = c.(vm.BubblePrecompiledContract)
 	case cvm.TempPrivateKeyContractAddr:
 		c := vm.BubblePrecompiledContracts[cvm.TempPrivateKeyContractAddr]

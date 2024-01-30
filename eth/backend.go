@@ -882,6 +882,8 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	}
 	reactor.RegisterPlugin(xcom.TokenRule, xplugin.TokenInstance())
 
+	reactor.RegisterPlugin(xcom.BubbleRule, xplugin.BubbleInstance())
+
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
@@ -890,6 +892,9 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
+
+	xplugin.BubbleInstance().SetChainDB(chainDB)
+	// xplugin.BubbleInstance().SetChainConfig(config)
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule, xcom.TokenRule})
