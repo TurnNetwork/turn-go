@@ -356,6 +356,13 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 			return nil, err
 		}
 
+		if canBase == nil {
+			log.Debug("canBase is nil on CreateBubble")
+		} else {
+			log.Debug("canBase is not nil on CreateBubble")
+			log.Debug("canBase info on CreateBubble", "nodeId", canBase.NodeId.String(), "RPC", canBase.RPCURI, "OpAddr", canBase.StakingAddress)
+		}
+
 		operator := &bubble.Operator{
 			NodeId: canBase.NodeId,
 			RPC:    canBase.RPCURI,
