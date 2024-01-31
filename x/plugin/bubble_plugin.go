@@ -335,14 +335,26 @@ func (bp *BubblePlugin) CreateBubble(blockHash common.Hash, blockNumber *big.Int
 	if err != nil {
 		return nil, err
 	}
+
+	var nodeIds []discover.NodeID
+	for _, node := range candidateL2 {
+		nodeIds = append(nodeIds, node.NodeId)
+	}
+	log.Info("ElectOperatorL2 on CreateBubble", "nodeIds", nodeIds)
+
 	var OperatorsL2 []*bubble.Operator
 	for _, can := range candidateL2 {
 		// RPCURI is updating
 		canAddr, err := xutil.NodeId2Addr(can.NodeId)
 		if err != nil {
+			log.Debug("NodeId2Addr on CreateBubble", "canAddr", canAddr)
 			return nil, err
 		}
 		canBase, err := bp.stk2Plugin.GetCanBase(blockHash, canAddr)
+		if err != nil {
+			log.Debug("GetCanBase on CreateBubble", "canAddr", canAddr)
+			return nil, err
+		}
 
 		operator := &bubble.Operator{
 			NodeId: canBase.NodeId,
