@@ -115,7 +115,7 @@ func (bp *BubblePlugin) EndBlock(blockHash common.Hash, header *types.Header, st
 			if err != nil {
 				log.Error("Failed to release bubble on BubblePlugin EndBlock",
 					"blockNumber", curBlock, "blockHash", blockHash.Hex(), "bubble", status.BubbleId, "err", err.Error())
-				return err
+				//return err
 			}
 		}
 	}
