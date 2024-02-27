@@ -448,7 +448,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 }
 
 func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing.T) {
-	p := PrecompiledContracts[common.HexToAddress(addr)]
+	p := PrecompiledContractsByzantium[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	contract := NewContract(AccountRef(common.HexToAddress("31337")),
 		nil, new(big.Int), p.RequiredGas(in))

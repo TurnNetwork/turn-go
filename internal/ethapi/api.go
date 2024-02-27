@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	"github.com/bubblenet/bubble/p2p/enode"
 	"math/big"
 	"net"
@@ -2047,7 +2046,7 @@ func (s *PublicNetAPI) AvailablePorts(bubbleID hexutil.Big, portNum int, sig hex
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("public key:%s\n", discover.PubkeyID(rpk).String())
+	fmt.Printf("public key:%s\n", enode.PublicKeyToIDv0(rpk).String())
 
 	// get bubble info
 	basics, err := s.plugin.GetBasicsInfo(common.ZeroHash, bubbleID.ToInt())
