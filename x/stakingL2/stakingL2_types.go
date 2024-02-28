@@ -228,7 +228,7 @@ type MarshalAbleCandidate struct {
 func (can *MarshalAbleCandidate) String() string {
 	return fmt.Sprintf(`{"NodeId": "%s","Name": "%s","Status": %d,"Version": %d,"ElectronURI": "%s","P2PURI": "%s",
 							"IsOperator": "%t","StakingAddress": "%s","BenefitAddress": "%s","StakingEpoch": %d,"StakingBlockNum": %d,
-							"StakingTxIndex": %d,"Shares": %d,"PendingShares": %d,"LockedShares": %d,"BlsPubKey": "%s","Detail": "%s"}`,
+							"StakingTxIndex": %d,"Shares": %s,"PendingShares": %s,"LockedShares": %s,"BlsPubKey": "%s","Detail": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		can.Name,
 		can.Status,
@@ -241,9 +241,9 @@ func (can *MarshalAbleCandidate) String() string {
 		can.StakingEpoch,
 		can.StakingBlockNum,
 		can.StakingTxIndex,
-		can.Shares,
-		can.PendingShares,
-		can.LockedShares,
+		can.Shares.String(),
+		can.PendingShares.String(),
+		can.LockedShares.String(),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		can.Detail,
 	)

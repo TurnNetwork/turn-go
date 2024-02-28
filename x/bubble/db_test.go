@@ -190,7 +190,7 @@ func TestBubbleDB_StoreStateInfo_GetStateInfo(t *testing.T) {
 	}
 	assert.True(t, nil == err)
 	assert.True(t, nil != state)
-	assert.Equal(t, *state, ActiveState, "Query Bubble State error")
+	assert.Equal(t, state.State, ActiveState, "Query Bubble State error")
 }
 
 func TestBubbleDB_StoreAccListOfBub_GetAccListOfBub(t *testing.T) {
